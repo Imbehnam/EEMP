@@ -1,0 +1,22 @@
+# Glossary
+
+- Platform: SaaS operator and shared product infrastructure.
+- Tenant: customer data/security boundary and commercial account; exact definition is an open decision.
+- Central Office: tenant-level administrative organization coordinating institutes/branches.
+- Institute: education organization or school entity.
+- Branch: physical/operational unit under an institute or central office.
+- Student: learner profile linked to a user account where applicable.
+- Guardian: person with an explicitly recorded relationship and authority for a student.
+- Course: curriculum or learning product definition.
+- Class Group: scheduled delivery group for a specific academic period.
+- Enrollment: student's formal participation in a course/class/term.
+- Report Card: approved, versioned academic summary.
+- Workflow: configurable process definition and runtime instance.
+- Consultation: scheduled support/counseling appointment.
+- Academic Plan: versioned plan with goals, tasks, and follow-up.
+- Referral: controlled data disclosure from one institute to another.
+- Invoice: request for payment; distinct from payment settlement.
+- Payment Intent: server-created request to collect a specific amount/currency.
+- Entitlement: plan- or policy-derived permission to use a product feature/quota.
+- Locale: language plus regional formatting convention.
+- Timezone: IANA zone defining local clock rules.
