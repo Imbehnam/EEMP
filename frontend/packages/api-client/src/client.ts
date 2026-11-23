@@ -1,0 +1,105 @@
+import { ApiError, ErrorCodes, toApiError } from './problem';
+
+export type HttpMethod = 'GET' | 'POST' | 'PUT' | 'DELETE' | 'PATCH';
+export type QueryValue = string | number | boolean | null | undefined;
+
+export interface RequestOptions {
+  query?: Record<string, QueryValue>;
+  body?: unknown;
+  signal?: AbortSignal;
+  headers?: Record<string, string>;
+}
+
+export interface ApiClientOptions {
+  /** e.g. "/api/bff" in the browser (BFF) or "http://api:8080/api/v1" on the server. */
+  baseUrl: string;
+  fetch?: typeof fetch;
+  /** Extra headers per request (Accept-Language, Authorization, X-CSRF-Token, ...). */
+  headers?: (method: HttpMethod) => Record<string, string> | Promise<Record<string, string>>;
+  /**
+   * Called once when a request returns 401. Resolve true after a successful token refresh
+   * to retry the request one time; false to surface the 401.
+   */
+  onUnauthorized?: () => Promise<boolean>;
+  /** Generates the X-Correlation-Id for each request. */
+  correlationId?: () => string;
+}
+
+export interface ApiClient {
+  request<T>(method: HttpMethod, path: string, options?: RequestOptions): Promise<T>;
+  get<T>(path: string, options?: Omit<RequestOptions, 'body'>): Promise<T>;
+  post<T>(path: string, body?: unknown, options?: RequestOptions): Promise<T>;
+  put<T>(path: string, body?: unknown, options?: RequestOptions): Promise<T>;
+  delete<T = void>(path: string, options?: RequestOptions): Promise<T>;
+}
+
+export function buildUrl(baseUrl: string, path: string, query?: Record<string, QueryValue>): string {
+  const base = baseUrl.replace(/\/+$/, '');
+  const suffix = path.startsWith('/') ? path : `/${path}`;
+  const params = new URLSearchParams();
+  if (query) {
+    for (const [key, value] of Object.entries(query)) {
+      if (value === undefined || value === null || value === '') continue;
+      params.set(key, String(value));
+    }
+  }
+  const qs = params.toString();
+  return `${base}${suffix}${qs ? `?${qs}` : ''}`;
+}
+
+function defaultCorrelationId(): string {
+  return globalThis.crypto?.randomUUID?.() ?? `${Date.now()}-${Math.random().toString(16).slice(2)}`;
+}
+
+export function createApiClient(options: ApiClientOptions): ApiClient {
+  const doFetch = options.fetch ?? ((input, init) => globalThis.fetch(input, init));
+  const correlationId = options.correlationId ?? defaultCorrelationId;
+
+  async function send(method: HttpMethod, path: string, opts: RequestOptions): Promise<Response> {
+    const extra = (await options.headers?.(method)) ?? {};
+    const headers: Record<string, string> = {
+      Accept: 'application/json, application/problem+json',
+      'X-Correlation-Id': correlationId(),
+      ...extra,
+      ...opts.headers,
+    };
+    let body: BodyInit | undefined;
+    if (opts.body !== undefined) {
+      headers['Content-Type'] = 'application/json';
+      body = JSON.stringify(opts.body);
+    }
+    try {
+      return await doFetch(buildUrl(options.baseUrl, path, opts.query), {
+        method,
+        headers,
+        body,
+        signal: opts.signal,
+        credentials: 'same-origin',
+        cache: 'no-store',
+      });
+    } catch (error) {
+      if ((error as { name?: string })?.name === 'AbortError') throw error;
+      throw new ApiError(0, { code: ErrorCodes.network });
+    }
+  }
+
+  async function request<T>(method: HttpMethod, path: string, opts: RequestOptions = {}): Promise<T> {
+    let response = await send(method, path, opts);
+    if (response.status === 401 && options.onUnauthorized) {
+      const refreshed = await options.onUnauthorized();
+      if (refreshed) response = await send(method, path, opts);
+    }
+    if (!response.ok) throw await toApiError(response);
+    if (response.status === 204) return undefined as T;
+    const text = await response.text();
+    return (text ? JSON.parse(text) : undefined) as T;
+  }
+
+  return {
+    request,
+    get: (path, opts) => request('GET', path, opts),
+    post: (path, body, opts) => request('POST', path, { ...opts, body }),
+    put: (path, body, opts) => request('PUT', path, { ...opts, body }),
+    delete: (path, opts) => request('DELETE', path, opts),
+  };
+}

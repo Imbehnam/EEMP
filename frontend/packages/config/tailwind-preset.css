@@ -1,0 +1,27 @@
+/*
+ * EEMP Tailwind v4 preset. Import after `@import "tailwindcss";`.
+ * Maps Tailwind theme tokens to the design-token CSS variables defined in @eemp/ui/styles.css,
+ * so utilities (bg-surface, text-muted, rounded-md, ...) follow light/dark automatically.
+ * Use logical utilities (ms-*, me-*, ps-*, pe-*, start-*, end-*, text-start) for RTL safety.
+ */
+@custom-variant dark (&:where([data-theme="dark"], [data-theme="dark"] *));
+
+@theme inline {
+  --font-sans: var(--eemp-font-sans);
+  --color-bg: var(--eemp-color-bg);
+  --color-surface: var(--eemp-color-surface);
+  --color-surface-muted: var(--eemp-color-surface-muted);
+  --color-border: var(--eemp-color-border);
+  --color-fg: var(--eemp-color-fg);
+  --color-muted: var(--eemp-color-fg-muted);
+  --color-primary: var(--eemp-color-primary);
+  --color-primary-fg: var(--eemp-color-primary-fg);
+  --color-danger: var(--eemp-color-danger);
+  --color-success: var(--eemp-color-success);
+  --color-warning: var(--eemp-color-warning);
+  --color-info: var(--eemp-color-info);
+  --radius-sm: var(--eemp-radius-sm);
+  --radius-md: var(--eemp-radius-md);
+  --radius-lg: var(--eemp-radius-lg);
+  --shadow-card: var(--eemp-shadow-card);
+}
