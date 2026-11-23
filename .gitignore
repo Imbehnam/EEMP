@@ -1,0 +1,23 @@
+# build output
+bin/
+obj/
+TestResults/
+*.user
+.vs/
+# node / next
+node_modules/
+.next/
+out/
+coverage/
+# local environment and secrets (never commit)
+.env
+.env.*
+!.env.example
+*.pfx
+*.key
+secrets/
+appsettings.*.local.json
+# OS / editor
+.DS_Store
+Thumbs.db
+.idea/

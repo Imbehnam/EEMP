@@ -38,6 +38,15 @@
 - Decision: Only EEMP-002 (repository, CI, local environment) is authorized. EEMP-003..005 remain blocked on OD-002, OD-004, OD-023, OD-029 and Q-1..Q-5. Stop for user verification after EEMP-002.
 - Owner: Product owner.
 
+### DL-047 — Backend runtime version
+- Date: 2026-11-12
+- Status: Approved (selected within the authorized EEMP-002 scope; product owner may amend)
+- Context: TECHNOLOGY_STACK.md says to use a supported LTS selected at implementation start. Microsoft release index checked on 2026-11-12: 10.0 is LTS, active, latest SDK 10.0.404, EOL 2028-11-14; 8.0 and 9.0 reached EOL on 2026-11-10; 11.0 is STS.
+- Decision: .NET 10 LTS. SDK pinned in `global.json`; installed locally at `~/.dotnet` (user-level, 10.0.404, runtime 10.0.15) via Microsoft's official `dotnet-install.sh`.
+- Alternatives: .NET 8 LTS and 9 STS (end of life); .NET 11 STS (short support).
+- Consequences: Package versions are managed centrally and must be re-reviewed against advisories at each upgrade.
+- Owner: Implementing agent, pending product-owner confirmation.
+
 ## Proposed, not yet approved
 - Shared database with TenantId and SQL Server RLS defense-in-depth (engine approved in DL-045; tenancy model awaits OD-002/OD-004).
 - Provider adapters for payments, SMS, video, storage.
