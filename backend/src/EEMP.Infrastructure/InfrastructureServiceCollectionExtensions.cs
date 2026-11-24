@@ -78,9 +78,11 @@ public static class InfrastructureServiceCollectionExtensions
     }
 
     /// <summary>Pipeline pieces that must run before authentication.</summary>
-    public static IApplicationBuilder UseEempRequestPipeline(this IApplicationBuilder app)
+    public static IApplicationBuilder UseEempRequestPipeline(this IApplicationBuilder app, Action<IApplicationBuilder>? requestLogging = null)
     {
         app.UseMiddleware<CorrelationIdMiddleware>();
+        // Request logging sits outside the exception handler so it records the final (mapped) status code.
+        requestLogging?.Invoke(app);
         app.UseRequestLocalization();
         app.UseExceptionHandler();
         app.UseStatusCodePages(async ctx =>

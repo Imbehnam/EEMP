@@ -6,6 +6,7 @@ public enum Gender
 {
     Male,
     Female,
+    Other,
 }
 
 public enum PersonStatus

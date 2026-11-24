@@ -2,7 +2,6 @@ using System.Text.RegularExpressions;
 using EEMP.Modules.Identity.Domain;
 using EEMP.SharedKernel.Authorization;
 using EEMP.SharedKernel.Errors;
-using EEMP.SharedKernel.Paging;
 using EEMP.SharedKernel.Validation;
 using Microsoft.EntityFrameworkCore;
 
@@ -13,14 +12,14 @@ public sealed partial class RoleService(IIdentityDbContext db, IAccessControl ac
     public static IReadOnlyList<PermissionDto> Catalog() =>
         Permissions.All.Select(p => new PermissionDto(p.Code, p.Module, p.IsSensitive, p.BranchScoped)).ToList();
 
-    public async Task<PagedResult<RoleDto>> ListAsync(PageRequest page, CancellationToken ct)
+    /// <summary>Roles are few per tenant, so the list is a plain array (contract clarification 2026-11-24).</summary>
+    public async Task<IReadOnlyList<RoleDto>> ListAsync(string? search, CancellationToken ct)
     {
         await access.EnsureTenantWideAsync(Permissions.RolesRead, ct);
         var q = db.Roles.AsNoTracking().Include(r => r.Permissions).AsQueryable();
-        if (page.Search is { } s) q = q.Where(r => r.Name.Contains(s) || r.Code.Contains(s));
-        var total = await q.CountAsync(ct);
-        var items = await q.OrderByDescending(r => r.IsSystem).ThenBy(r => r.Name).Skip(page.Skip).Take(page.PageSize).ToListAsync(ct);
-        return new PagedResult<RoleDto>(items.Select(ToDto).ToList(), page.Page, page.PageSize, total);
+        if (!string.IsNullOrWhiteSpace(search)) { var s = search.Trim(); q = q.Where(r => r.Name.Contains(s) || r.Code.Contains(s)); }
+        var items = await q.OrderByDescending(r => r.IsSystem).ThenBy(r => r.Name).ToListAsync(ct);
+        return items.Select(ToDto).ToList();
     }
 
     public async Task<RoleDto> GetAsync(Guid id, CancellationToken ct)

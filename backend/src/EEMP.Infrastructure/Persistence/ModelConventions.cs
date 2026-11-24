@@ -1,6 +1,7 @@
 using System.Linq.Expressions;
 using EEMP.SharedKernel.Domain;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 namespace EEMP.Infrastructure.Persistence;
 
@@ -10,8 +11,16 @@ namespace EEMP.Infrastructure.Persistence;
 /// </summary>
 public static class ModelConventions
 {
+    private static readonly ValueConverter<DateTime, DateTime> UtcConverter =
+        new(v => v.Kind == DateTimeKind.Utc ? v : v.ToUniversalTime(), v => DateTime.SpecifyKind(v, DateTimeKind.Utc));
+
     public static void Apply(ModelBuilder modelBuilder, DbContext context)
     {
+        // Persisted instants are UTC; values read back are marked Kind=Utc so they serialize with a 'Z' suffix.
+        foreach (var property in modelBuilder.Model.GetEntityTypes().SelectMany(t => t.GetProperties())
+                     .Where(p => p.ClrType == typeof(DateTime) || p.ClrType == typeof(DateTime?)))
+            property.SetValueConverter(UtcConverter);
+
         var isSqlite = context.Database.ProviderName?.Contains("Sqlite", StringComparison.OrdinalIgnoreCase) == true;
 
         foreach (var entityType in modelBuilder.Model.GetEntityTypes().Where(t => t.BaseType is null && !t.IsOwned()))

@@ -9,12 +9,18 @@ using Microsoft.EntityFrameworkCore;
 
 namespace EEMP.Modules.Identity.Infrastructure;
 
-public sealed class IdentityModuleDbContext(DbContextOptions<IdentityModuleDbContext> options, ITenantContext tenantContext)
-    : IdentityUserContext<AppUser, Guid>(options), IIdentityDbContext, ITenantFilteredContext
+public sealed class IdentityModuleDbContext : IdentityUserContext<AppUser, Guid>, IIdentityDbContext, ITenantFilteredContext
 {
     public const string SchemaName = "identity";
+    private readonly ITenantContext _tenantContext;
 
-    public Guid? CurrentTenantId => tenantContext.TenantId;
+    public IdentityModuleDbContext(DbContextOptions<IdentityModuleDbContext> options, ITenantContext tenantContext) : base(options)
+    {
+        _tenantContext = tenantContext;
+        TenantStamping.Attach(this, tenantContext);
+    }
+
+    public Guid? CurrentTenantId => _tenantContext.TenantId;
 
     public DbSet<Role> Roles => Set<Role>();
     public DbSet<RolePermission> RolePermissions => Set<RolePermission>();

@@ -1,3 +1,4 @@
+using System.Linq.Expressions;
 using System.Text.Json;
 using EEMP.Modules.Identity.Contracts;
 using EEMP.Modules.Organization.Contracts;
@@ -35,7 +36,7 @@ public sealed class PersonService<T>(IPeopleDbContext db, IAccessControl access,
     public IPeopleDbContext Db => db;
 
     public async Task<(List<T> Items, int Total)> ListAsync(PersonKind<T> kind, PageRequest page, Guid? branchId,
-        Func<IQueryable<T>, string, IQueryable<T>>? extraSearch, Func<IQueryable<T>, IQueryable<T>>? include, CancellationToken ct)
+        Func<string, Expression<Func<T, bool>>>? extraSearch, Func<IQueryable<T>, IQueryable<T>>? include, CancellationToken ct)
     {
         var scope = await access.GetBranchScopeAsync(kind.ReadPermission, ct);
         IQueryable<T> q = kind.Set(db).AsNoTracking();
@@ -47,8 +48,8 @@ public sealed class PersonService<T>(IPeopleDbContext db, IAccessControl access,
         if (branchId is { } b) q = q.Where(p => p.BranchId == b);
         if (page.Search is { } s)
         {
-            var baseQ = q.Where(p => p.FirstName.Contains(s) || p.LastName.Contains(s) || (p.NationalId != null && p.NationalId.Contains(s)));
-            q = extraSearch is null ? baseQ : baseQ.Union(extraSearch(q, s));
+            Expression<Func<T, bool>> basePredicate = p => p.FirstName.Contains(s) || p.LastName.Contains(s) || (p.NationalId != null && p.NationalId.Contains(s));
+            q = q.Where(extraSearch is null ? basePredicate : Or(basePredicate, extraSearch(s)));
         }
         var total = await q.CountAsync(ct);
         if (include is not null) q = include(q);
@@ -123,6 +124,17 @@ public sealed class PersonService<T>(IPeopleDbContext db, IAccessControl access,
         if (Enum.TryParse<TEnum>(value, ignoreCase: true, out var e) && Enum.IsDefined(e)) return e;
         v.Add(field, Validator.InvalidValue);
         return null;
+    }
+
+    private static Expression<Func<T, bool>> Or(Expression<Func<T, bool>> a, Expression<Func<T, bool>> b)
+    {
+        var body = new ReplaceParameter(b.Parameters[0], a.Parameters[0]).Visit(b.Body);
+        return Expression.Lambda<Func<T, bool>>(Expression.OrElse(a.Body, body), a.Parameters[0]);
+    }
+
+    private sealed class ReplaceParameter(ParameterExpression from, ParameterExpression to) : ExpressionVisitor
+    {
+        protected override Expression VisitParameter(ParameterExpression node) => node == from ? to : base.VisitParameter(node);
     }
 
     public static string? Clean(string? s) => string.IsNullOrWhiteSpace(s) ? null : s.Trim();

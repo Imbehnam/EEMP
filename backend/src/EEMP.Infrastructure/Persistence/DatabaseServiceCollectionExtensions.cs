@@ -42,6 +42,8 @@ public static class DatabaseServiceCollectionExtensions
                 break;
             case DatabaseProvider.Sqlite:
                 options.UseSqlite(db.ConnectionString);
+                // SQLite has no schemas; the per-module schema mapping is intentionally ignored in the test fallback.
+                options.ConfigureWarnings(w => w.Ignore(Microsoft.EntityFrameworkCore.Diagnostics.SqliteEventId.SchemaConfiguredWarning));
                 break;
             default:
                 throw new InvalidOperationException($"Unsupported provider {db.Provider}.");

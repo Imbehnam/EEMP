@@ -141,7 +141,7 @@ public static class IdentityModule
             .WithTags("Roles").RequirePermission(Permissions.RolesRead);
 
         var roles = api.MapGroup("/roles").WithTags("Roles");
-        roles.MapGet("/", async ([AsParameters] PagingQuery q, RoleService s, CancellationToken ct) => Results.Ok(await s.ListAsync(q.ToPageRequest(), ct)))
+        roles.MapGet("/", async (string? search, RoleService s, CancellationToken ct) => Results.Ok(await s.ListAsync(search, ct)))
             .RequirePermission(Permissions.RolesRead);
         roles.MapPost("/", async (CreateRoleRequest req, RoleService s, CancellationToken ct) =>
             {

@@ -4,10 +4,15 @@ using Microsoft.EntityFrameworkCore;
 namespace EEMP.Infrastructure.Persistence;
 
 /// <summary>Base for module DbContexts: one schema per module, central tenant filters and conventions.</summary>
-public abstract class ModuleDbContext(DbContextOptions options, ITenantContext tenantContext)
-    : DbContext(options), ITenantFilteredContext
+public abstract class ModuleDbContext : DbContext, ITenantFilteredContext
 {
-    protected ITenantContext TenantContext { get; } = tenantContext;
+    protected ModuleDbContext(DbContextOptions options, ITenantContext tenantContext) : base(options)
+    {
+        TenantContext = tenantContext;
+        TenantStamping.Attach(this, tenantContext);
+    }
+
+    protected ITenantContext TenantContext { get; }
 
     public Guid? CurrentTenantId => TenantContext.TenantId;
 

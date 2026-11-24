@@ -16,7 +16,7 @@ public sealed class StudentService(PersonService<Student> core, PersonService<Gu
 
     public async Task<PagedResult<StudentDto>> ListAsync(PageRequest page, Guid? branchId, CancellationToken ct)
     {
-        var (items, total) = await core.ListAsync(Kind, page, branchId, (q, s) => q.Where(x => x.StudentNumber.Contains(s)), WithGuardians, ct);
+        var (items, total) = await core.ListAsync(Kind, page, branchId, s => x => x.StudentNumber.Contains(s), WithGuardians, ct);
         return new PagedResult<StudentDto>(items.Select(ToDto).ToList(), page.Page, page.PageSize, total);
     }
 
@@ -154,7 +154,7 @@ public sealed class TeacherService(PersonService<Teacher> core)
 
     public async Task<PagedResult<TeacherDto>> ListAsync(PageRequest page, Guid? branchId, CancellationToken ct)
     {
-        var (items, total) = await core.ListAsync(Kind, page, branchId, (q, s) => q.Where(x => x.EmployeeNumber.Contains(s)), null, ct);
+        var (items, total) = await core.ListAsync(Kind, page, branchId, s => x => x.EmployeeNumber.Contains(s), null, ct);
         return new PagedResult<TeacherDto>(items.Select(ToDto).ToList(), page.Page, page.PageSize, total);
     }
 
@@ -202,7 +202,7 @@ public sealed class StaffService(PersonService<StaffMember> core)
 
     public async Task<PagedResult<StaffDto>> ListAsync(PageRequest page, Guid? branchId, CancellationToken ct)
     {
-        var (items, total) = await core.ListAsync(Kind, page, branchId, (q, s) => q.Where(x => x.EmployeeNumber.Contains(s)), null, ct);
+        var (items, total) = await core.ListAsync(Kind, page, branchId, s => x => x.EmployeeNumber.Contains(s), null, ct);
         return new PagedResult<StaffDto>(items.Select(ToDto).ToList(), page.Page, page.PageSize, total);
     }
 
