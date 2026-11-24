@@ -23,6 +23,7 @@
     "@eemp/config": "workspace:*",
     "next": "16.4.6",
     "react": "^19.2.0",
-    "react-dom": "^19.2.0"
+    "react-dom": "^19.2.0",
+    "@types/react": "^19.2.0"
   }
 }

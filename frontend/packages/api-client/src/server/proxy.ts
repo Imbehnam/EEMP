@@ -50,6 +50,8 @@ export function createAppProxy(options: AppProxyOptions) {
     // which makes the nonce available to server components via headers().
     request.headers.set('x-nonce', nonce);
     request.headers.set('content-security-policy', csp);
+    // Original path for server layouts (post-login / refresh return path). Never trusted for auth.
+    request.headers.set('x-eemp-pathname', `${request.nextUrl.pathname}${request.nextUrl.search}`);
 
     const { pathname, search } = request.nextUrl;
     const [, first = '', ...rest] = pathname.split('/');

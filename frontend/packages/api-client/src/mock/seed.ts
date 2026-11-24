@@ -40,16 +40,18 @@ export interface MockState {
 
 export const MODULES = ['organization', 'branches', 'roles', 'users', 'students', 'guardians', 'teachers', 'staff'] as const;
 
+/** People modules hold personal data of minors/guardians (sensitive) and are evaluated per branch. */
+const SENSITIVE_MODULES = new Set(['students', 'guardians', 'teachers', 'staff']);
+const BRANCH_SCOPED_MODULES = new Set(['branches', 'students', 'guardians', 'teachers', 'staff']);
+
 export const PERMISSIONS: Permission[] = MODULES.flatMap((module) =>
-  module === 'organization'
-    ? [
-        { code: 'organization.read', module },
-        { code: 'organization.manage', module },
-      ]
-    : [
-        { code: `${module}.read`, module },
-        { code: `${module}.manage`, module },
-      ],
+  (['read', 'manage'] as const).map((action) => ({
+    code: `${module}.${action}`,
+    module,
+    // Granting role/user management can escalate privileges, so it is flagged as sensitive too.
+    isSensitive: SENSITIVE_MODULES.has(module) || ((module === 'roles' || module === 'users') && action === 'manage'),
+    branchScoped: BRANCH_SCOPED_MODULES.has(module),
+  })),
 );
 
 const ALL = PERMISSIONS.map((p) => p.code);
@@ -97,7 +99,7 @@ export function createSeed(): MockState {
       supportedLocales: ['fa', 'en', 'tr', 'ar'],
       timeZone: 'Asia/Tehran',
       currency: 'IRR',
-      status: 'Active',
+      status: 'active',
       createdAt: created,
       rowVersion: rv(),
     },
@@ -109,7 +111,7 @@ export function createSeed(): MockState {
       supportedLocales: ['fa', 'en'],
       timeZone: 'Asia/Tehran',
       currency: 'IRR',
-      status: 'Active',
+      status: 'active',
       createdAt: created,
       rowVersion: rv(),
     },
@@ -124,7 +126,7 @@ export function createSeed(): MockState {
     rowVersion: rv(),
   });
 
-  const person = <T extends object>(base: T) => ({ status: 'Active', userId: null, rowVersion: rv(), ...base });
+  const person = <T extends object>(base: T) => ({ status: 'active', userId: null, rowVersion: rv(), ...base });
 
   const demo: MockTenantData = {
     organization: {
@@ -152,36 +154,36 @@ export function createSeed(): MockState {
     students: [
       person({
         id: IDS.student1, branchId: IDS.branchNorth, firstName: 'رضا', lastName: 'احمدی', nationalId: '0012345678',
-        birthDate: '2012-04-03', gender: 'Male', phone: null, email: null, studentNumber: 'ST-1001',
-        userId: IDS.userStudent, guardians: [{ guardianId: IDS.guardian1, relationship: 'Father', isPrimary: true }],
+        birthDate: '2012-04-03', gender: 'male', phone: null, email: null, studentNumber: 'ST-1001',
+        userId: IDS.userStudent, guardians: [{ guardianId: IDS.guardian1, relationship: 'father', isPrimary: true }],
       }) as Student,
       person({
         id: IDS.student2, branchId: IDS.branchNorth, firstName: 'Sara', lastName: 'Ahmadi', nationalId: null,
-        birthDate: '2014-09-21', gender: 'Female', phone: null, email: null, studentNumber: 'ST-1002',
-        guardians: [{ guardianId: IDS.guardian1, relationship: 'Father', isPrimary: true }],
+        birthDate: '2014-09-21', gender: 'female', phone: null, email: null, studentNumber: 'ST-1002',
+        guardians: [{ guardianId: IDS.guardian1, relationship: 'father', isPrimary: true }],
       }) as Student,
       person({
         id: IDS.student3, branchId: IDS.branchSouth, firstName: 'Mehmet', lastName: 'Yılmaz', nationalId: null,
-        birthDate: '2011-01-10', gender: 'Male', phone: null, email: null, studentNumber: 'ST-2001', guardians: [],
+        birthDate: '2011-01-10', gender: 'male', phone: null, email: null, studentNumber: 'ST-2001', guardians: [],
       }) as Student,
     ],
     guardians: [
       person({
         id: IDS.guardian1, branchId: IDS.branchNorth, firstName: 'علی', lastName: 'احمدی', nationalId: null,
-        birthDate: null, gender: 'Male', phone: '+989120000000', email: 'guardian@demo.example', userId: IDS.userGuardian,
+        birthDate: null, gender: 'male', phone: '+989120000000', email: 'guardian@demo.example', userId: IDS.userGuardian,
       }) as Guardian,
     ],
     teachers: [
       person({
         id: IDS.teacher1, branchId: IDS.branchNorth, firstName: 'سارا', lastName: 'کریمی', nationalId: null,
-        birthDate: null, gender: 'Female', phone: null, email: 'teacher@demo.example', employeeNumber: 'T-01',
+        birthDate: null, gender: 'female', phone: null, email: 'teacher@demo.example', employeeNumber: 'T-01',
         subjects: ['Mathematics', 'Physics'], userId: IDS.userTeacher,
       }) as Teacher,
     ],
     staff: [
       person({
         id: IDS.staff1, branchId: IDS.branchSouth, firstName: 'Layla', lastName: 'Hassan', nationalId: null,
-        birthDate: null, gender: 'Female', phone: null, email: null, employeeNumber: 'S-01', position: 'Registrar',
+        birthDate: null, gender: 'female', phone: null, email: null, employeeNumber: 'S-01', position: 'Registrar',
       }) as Staff,
     ],
   };

@@ -31,6 +31,35 @@ export function setSessionCookies(config: BffConfig, response: NextResponse, tok
   response.cookies.set(names.refresh, tokens.refreshToken, { ...base, maxAge: config.refreshMaxAgeSeconds });
 }
 
+/** Non-sensitive display preference cookies (readable by the server for SSR formatting). */
+export const PREFERENCE_COOKIES = { timeZone: 'eemp_tz', locale: 'NEXT_LOCALE' } as const;
+const SUPPORTED_LOCALES = ['fa', 'en', 'tr', 'ar'];
+const PREFERENCE_MAX_AGE = 60 * 60 * 24 * 365;
+
+function isValidZone(zone: string): boolean {
+  try {
+    new Intl.DateTimeFormat('en', { timeZone: zone });
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * After login, remember the user's display time zone and language so server-rendered pages format
+ * dates in the right zone/calendar. Values are validated; unsupported ones are skipped.
+ */
+export function setPreferenceCookies(
+  config: BffConfig,
+  response: NextResponse,
+  user: { locale?: string | null; timeZone?: string | null },
+) {
+  const base = { httpOnly: false, secure: config.cookieSecure, sameSite: 'lax' as const, path: '/', maxAge: PREFERENCE_MAX_AGE };
+  if (user.timeZone && isValidZone(user.timeZone)) response.cookies.set(PREFERENCE_COOKIES.timeZone, user.timeZone, base);
+  const locale = user.locale?.toLowerCase().split(/[-_]/)[0];
+  if (locale && SUPPORTED_LOCALES.includes(locale)) response.cookies.set(PREFERENCE_COOKIES.locale, locale, base);
+}
+
 export function clearSessionCookies(config: BffConfig, response: NextResponse) {
   const names = cookieNames(config.appId);
   for (const name of [names.access, names.refresh]) {

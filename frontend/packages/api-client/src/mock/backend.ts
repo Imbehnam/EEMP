@@ -18,7 +18,7 @@ import type {
   Tenant,
   TokenResponse,
 } from '../types';
-import { MAX_PAGE_SIZE, PERSON_KINDS } from '../types';
+import { GENDERS, MAX_PAGE_SIZE, PERSON_KINDS, PERSON_STATUSES, type Gender, type PersonStatus } from '../types';
 import { createSeed, PERMISSIONS, type MockState, type MockTenantData, type MockUser } from './seed';
 
 export const MOCK_API_BASE_URL = 'http://mock.eemp.invalid/api/v1';
@@ -201,7 +201,7 @@ export function createMockBackend(options: MockBackendOptions = {}): MockBackend
     if (!user || !user.isActive) throw new HttpError(401, 'auth.unauthenticated');
     if (user.tenantId) {
       const tenant = state.tenants.find((t) => t.id === user.tenantId);
-      if (!tenant || tenant.status !== 'Active') throw new HttpError(403, 'tenant.suspended');
+      if (!tenant || tenant.status !== 'active') throw new HttpError(403, 'tenant.suspended');
     }
     return user;
   }
@@ -245,7 +245,7 @@ export function createMockBackend(options: MockBackendOptions = {}): MockBackend
       );
       // Uniform response: never reveal whether tenant or user exists.
       if (!user || !user.isActive || body.password !== password) throw new HttpError(401, 'auth.invalid_credentials');
-      if (tenant && tenant.status !== 'Active') throw new HttpError(403, 'tenant.suspended');
+      if (tenant && tenant.status !== 'active') throw new HttpError(403, 'tenant.suspended');
       return json(200, issueTokens(user));
     }
     if (path === '/auth/refresh' && method === 'POST') {
@@ -330,7 +330,7 @@ export function createMockBackend(options: MockBackendOptions = {}): MockBackend
         supportedLocales: (body.supportedLocales as string[]) ?? [String(body.defaultLocale)],
         timeZone: String(body.timeZone),
         currency: String(body.currency),
-        status: 'Active',
+        status: 'active',
         createdAt: new Date(now()).toISOString(),
         rowVersion: nextVersion(),
       };
@@ -366,7 +366,7 @@ export function createMockBackend(options: MockBackendOptions = {}): MockBackend
       return json(200, tenant);
     }
     if (seg.length === 3 && method === 'POST' && (seg[2] === 'suspend' || seg[2] === 'activate')) {
-      tenant.status = seg[2] === 'suspend' ? 'Suspended' : 'Active';
+      tenant.status = seg[2] === 'suspend' ? 'suspended' : 'active';
       tenant.rowVersion = nextVersion();
       return json(200, tenant);
     }
@@ -439,7 +439,7 @@ export function createMockBackend(options: MockBackendOptions = {}): MockBackend
     throw new HttpError(405, 'http.method_not_allowed');
   }
 
-  function roleRoutes(user: MockUser, data: MockTenantData, seg: string[], method: string, url: URL, body: Record<string, unknown>) {
+  function roleRoutes(user: MockUser, data: MockTenantData, seg: string[], method: string, _url: URL, body: Record<string, unknown>) {
     const validate = (exceptId?: string) => {
       const errors = required(body, ['code', 'name']);
       if (data.roles.some((r) => r.code === body.code && r.id !== exceptId)) errors.code = ['validation.duplicate'];
@@ -451,7 +451,7 @@ export function createMockBackend(options: MockBackendOptions = {}): MockBackend
     };
     if (seg.length === 1 && method === 'GET') {
       demand(user, 'roles.read');
-      return json(200, paginate(data.roles, url, (r) => [r.name, r.code]));
+      return json(200, data.roles); // plain array (contract clarification)
     }
     if (seg.length === 1 && method === 'POST') {
       demand(user, 'roles.manage');
@@ -487,9 +487,25 @@ export function createMockBackend(options: MockBackendOptions = {}): MockBackend
     throw new HttpError(405, 'http.method_not_allowed');
   }
 
+  /** User DTO per contract clarification: assignments carry roleCode. */
   function publicUser(u: MockUser) {
-    const { tenantId: _t, isPlatformAdmin: _p, ...rest } = u;
-    return rest;
+    const roles = state.data[u.tenantId ?? '']?.roles ?? [];
+    return {
+      id: u.id,
+      userName: u.userName,
+      displayName: u.displayName,
+      email: u.email,
+      phone: u.phone,
+      isActive: u.isActive,
+      locale: u.locale,
+      timeZone: u.timeZone,
+      assignments: u.assignments.map((a) => ({
+        roleId: a.roleId,
+        roleCode: roles.find((r) => r.id === a.roleId)?.code ?? '',
+        branchId: a.branchId,
+      })),
+      rowVersion: u.rowVersion,
+    };
   }
 
   function userRoutes(user: MockUser, data: MockTenantData, seg: string[], method: string, url: URL, body: Record<string, unknown>) {
@@ -566,13 +582,15 @@ export function createMockBackend(options: MockBackendOptions = {}): MockBackend
       return allowed === null || allowed.has(p.branchId);
     };
     const validate = (existingId?: string) => {
-      const extra = kind === 'students' ? ['studentNumber'] : kind === 'teachers' ? ['employeeNumber'] : kind === 'staff' ? ['employeeNumber', 'position'] : [];
+      const extra = kind === 'students' ? [] : kind === 'teachers' ? ['employeeNumber'] : kind === 'staff' ? ['employeeNumber', 'position'] : [];
       const errors = required(body, ['branchId', 'firstName', 'lastName', ...extra]);
       emailCheck(errors, body);
       if (body.birthDate && !/^\d{4}-\d{2}-\d{2}$/.test(String(body.birthDate))) errors.birthDate = ['validation.invalid_date'];
       if (body.branchId && !data.branches.some((b) => b.id === body.branchId)) errors.branchId = ['validation.unknown_branch'];
       if (typeof body.nationalId === 'string' && body.nationalId && !/^\d{10}$/.test(body.nationalId)) errors.nationalId = ['validation.invalid_national_id'];
-      if (kind === 'students' && list.some((p) => (p as Student).studentNumber === body.studentNumber && p.id !== existingId)) {
+      if (body.gender && !GENDERS.includes(body.gender as Gender)) errors.gender = ['validation.invalid_format'];
+      if (body.status && !PERSON_STATUSES.includes(body.status as PersonStatus)) errors.status = ['validation.invalid_format'];
+      if (kind === 'students' && body.studentNumber && list.some((p) => (p as Student).studentNumber === body.studentNumber && p.id !== existingId)) {
         errors.studentNumber = ['validation.duplicate'];
       }
       assertValid(errors);
@@ -581,10 +599,13 @@ export function createMockBackend(options: MockBackendOptions = {}): MockBackend
       const base: Partial<Student & Teacher & Staff> = {
         branchId: String(body.branchId), firstName: String(body.firstName), lastName: String(body.lastName),
         nationalId: (body.nationalId as string) || null, birthDate: (body.birthDate as string) || null,
-        gender: (body.gender as string) || null, phone: (body.phone as string) || null, email: (body.email as string) || null,
-        status: (body.status as string) || 'Active',
+        gender: (body.gender as Gender) || null, phone: (body.phone as string) || null, email: (body.email as string) || null,
+        status: ((body.status as PersonStatus) || 'active'),
       };
-      if (kind === 'students') base.studentNumber = String(body.studentNumber);
+      if (kind === 'students') {
+        // Optional on create: generated server-side when omitted (contract clarification).
+        base.studentNumber = body.studentNumber ? String(body.studentNumber) : nextStudentNumber(list as Student[]);
+      }
       if (kind === 'teachers') {
         base.employeeNumber = String(body.employeeNumber);
         base.subjects = Array.isArray(body.subjects) ? (body.subjects as string[]) : null;
@@ -652,13 +673,13 @@ export function createMockBackend(options: MockBackendOptions = {}): MockBackend
     const own = <T extends PersonBase>(kind: PersonKind) => (data[kind] as T[]).find((p) => p.userId === user.id);
     if (seg[1] === 'me' && seg[2] === 'profile') {
       const student = own<Student>('students');
-      if (student) return json(200, { kind: 'student', ...student });
+      if (student) return json(200, { kind: 'student', profile: student });
       const guardian = own<Guardian>('guardians');
-      if (guardian) return json(200, { kind: 'guardian', ...guardian });
+      if (guardian) return json(200, { kind: 'guardian', profile: guardian });
       const teacher = own<Teacher>('teachers');
-      if (teacher) return json(200, { kind: 'teacher', ...teacher });
+      if (teacher) return json(200, { kind: 'teacher', profile: teacher });
       const staff = own<Staff>('staff');
-      if (staff) return json(200, { kind: 'staff', ...staff });
+      if (staff) return json(200, { kind: 'staff', profile: staff });
       throw new HttpError(404, 'portal.profile_not_linked');
     }
     if (seg[1] === 'me' && seg[2] === 'students') {
@@ -703,6 +724,14 @@ export function createMockBackend(options: MockBackendOptions = {}): MockBackend
       }
     },
   };
+}
+
+function nextStudentNumber(students: Student[]): string {
+  const max = students.reduce((acc, s) => {
+    const n = Number(/(\d+)$/.exec(s.studentNumber ?? '')?.[1] ?? 0);
+    return Number.isFinite(n) && n > acc ? n : acc;
+  }, 1000);
+  return `ST-${max + 1}`;
 }
 
 function isValidTimeZone(zone: string): boolean {

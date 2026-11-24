@@ -73,7 +73,8 @@ export interface PreferencesRequest {
 
 /* ---------- platform ---------- */
 
-export type TenantStatus = 'Provisioning' | 'Active' | 'Suspended' | (string & {});
+/** Enums are camelCase strings (contract clarification 2026-11-24). */
+export type TenantStatus = 'active' | 'suspended' | (string & {});
 
 export interface Tenant {
   id: Guid;
@@ -146,8 +147,13 @@ export type UpdateBranchRequest = BranchInput & { rowVersion: RowVersion };
 /* ---------- authorization ---------- */
 
 export interface Permission {
+  /** `<module>.read` or `<module>.manage`. */
   code: string;
   module: string;
+  /** Grants access to sensitive personal data; the role editor highlights it. */
+  isSensitive: boolean;
+  /** Evaluated per branch assignment (vs. organization-wide only). */
+  branchScoped: boolean;
 }
 
 export interface Role {
@@ -166,22 +172,28 @@ export interface RoleInput {
 }
 export type UpdateRoleRequest = RoleInput & { rowVersion: RowVersion };
 
+/** Assignment as sent to PUT /users/{id}/assignments. */
 export interface UserAssignment {
   roleId: Guid;
   branchId: Guid | null;
 }
 
-/** Assumed shape: the contract names the /users endpoints but not the user DTO fields. */
+/** Assignment as returned on the user DTO. */
+export interface UserAssignmentView extends UserAssignment {
+  roleCode: string;
+}
+
+/** User DTO (contract clarification 2026-11-24). */
 export interface TenantUser {
   id: Guid;
   userName: string;
   displayName: string;
   email: string | null;
   phone: string | null;
+  isActive: boolean;
   locale: string | null;
   timeZone: string | null;
-  isActive: boolean;
-  assignments: UserAssignment[];
+  assignments: UserAssignmentView[];
   rowVersion: RowVersion;
 }
 
@@ -206,8 +218,10 @@ export interface UpdateUserRequest {
 
 /* ---------- people ---------- */
 
-export type Gender = 'Male' | 'Female' | (string & {});
-export type PersonStatus = 'Active' | 'Inactive' | (string & {});
+export type Gender = 'male' | 'female' | 'other';
+export const GENDERS: readonly Gender[] = ['male', 'female', 'other'];
+export type PersonStatus = 'active' | 'inactive';
+export const PERSON_STATUSES: readonly PersonStatus[] = ['active', 'inactive'];
 export type PersonKind = 'students' | 'guardians' | 'teachers' | 'staff';
 export const PERSON_KINDS: readonly PersonKind[] = ['students', 'guardians', 'teachers', 'staff'];
 
@@ -256,15 +270,25 @@ export interface PersonByKind {
   staff: Staff;
 }
 
-/** Create payload: everything except server-owned fields. */
-export type PersonInput<K extends PersonKind> = Omit<PersonByKind[K], 'id' | 'rowVersion'>;
+/**
+ * Create payload: everything except server-owned fields. Student guardian links are managed via
+ * /students/{id}/guardians, and studentNumber is optional (server generates it when omitted).
+ */
+export interface PersonInputByKind {
+  students: Omit<Student, 'id' | 'rowVersion' | 'guardians' | 'studentNumber'> & { studentNumber?: string | null };
+  guardians: Omit<Guardian, 'id' | 'rowVersion'>;
+  teachers: Omit<Teacher, 'id' | 'rowVersion'>;
+  staff: Omit<Staff, 'id' | 'rowVersion'>;
+}
+export type PersonInput<K extends PersonKind> = PersonInputByKind[K];
 export type PersonUpdate<K extends PersonKind> = PersonInput<K> & { rowVersion: RowVersion };
 
 /* ---------- portal ---------- */
 
-/** Assumed shape: own person record plus its kind (the contract says "sees own record"). */
+/** GET /portal/me/profile (contract clarification 2026-11-24). */
 export type PortalProfile =
-  | ({ kind: 'student' } & Student)
-  | ({ kind: 'guardian' } & Guardian)
-  | ({ kind: 'teacher' } & Teacher)
-  | ({ kind: 'staff' } & Staff);
+  | { kind: 'student'; profile: Student }
+  | { kind: 'guardian'; profile: Guardian }
+  | { kind: 'teacher'; profile: Teacher }
+  | { kind: 'staff'; profile: Staff };
+export type PortalKind = PortalProfile['kind'];

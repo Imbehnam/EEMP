@@ -4,7 +4,7 @@ import { ErrorCodes } from '../problem';
 import type { CurrentUser, TokenResponse } from '../types';
 import { getBffConfig, type BffConfig } from './config';
 import { verifyCsrf } from './csrf';
-import { clearSessionCookies, readTokens, refreshTokens, setSessionCookies } from './tokens';
+import { clearSessionCookies, readTokens, refreshTokens, setPreferenceCookies, setSessionCookies } from './tokens';
 
 /** Backend routes that must never be reachable through the generic proxy (they handle raw tokens). */
 const BLOCKED = new Set(['auth/login', 'auth/refresh', 'auth/logout']);
@@ -91,6 +91,7 @@ export function createAuthHandlers(options: AuthHandlerOptions) {
     }
     const response = NextResponse.json({ user: tokens.user }, { headers: { 'Cache-Control': 'no-store' } });
     setSessionCookies(cfg, response, tokens);
+    setPreferenceCookies(cfg, response, tokens.user);
     return response;
   }
 

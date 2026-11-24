@@ -31,8 +31,8 @@ import type {
 } from './types';
 
 /**
- * Lists in the contract follow the paging convention. A few collections (roles, portal students)
- * may be returned as plain arrays by the backend; normalize both shapes so screens stay stable.
+ * Paged lists (tenants, users, branches, people) use `{ items, page, pageSize, totalCount }`.
+ * Defensive normalizer in case a collection is returned as a plain array.
  */
 export function toPaged<T>(value: Paged<T> | T[] | null | undefined, query: PageQuery = {}): Paged<T> {
   if (Array.isArray(value)) {
@@ -81,8 +81,8 @@ export function createEndpoints(client: ApiClient) {
       list: () => client.get<Permission[]>('/permissions'),
     },
     roles: {
-      list: async (query?: PageQuery) =>
-        toPaged(await client.get<Paged<Role> | Role[]>('/roles', { query: q(query) }), query),
+      /** Plain array (not paged) per contract clarification. */
+      list: () => client.get<Role[]>('/roles'),
       get: (roleId: Guid) => client.get<Role>(`/roles/${id(roleId)}`),
       create: (body: RoleInput) => client.post<Role>('/roles', body),
       update: (roleId: Guid, body: UpdateRoleRequest) => client.put<Role>(`/roles/${id(roleId)}`, body),
@@ -114,7 +114,8 @@ export function createEndpoints(client: ApiClient) {
     },
     portal: {
       profile: () => client.get<PortalProfile>('/portal/me/profile'),
-      students: async () => toPaged(await client.get<Paged<Student> | Student[]>('/portal/me/students')),
+      /** Plain array (not paged) per contract clarification. */
+      students: () => client.get<Student[]>('/portal/me/students'),
     },
   };
 }
