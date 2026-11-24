@@ -1,6 +1,7 @@
 using System.Reflection;
 using EEMP.Infrastructure.Audit;
 using EEMP.Infrastructure.Persistence;
+using EEMP.Modules.Academic.Infrastructure;
 using EEMP.Modules.Identity.Infrastructure;
 using EEMP.Modules.Organization.Infrastructure;
 using EEMP.Modules.People.Infrastructure;
@@ -12,7 +13,7 @@ namespace EEMP.ArchitectureTests;
 
 public class ModuleBoundaryTests
 {
-    private static readonly string[] Modules = ["Tenancy", "Identity", "Organization", "People"];
+    private static readonly string[] Modules = ["Tenancy", "Identity", "Organization", "People", "Academic"];
     private static readonly string[] Layers = ["Domain", "Application", "Infrastructure", "Contracts"];
 
     private static Assembly Load(string module, string layer) => Assembly.Load($"EEMP.Modules.{module}.{layer}");
@@ -58,6 +59,38 @@ public class ModuleBoundaryTests
     }
 }
 
+public class AcademicArchitectureTests
+{
+    [Fact]
+    public void Contracts_projects_do_not_reference_other_modules()
+    {
+        foreach (var m in new[] { "Tenancy", "Identity", "Organization", "People", "Academic" })
+        {
+            var refs = Assembly.Load($"EEMP.Modules.{m}.Contracts").GetReferencedAssemblies().Select(r => r.Name!).ToList();
+            Assert.DoesNotContain(refs, r => r.StartsWith("EEMP.Modules.", StringComparison.Ordinal));
+        }
+    }
+
+    [Fact]
+    public void Academic_permissions_on_student_data_are_sensitive_and_branch_scoped()
+    {
+        var sensitivePrefixes = new[] { "enrollments.", "attendance.", "grades.", "reportcards." };
+        var academic = EEMP.SharedKernel.Authorization.Permissions.All.Where(p => p.Module == "academic").ToList();
+        Assert.Equal(15, academic.Count);
+        Assert.All(academic.Where(p => sensitivePrefixes.Any(x => p.Code.StartsWith(x, StringComparison.Ordinal))),
+            p => Assert.True(p.IsSensitive && p.BranchScoped, p.Code));
+        Assert.All(academic.Where(p => p.Code.StartsWith("catalog.", StringComparison.Ordinal)), p => Assert.False(p.BranchScoped, p.Code));
+    }
+
+    [Fact]
+    public void Academic_tables_use_tenant_composite_foreign_keys()
+    {
+        using var ctx = new AcademicDbContext(DesignTime.Options<AcademicDbContext>(AcademicDbContext.SchemaName), DesignTime.NoTenant());
+        foreach (var fk in ctx.Model.GetEntityTypes().SelectMany(e => e.GetForeignKeys()))
+            Assert.True(fk.Properties[0].Name == "TenantId", $"{fk.DeclaringEntityType.GetTableName()} FK {string.Join(",", fk.Properties.Select(p => p.Name))} is not tenant-composite");
+    }
+}
+
 public class DataClassificationTests
 {
     /// <summary>
@@ -74,6 +107,7 @@ public class DataClassificationTests
         yield return [new IdentityModuleDbContext(DesignTime.Options<IdentityModuleDbContext>(IdentityModuleDbContext.SchemaName), t)];
         yield return [new OrganizationDbContext(DesignTime.Options<OrganizationDbContext>(OrganizationDbContext.SchemaName), t)];
         yield return [new PeopleDbContext(DesignTime.Options<PeopleDbContext>(PeopleDbContext.SchemaName), t)];
+        yield return [new AcademicDbContext(DesignTime.Options<AcademicDbContext>(AcademicDbContext.SchemaName), t)];
     }
 
     [Theory]

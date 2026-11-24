@@ -12,7 +12,8 @@ public class LocalizationCatalogTests
     public static TheoryData<string> Languages() => new(ServerTextLocalizer.Languages);
 
     private static IEnumerable<string> ErrorCodeValues() =>
-        typeof(ErrorCodes).GetFields(BindingFlags.Public | BindingFlags.Static)
+        new[] { typeof(ErrorCodes), typeof(EEMP.Modules.Academic.Domain.AcademicErrors) }
+            .SelectMany(t => t.GetFields(BindingFlags.Public | BindingFlags.Static))
             .Where(f => f.IsLiteral && f.FieldType == typeof(string)).Select(f => (string)f.GetRawConstantValue()!);
 
     [Theory]

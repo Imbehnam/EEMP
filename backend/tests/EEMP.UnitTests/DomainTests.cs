@@ -48,7 +48,8 @@ public class DomainTests
     [Fact]
     public void Permission_codes_follow_module_action_convention()
     {
-        Assert.All(Permissions.All, p => Assert.Matches("^[a-z]+\\.(read|manage)$", p.Code));
+        // M2 (DL-055): approve/publish verbs separate grade approval and publication from entry (segregation of duties).
+        Assert.All(Permissions.All, p => Assert.Matches("^[a-z]+\\.(read|manage|approve|publish)$", p.Code));
         Assert.Equal(Permissions.All.Count, Permissions.All.Select(p => p.Code).Distinct().Count());
     }
 

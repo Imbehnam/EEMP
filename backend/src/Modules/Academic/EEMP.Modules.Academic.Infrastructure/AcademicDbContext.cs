@@ -217,6 +217,10 @@ public sealed class AcademicDbContext(DbContextOptions<AcademicDbContext> option
             b.Property(x => x.Content).IsRequired();
             b.HasIndex(x => new { x.TenantId, x.ReportCardId, x.VersionNo }).IsUnique();
         });
+
+        // Ids are assigned in code (Guid.NewGuid()); children added through navigations must be tracked as Added, not Modified.
+        foreach (var entity in modelBuilder.Model.GetEntityTypes())
+            entity.FindProperty("Id")?.ValueGenerated = Microsoft.EntityFrameworkCore.Metadata.ValueGenerated.Never;
     }
 
     private static void Root<T>(EntityTypeBuilder<T> b, string table) where T : EEMP.SharedKernel.Domain.TenantEntity
