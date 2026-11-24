@@ -75,10 +75,12 @@ and Next answers 400 itself.
 6. **Portal eligibility.**
    - Admin accepts platform admins and tenant users with at least one permission.
    - Web refuses platform admins and returns `auth.portal_not_allowed`, a client-side code that needs a catalog entry (already in all four catalogs).
-7. **Guardian `relationship` values.** The contract leaves this a free string. The UI offers the camelCase codes `father | mother | legalGuardian | other`, consistent with the enum convention. Unknown values display as "Other".
-8. **Nested field error keys for tenant creation** are assumed to be `adminUser.<field>` (for example `adminUser.password`).
-9. **Mock `isSensitive` and `branchScoped` values** are the mock's own choice. People modules and `roles.manage` / `users.manage` are sensitive; branches and people modules are branch-scoped. The UI renders whatever the API returns.
+7. **Guardian `relationship` values.** Settled against the real API (2026-11-24): `father | mother | legalGuardian | grandparent | sibling | other` (backend enum, camelCase). Unknown values display as "Other".
+8. **Nested field error keys for tenant creation** are `adminUser.<field>` (for example `adminUser.password`) — confirmed against the real API.
+9. **Mock `isSensitive` and `branchScoped` values** are the mock's own choice; the mock's `module` now mirrors the API's coarse groups (`organization`, `identity`, `people`), and the role editor groups rows by the permission code prefix. People modules and `roles.manage` / `users.manage` are sensitive; branches and people modules are branch-scoped. The UI renders whatever the API returns.
 10. **Page access gating is UX only.** For example, a tenant user who types `/tenants` sees the page shell, then the forbidden state once the API answers 403.
+
+Real-API integration results and the fixes it produced: `docs/09-quality/M1_INTEGRATION_REPORT.md`.
 
 ## Verification (2026-11-24, sandbox, mock mode)
 
