@@ -1,0 +1,4 @@
+{
+  "extends": "@eemp/config/tsconfig/library.json",
+  "include": ["src"]
+}

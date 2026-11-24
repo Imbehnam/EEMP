@@ -1,0 +1,6 @@
+@import 'tailwindcss';
+@import '@eemp/config/tailwind-preset.css';
+@import '@eemp/ui/styles.css';
+
+@source '../../../../packages/ui/src';
+@source '../../../../packages/app/src';
