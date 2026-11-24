@@ -18,11 +18,16 @@ public sealed class TenantAccessProvisioner(IIdentityDbContext db, UserManager<A
         {
             [SystemRoles.TenantAdmin] = ("Tenant administrator", [
                 Permissions.OrganizationRead, Permissions.OrganizationManage, Permissions.BranchesRead, Permissions.BranchesManage,
-                Permissions.RolesRead, Permissions.RolesManage, Permissions.UsersRead, Permissions.UsersManage, Permissions.AuditRead]),
+                Permissions.RolesRead, Permissions.RolesManage, Permissions.UsersRead, Permissions.UsersManage, Permissions.AuditRead,
+                Permissions.CatalogRead, Permissions.CatalogManage, Permissions.ClassesRead, Permissions.ClassesManage]),
             [SystemRoles.BranchManager] = ("Branch manager", [
                 Permissions.OrganizationRead, Permissions.BranchesRead,
                 Permissions.StudentsRead, Permissions.StudentsManage, Permissions.GuardiansRead, Permissions.GuardiansManage,
-                Permissions.TeachersRead, Permissions.TeachersManage, Permissions.StaffRead, Permissions.StaffManage]),
+                Permissions.TeachersRead, Permissions.TeachersManage, Permissions.StaffRead, Permissions.StaffManage,
+                Permissions.CatalogRead, Permissions.ClassesRead, Permissions.ClassesManage,
+                Permissions.EnrollmentsRead, Permissions.EnrollmentsManage, Permissions.AttendanceRead, Permissions.AttendanceManage,
+                Permissions.GradesRead, Permissions.GradesManage, Permissions.GradesApprove, Permissions.GradesPublish,
+                Permissions.ReportCardsRead, Permissions.ReportCardsManage, Permissions.ReportCardsPublish]),
             [SystemRoles.Teacher] = ("Teacher", [Permissions.BranchesRead]),
             [SystemRoles.Guardian] = ("Guardian", []),
             [SystemRoles.Student] = ("Student", []),

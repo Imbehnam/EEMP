@@ -22,6 +22,21 @@ public static class Permissions
     public const string StaffRead = "staff.read";
     public const string StaffManage = "staff.manage";
     public const string AuditRead = "audit.read";
+    public const string CatalogRead = "catalog.read";
+    public const string CatalogManage = "catalog.manage";
+    public const string ClassesRead = "classes.read";
+    public const string ClassesManage = "classes.manage";
+    public const string EnrollmentsRead = "enrollments.read";
+    public const string EnrollmentsManage = "enrollments.manage";
+    public const string AttendanceRead = "attendance.read";
+    public const string AttendanceManage = "attendance.manage";
+    public const string GradesRead = "grades.read";
+    public const string GradesManage = "grades.manage";
+    public const string GradesApprove = "grades.approve";
+    public const string GradesPublish = "grades.publish";
+    public const string ReportCardsRead = "reportcards.read";
+    public const string ReportCardsManage = "reportcards.manage";
+    public const string ReportCardsPublish = "reportcards.publish";
 
     public static readonly IReadOnlyList<PermissionDefinition> All =
     [
@@ -42,6 +57,21 @@ public static class Permissions
         new(TeachersManage, "people", true, true),
         new(StaffRead, "people", true, true),
         new(StaffManage, "people", true, true),
+        new(CatalogRead, "academic", false, false),
+        new(CatalogManage, "academic", false, false),
+        new(ClassesRead, "academic", false, true),
+        new(ClassesManage, "academic", false, true),
+        new(EnrollmentsRead, "academic", true, true),
+        new(EnrollmentsManage, "academic", true, true),
+        new(AttendanceRead, "academic", true, true),
+        new(AttendanceManage, "academic", true, true),
+        new(GradesRead, "academic", true, true),
+        new(GradesManage, "academic", true, true),
+        new(GradesApprove, "academic", true, true),
+        new(GradesPublish, "academic", true, true),
+        new(ReportCardsRead, "academic", true, true),
+        new(ReportCardsManage, "academic", true, true),
+        new(ReportCardsPublish, "academic", true, true),
     ];
 
     private static readonly HashSet<string> Codes = All.Select(p => p.Code).ToHashSet(StringComparer.Ordinal);

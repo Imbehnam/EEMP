@@ -5,6 +5,12 @@
     <Project Path="src/EEMP.SharedKernel/EEMP.SharedKernel.csproj" />
   </Folder>
   <Folder Name="/src/Modules/" />
+  <Folder Name="/src/Modules/Academic/">
+    <Project Path="src/Modules/Academic/EEMP.Modules.Academic.Application/EEMP.Modules.Academic.Application.csproj" />
+    <Project Path="src/Modules/Academic/EEMP.Modules.Academic.Contracts/EEMP.Modules.Academic.Contracts.csproj" />
+    <Project Path="src/Modules/Academic/EEMP.Modules.Academic.Domain/EEMP.Modules.Academic.Domain.csproj" />
+    <Project Path="src/Modules/Academic/EEMP.Modules.Academic.Infrastructure/EEMP.Modules.Academic.Infrastructure.csproj" />
+  </Folder>
   <Folder Name="/src/Modules/Identity/">
     <Project Path="src/Modules/Identity/EEMP.Modules.Identity.Application/EEMP.Modules.Identity.Application.csproj" />
     <Project Path="src/Modules/Identity/EEMP.Modules.Identity.Contracts/EEMP.Modules.Identity.Contracts.csproj" />

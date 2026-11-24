@@ -1,3 +1,4 @@
+using EEMP.Modules.Academic.Contracts;
 using EEMP.Modules.Identity.Contracts;
 using EEMP.Modules.Organization.Contracts;
 using EEMP.Modules.Organization.Domain;
@@ -66,7 +67,8 @@ public sealed class OrganizationService(IOrganizationDbContext db, IAccessContro
         new(o.Name, o.LegalName, o.Phone, o.Email, o.Address, o.DefaultLocale, o.TimeZone, Convert.ToBase64String(o.RowVersion));
 }
 
-public sealed class BranchService(IOrganizationDbContext db, IAccessControl access, IPeopleBranchUsage peopleUsage, IAssignmentUsage assignmentUsage)
+public sealed class BranchService(IOrganizationDbContext db, IAccessControl access, IPeopleBranchUsage peopleUsage, IAssignmentUsage assignmentUsage,
+    IAcademicUsage academicUsage)
 {
     public async Task<PagedResult<BranchDto>> ListAsync(PageRequest page, CancellationToken ct)
     {
@@ -118,7 +120,8 @@ public sealed class BranchService(IOrganizationDbContext db, IAccessControl acce
     {
         await access.EnsureTenantWideAsync(Permissions.BranchesManage, ct);
         var branch = await db.Branches.FirstOrDefaultAsync(b => b.Id == id, ct) ?? throw new NotFoundException();
-        if (await peopleUsage.IsBranchReferencedAsync(id, ct) || await assignmentUsage.IsBranchReferencedAsync(id, ct))
+        if (await peopleUsage.IsBranchReferencedAsync(id, ct) || await assignmentUsage.IsBranchReferencedAsync(id, ct) ||
+            await academicUsage.IsBranchReferencedAsync(id, ct))
             throw new ConflictException(ErrorCodes.BranchInUse);
         db.Branches.Remove(branch);
         await db.SaveChangesAsync(ct);
@@ -155,4 +158,10 @@ public sealed class OrganizationProvisioner(IOrganizationDbContext db) : IOrgani
 public sealed class BranchDirectory(IOrganizationDbContext db) : IBranchDirectory
 {
     public Task<bool> ExistsAsync(Guid branchId, CancellationToken ct = default) => db.Branches.AnyAsync(b => b.Id == branchId, ct);
+}
+
+public sealed class OrganizationSettings(IOrganizationDbContext db) : IOrganizationSettings
+{
+    public async Task<string> GetTimeZoneAsync(CancellationToken ct = default) =>
+        await db.CentralOffices.AsNoTracking().Select(o => o.TimeZone).FirstOrDefaultAsync(ct) ?? "Asia/Tehran";
 }

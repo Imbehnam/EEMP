@@ -1,3 +1,5 @@
+using EEMP.Modules.Academic.Contracts;
+using EEMP.Modules.People.Contracts;
 using EEMP.Modules.People.Domain;
 using EEMP.SharedKernel.Authorization;
 using EEMP.SharedKernel.Errors;
@@ -9,7 +11,7 @@ using static EEMP.Modules.People.Application.PersonService<EEMP.Modules.People.D
 
 namespace EEMP.Modules.People.Application;
 
-public sealed class StudentService(PersonService<Student> core, PersonService<Guardian> guardianCore, IAccessControl access)
+public sealed class StudentService(PersonService<Student> core, PersonService<Guardian> guardianCore, IAccessControl access, IAcademicUsage academic)
 {
     private static readonly PersonKind<Student> Kind = PeopleKinds.Students;
     private static IQueryable<Student> WithGuardians(IQueryable<Student> q) => q.Include(s => s.Guardians);
@@ -49,7 +51,12 @@ public sealed class StudentService(PersonService<Student> core, PersonService<Gu
         return ToDto(student);
     }
 
-    public Task DeleteAsync(Guid id, CancellationToken ct) => core.DeleteAsync(Kind, id, ct);
+    public async Task DeleteAsync(Guid id, CancellationToken ct)
+    {
+        await core.FindAsync(Kind, id, Kind.ManagePermission, ct);
+        if (await academic.IsStudentReferencedAsync(id, ct)) throw new ConflictException("people.in_use");
+        await core.DeleteAsync(Kind, id, ct);
+    }
 
     public async Task<IReadOnlyList<StudentGuardianDetailDto>> GetGuardiansAsync(Guid id, CancellationToken ct)
     {
@@ -148,7 +155,7 @@ public sealed class GuardianService(PersonService<Guardian> core)
         s.Gender is { } g ? PersonService<Guardian>.Camel(g) : null, s.Phone, s.Email, PersonService<Guardian>.Camel(s.Status), s.UserId, PersonService<Guardian>.Rv(s.RowVersion));
 }
 
-public sealed class TeacherService(PersonService<Teacher> core)
+public sealed class TeacherService(PersonService<Teacher> core, IAcademicUsage academic)
 {
     private static readonly PersonKind<Teacher> Kind = PeopleKinds.Teachers;
 
@@ -183,7 +190,12 @@ public sealed class TeacherService(PersonService<Teacher> core)
         return ToDto(t);
     }
 
-    public Task DeleteAsync(Guid id, CancellationToken ct) => core.DeleteAsync(Kind, id, ct);
+    public async Task DeleteAsync(Guid id, CancellationToken ct)
+    {
+        await core.FindAsync(Kind, id, Kind.ManagePermission, ct);
+        if (await academic.IsTeacherReferencedAsync(id, ct)) throw new ConflictException("people.in_use");
+        await core.DeleteAsync(Kind, id, ct);
+    }
 
     private async Task EnsureUniqueAsync(string number, Guid? id, CancellationToken ct)
     {
@@ -279,4 +291,38 @@ public sealed class PortalService(IPeopleDbContext db, ITenantContext tenant)
                           select new { s.Id, s.BranchId, s.FirstName, s.LastName, s.StudentNumber, link.Relationship, link.IsPrimary }).ToListAsync(ct);
         return rows.Select(r => new PortalStudentDto(r.Id, r.BranchId, r.FirstName, r.LastName, r.StudentNumber, Camel(r.Relationship), r.IsPrimary)).ToList();
     }
+}
+
+/// <summary>Person lookups for other modules (no permission checks; see <see cref="IPeopleDirectory"/>).</summary>
+public sealed class PeopleDirectory(IPeopleDbContext db) : IPeopleDirectory
+{
+    public async Task<IReadOnlyDictionary<Guid, StudentSummary>> GetStudentsAsync(IReadOnlyCollection<Guid> ids, CancellationToken ct = default)
+    {
+        if (ids.Count == 0) return new Dictionary<Guid, StudentSummary>();
+        var list = ids.Distinct().ToList();
+        return await db.Students.AsNoTracking().Where(s => list.Contains(s.Id))
+            .Select(s => new StudentSummary(s.Id, s.BranchId, s.FirstName, s.LastName, s.StudentNumber, s.Status == PersonStatus.Active))
+            .ToDictionaryAsync(s => s.Id, ct);
+    }
+
+    public async Task<IReadOnlyDictionary<Guid, TeacherSummary>> GetTeachersAsync(IReadOnlyCollection<Guid> ids, CancellationToken ct = default)
+    {
+        if (ids.Count == 0) return new Dictionary<Guid, TeacherSummary>();
+        var list = ids.Distinct().ToList();
+        return await db.Teachers.AsNoTracking().Where(s => list.Contains(s.Id))
+            .Select(s => new TeacherSummary(s.Id, s.BranchId, s.FirstName, s.LastName, s.Status == PersonStatus.Active))
+            .ToDictionaryAsync(s => s.Id, ct);
+    }
+
+    public async Task<Guid?> FindTeacherIdForUserAsync(Guid userId, CancellationToken ct = default) =>
+        await db.Teachers.AsNoTracking().Where(t => t.UserId == userId && t.Status == PersonStatus.Active).Select(t => (Guid?)t.Id).FirstOrDefaultAsync(ct);
+
+    public async Task<Guid?> FindStudentIdForUserAsync(Guid userId, CancellationToken ct = default) =>
+        await db.Students.AsNoTracking().Where(t => t.UserId == userId).Select(t => (Guid?)t.Id).FirstOrDefaultAsync(ct);
+
+    public async Task<IReadOnlyList<Guid>> GetGuardianStudentIdsForUserAsync(Guid userId, CancellationToken ct = default) =>
+        await (from g in db.Guardians
+               join link in db.StudentGuardians on g.Id equals link.GuardianId
+               where g.UserId == userId && g.Status == PersonStatus.Active
+               select link.StudentId).Distinct().ToListAsync(ct);
 }
