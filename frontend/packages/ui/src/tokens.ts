@@ -1,3 +1,5 @@
+import '@emotion/react';
+
 /**
  * Design tokens. Colors are CSS custom properties (defined in styles.css for light and dark),
  * so Emotion styles and Tailwind utilities share one source and switch theme without re-render.
@@ -40,3 +42,9 @@ export const tokens = { colors, space, radii, fontSizes, fontWeights, shadows, b
 export type Tokens = typeof tokens;
 
 export const mq = (bp: keyof typeof breakpoints) => `@media (min-width: ${breakpoints[bp]})`;
+
+// Typed Emotion theme (declared here so every package compiling these sources picks it up).
+declare module '@emotion/react' {
+  // eslint-disable-next-line @typescript-eslint/no-empty-object-type
+  export interface Theme extends Tokens {}
+}

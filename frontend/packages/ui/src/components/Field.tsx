@@ -1,5 +1,6 @@
 'use client';
 
+import type { Theme } from '@emotion/react';
 import styled from '@emotion/styled';
 import {
   forwardRef,
@@ -36,7 +37,7 @@ const ErrorText = styled.p`
   font-weight: ${({ theme }) => theme.fontWeights.medium};
 `;
 
-const controlCss = ({ theme }: { theme: import('@emotion/react').Theme }) => `
+const controlCss = ({ theme }: { theme: Theme }) => `
   inline-size: 100%;
   min-block-size: ${theme.controlHeight.md};
   padding: ${theme.space[2]} ${theme.space[3]};

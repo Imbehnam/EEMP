@@ -39,7 +39,7 @@ export function createConfig(options = {}) {
     },
     // No hard-coded user-facing text in JSX: every string must come from the i18n catalogs.
     {
-      files: ['apps/*/src/**/*.tsx', 'packages/ui/src/**/*.tsx'],
+      files: ['apps/*/src/**/*.tsx', 'packages/ui/src/**/*.tsx', 'packages/app/src/**/*.tsx'],
       ignores: ['**/*.test.tsx'],
       plugins: { i18next },
       rules: {

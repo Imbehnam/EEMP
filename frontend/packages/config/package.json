@@ -9,7 +9,10 @@
     "./tsconfig/nextjs.json": "./tsconfig/nextjs.json",
     "./tsconfig/library.json": "./tsconfig/library.json",
     "./tailwind-preset.css": "./tailwind-preset.css",
-    "./security-headers": "./security-headers.js"
+    "./security-headers": {
+      "types": "./security-headers.d.ts",
+      "default": "./security-headers.js"
+    }
   },
   "dependencies": {
     "@eslint/js": "^9.39.0",

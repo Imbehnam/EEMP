@@ -1,0 +1,37 @@
+{
+  "name": "@eemp/app",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "sideEffects": false,
+  "description": "Shared Next.js app wiring for apps/admin and apps/web: providers, session, data hooks, shared forms.",
+  "exports": {
+    ".": "./src/index.ts",
+    "./server": "./src/server.tsx"
+  },
+  "scripts": {
+    "typecheck": "tsc --noEmit -p tsconfig.json"
+  },
+  "dependencies": {
+    "@eemp/api-client": "workspace:*",
+    "@eemp/i18n": "workspace:*",
+    "@eemp/ui": "workspace:*",
+    "@emotion/react": "^11.14.0",
+    "@emotion/styled": "^11.14.1",
+    "next-intl": "^4.16.0",
+    "server-only": "^0.0.1"
+  },
+  "peerDependencies": {
+    "next": "^16.0.0",
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0"
+  },
+  "devDependencies": {
+    "@eemp/config": "workspace:*",
+    "@types/react": "^19.2.0",
+    "@types/react-dom": "^19.2.0",
+    "next": "16.4.6",
+    "react": "^19.2.0",
+    "react-dom": "^19.2.0"
+  }
+}

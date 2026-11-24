@@ -4,7 +4,6 @@ import styled from '@emotion/styled';
 import { useEffect, useId, useRef, useState } from 'react';
 
 import { Input } from './Field';
-import { VisuallyHidden } from './primitives';
 
 const Form = styled.form`
   flex: 1 1 18rem;
@@ -44,9 +43,9 @@ export function SearchBox({ label, placeholder, defaultValue = '', onSearch, deb
         callback.current(value.trim());
       }}
     >
-      <VisuallyHidden as="label" htmlFor={id}>
+      <label htmlFor={id} className="eemp-visually-hidden">
         {label}
-      </VisuallyHidden>
+      </label>
       <Input id={id} type="search" value={value} placeholder={placeholder} onChange={(e) => setValue(e.target.value)} />
     </Form>
   );
