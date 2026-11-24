@@ -1,0 +1,53 @@
+name: backend
+
+on:
+  push:
+    branches: [main]
+    paths: ["backend/**", ".github/workflows/backend.yml", "docker-compose.yml"]
+  pull_request:
+    paths: ["backend/**", ".github/workflows/backend.yml", "docker-compose.yml"]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: backend-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build-test:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: backend
+    env:
+      DOTNET_NOLOGO: "1"
+      DOTNET_CLI_TELEMETRY_OPTOUT: "1"
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-dotnet@v4
+        with:
+          global-json-file: backend/global.json
+
+      - name: Restore
+        run: dotnet restore EEMP.slnx
+
+      - name: Build
+        run: dotnet build EEMP.slnx -c Release --no-restore
+
+      - name: Check migrations are up to date
+        env:
+          CONFIGURATION: Release
+        run: ./check-migrations.sh
+
+      - name: Test
+        # Integration tests use the SQLite fallback provider (no SQL Server service needed).
+        run: dotnet test EEMP.slnx -c Release --no-build --logger "trx;LogFilePrefix=results" --results-directory TestResults
+
+      - name: Upload test results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: backend-test-results
+          path: backend/TestResults

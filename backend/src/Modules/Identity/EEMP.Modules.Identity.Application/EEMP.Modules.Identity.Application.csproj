@@ -1,0 +1,13 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <ItemGroup>
+    <ProjectReference Include="../EEMP.Modules.Identity.Domain/EEMP.Modules.Identity.Domain.csproj" />
+    <ProjectReference Include="../EEMP.Modules.Identity.Contracts/EEMP.Modules.Identity.Contracts.csproj" />
+    <ProjectReference Include="../../../EEMP.SharedKernel/EEMP.SharedKernel.csproj" />
+    <ProjectReference Include="../../Tenancy/EEMP.Modules.Tenancy.Contracts/EEMP.Modules.Tenancy.Contracts.csproj" />
+    <ProjectReference Include="../../Organization/EEMP.Modules.Organization.Contracts/EEMP.Modules.Organization.Contracts.csproj" />
+  </ItemGroup>
+  <ItemGroup>
+    <PackageReference Include="Microsoft.EntityFrameworkCore" />
+    <PackageReference Include="Microsoft.Extensions.Identity.Core" />
+  </ItemGroup>
+</Project>

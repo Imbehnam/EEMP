@@ -1,0 +1,37 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/EEMP.Api/EEMP.Api.csproj" />
+    <Project Path="src/EEMP.Infrastructure/EEMP.Infrastructure.csproj" />
+    <Project Path="src/EEMP.SharedKernel/EEMP.SharedKernel.csproj" />
+  </Folder>
+  <Folder Name="/src/Modules/" />
+  <Folder Name="/src/Modules/Identity/">
+    <Project Path="src/Modules/Identity/EEMP.Modules.Identity.Application/EEMP.Modules.Identity.Application.csproj" />
+    <Project Path="src/Modules/Identity/EEMP.Modules.Identity.Contracts/EEMP.Modules.Identity.Contracts.csproj" />
+    <Project Path="src/Modules/Identity/EEMP.Modules.Identity.Domain/EEMP.Modules.Identity.Domain.csproj" />
+    <Project Path="src/Modules/Identity/EEMP.Modules.Identity.Infrastructure/EEMP.Modules.Identity.Infrastructure.csproj" />
+  </Folder>
+  <Folder Name="/src/Modules/Organization/">
+    <Project Path="src/Modules/Organization/EEMP.Modules.Organization.Application/EEMP.Modules.Organization.Application.csproj" />
+    <Project Path="src/Modules/Organization/EEMP.Modules.Organization.Contracts/EEMP.Modules.Organization.Contracts.csproj" />
+    <Project Path="src/Modules/Organization/EEMP.Modules.Organization.Domain/EEMP.Modules.Organization.Domain.csproj" />
+    <Project Path="src/Modules/Organization/EEMP.Modules.Organization.Infrastructure/EEMP.Modules.Organization.Infrastructure.csproj" />
+  </Folder>
+  <Folder Name="/src/Modules/People/">
+    <Project Path="src/Modules/People/EEMP.Modules.People.Application/EEMP.Modules.People.Application.csproj" />
+    <Project Path="src/Modules/People/EEMP.Modules.People.Contracts/EEMP.Modules.People.Contracts.csproj" />
+    <Project Path="src/Modules/People/EEMP.Modules.People.Domain/EEMP.Modules.People.Domain.csproj" />
+    <Project Path="src/Modules/People/EEMP.Modules.People.Infrastructure/EEMP.Modules.People.Infrastructure.csproj" />
+  </Folder>
+  <Folder Name="/src/Modules/Tenancy/">
+    <Project Path="src/Modules/Tenancy/EEMP.Modules.Tenancy.Application/EEMP.Modules.Tenancy.Application.csproj" />
+    <Project Path="src/Modules/Tenancy/EEMP.Modules.Tenancy.Contracts/EEMP.Modules.Tenancy.Contracts.csproj" />
+    <Project Path="src/Modules/Tenancy/EEMP.Modules.Tenancy.Domain/EEMP.Modules.Tenancy.Domain.csproj" />
+    <Project Path="src/Modules/Tenancy/EEMP.Modules.Tenancy.Infrastructure/EEMP.Modules.Tenancy.Infrastructure.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/EEMP.ArchitectureTests/EEMP.ArchitectureTests.csproj" />
+    <Project Path="tests/EEMP.IntegrationTests/EEMP.IntegrationTests.csproj" />
+    <Project Path="tests/EEMP.UnitTests/EEMP.UnitTests.csproj" />
+  </Folder>
+</Solution>

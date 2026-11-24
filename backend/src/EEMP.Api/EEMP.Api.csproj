@@ -1,0 +1,22 @@
+<Project Sdk="Microsoft.NET.Sdk.Web">
+  <PropertyGroup>
+    <UserSecretsId>eemp-api-dev</UserSecretsId>
+    <InvariantGlobalization>false</InvariantGlobalization>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="../EEMP.Infrastructure/EEMP.Infrastructure.csproj" />
+    <ProjectReference Include="../Modules/Tenancy/EEMP.Modules.Tenancy.Infrastructure/EEMP.Modules.Tenancy.Infrastructure.csproj" />
+    <ProjectReference Include="../Modules/Identity/EEMP.Modules.Identity.Infrastructure/EEMP.Modules.Identity.Infrastructure.csproj" />
+    <ProjectReference Include="../Modules/Organization/EEMP.Modules.Organization.Infrastructure/EEMP.Modules.Organization.Infrastructure.csproj" />
+    <ProjectReference Include="../Modules/People/EEMP.Modules.People.Infrastructure/EEMP.Modules.People.Infrastructure.csproj" />
+  </ItemGroup>
+  <ItemGroup>
+    <PackageReference Include="Microsoft.AspNetCore.OpenApi" />
+    <PackageReference Include="Serilog.AspNetCore" />
+    <PackageReference Include="Serilog.Formatting.Compact" />
+    <PackageReference Include="OpenTelemetry.Extensions.Hosting" />
+    <PackageReference Include="OpenTelemetry.Instrumentation.AspNetCore" />
+    <PackageReference Include="OpenTelemetry.Exporter.OpenTelemetryProtocol" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Design" />
+  </ItemGroup>
+</Project>
