@@ -35,6 +35,9 @@ importers:
       eslint:
         specifier: ^9.39.5
         version: 9.39.5(jiti@2.7.0)
+      intl-messageformat:
+        specifier: ^12.2.1
+        version: 12.2.1
       jsdom:
         specifier: ^27.4.0
         version: 27.4.0

@@ -10,7 +10,7 @@
     "dev:mock": "pnpm --parallel --filter \"./apps/*\" dev:mock",
     "build": "pnpm -r --filter \"./apps/*\" build",
     "lint": "eslint . --max-warnings=0",
-    "typecheck": "pnpm -r typecheck",
+    "typecheck": "pnpm -r typecheck && tsc --noEmit -p tsconfig.test.json",
     "test": "vitest run",
     "test:watch": "vitest",
     "test:e2e": "playwright test",
@@ -28,6 +28,7 @@
     "eslint": "^9.39.5",
     "jsdom": "^27.4.0",
     "typescript": "~5.9.3",
-    "vitest": "^3.2.7"
+    "vitest": "^3.2.7",
+    "intl-messageformat": "^12.2.1"
   }
 }
