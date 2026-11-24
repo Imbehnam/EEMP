@@ -4,12 +4,14 @@ const ADMIN = 'http://localhost:3001';
 const WEB = 'http://localhost:3000';
 const PASSWORD = process.env.EEMP_MOCK_PASSWORD || 'eemp-mock';
 
-async function signIn(page: Page, base: string, locale: string, tenant: string, user: string, password = PASSWORD) {
+async function signIn(page: Page, base: string, locale: string, tenant: string, user: string, password = PASSWORD, expectSuccess = true) {
   await page.goto(`${base}/${locale}/login`);
   await page.locator('input[name="tenantSlug"]').fill(tenant);
   await page.locator('input[name="userName"]').fill(user);
   await page.locator('input[name="password"]').fill(password);
   await page.locator('button[type="submit"]').click();
+  // Login navigates with window.location; wait for it before the test navigates again.
+  if (expectSuccess) await page.waitForURL((url) => !url.pathname.endsWith('/login'));
 }
 
 test.describe('Persian browser', () => {
@@ -30,7 +32,7 @@ test('English browsers negotiate the English LTR login page', async ({ page }) =
 });
 
 test('wrong credentials show a translated error (no server text)', async ({ page }) => {
-  await signIn(page, ADMIN, 'en', 'demo', 'demo.admin', 'not-the-password');
+  await signIn(page, ADMIN, 'en', 'demo', 'demo.admin', 'not-the-password', false);
   await expect(page.getByRole('alert').filter({ hasText: 'incorrect' })).toHaveText('The institute code, username or password is incorrect.');
 });
 
