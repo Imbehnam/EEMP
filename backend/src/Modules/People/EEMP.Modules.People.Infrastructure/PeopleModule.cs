@@ -24,6 +24,7 @@ public static class PeopleModule
         services.AddScoped<StaffService>();
         services.AddScoped<PortalService>();
         services.AddScoped<IPeopleBranchUsage, PeopleBranchUsage>();
+        services.AddScoped<IPeopleDirectory, PeopleDirectory>();
         return services;
     }
 

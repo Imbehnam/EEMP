@@ -4,6 +4,28 @@ All notable changes to this project are documented here. Dates are UTC.
 
 ## [Unreleased]
 
+### Added — Milestone 2 academic core backend (EEMP-008..010), 2026-11-24
+- New `Academic` module (Domain/Application/Contracts/Infrastructure, schema `academic`, own migrations history, 17 tables):
+  academic years, terms, subjects, courses, configurable grading schemes (IR20 0–20 default, PCT, LETTER), classes/sections with weekly
+  schedule slots and effective-dated teacher assignments, enrollments, attendance sessions/records, assessments and scores with the
+  draft → submitted → approved → published workflow (return, reopen), append-only grade history, versioned report cards.
+- Rules: term inside year and non-overlapping; room, teacher and student timetable conflicts; capacity guarded by the class rowversion;
+  student/teacher must belong to the class's branch; idempotent bulk attendance (unique class/date/slot); no future attendance;
+  submit requires a mark for every enrolled student; published snapshots for the portal; report-card corrections create new versions.
+- Portal: teacher "my classes"; student/guardian timetable, attendance, published grades and published report cards.
+- 15 permission codes (`catalog.*`, `classes.*`, `enrollments.*`, `attendance.*`, `grades.read|manage|approve|publish`,
+  `reportcards.read|manage|publish`); TenantAdmin gets catalog/classes only; BranchManager gets all; teachers act through assignments.
+- Contracts: `IPeopleDirectory` (People), `IOrganizationSettings` (Organization), `IAcademicUsage` (Academic). Branch deletion also checks
+  classes; student/teacher deletion returns `409 people.in_use` when referenced.
+- 38 new localized problem/field codes (fa/en/tr/ar). SQL Server `InitialCreate` migration for `AcademicDbContext`.
+- Dev seed: year 1405-1406 with two terms, subjects, courses, classes MATH-7A (North, teacher.one) and PHYS-7S (South), enrollments,
+  an attendance sheet, a published quiz and a draft midterm.
+- Tests: 54 unit, 62 architecture, 45 integration (SQLite) — all passing.
+- Decisions DL-053..DL-056 (OD-007/OD-026/OD-020 accepted assumptions, single Academic module pending confirmation).
+
+### Known limitations (M2)
+- No report-card PDF/templates; existing tenants' system roles are not updated with the new permissions; no holidays/timetable exceptions.
+
 ### Added — Milestone 1 backend foundation (EEMP-002..007), 2026-11-24
 - .NET 10 modular-monolith solution (`backend/EEMP.slnx`, 22 projects): SharedKernel, Infrastructure,
   API host and Tenancy, Identity, Organization, People modules (Domain/Application/Contracts/Infrastructure).

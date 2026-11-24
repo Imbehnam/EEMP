@@ -62,6 +62,7 @@ public static class OrganizationModule
         services.AddScoped<BranchService>();
         services.AddScoped<IOrganizationProvisioner, OrganizationProvisioner>();
         services.AddScoped<IBranchDirectory, BranchDirectory>();
+        services.AddScoped<IOrganizationSettings, OrganizationSettings>();
         return services;
     }
 

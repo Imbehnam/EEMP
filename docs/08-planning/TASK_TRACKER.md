@@ -12,9 +12,9 @@ Statuses: `NOT_STARTED`, `IN_PROGRESS`, `IN_REVIEW` (implemented, build and auto
 | EEMP-005 | Dynamic authorization and scope assignments | IN_REVIEW | EEMP-004 |
 | EEMP-006 | Organization, central office, branches | IN_REVIEW | EEMP-005 |
 | EEMP-007 | Student, guardian, teacher, staff domain | IN_REVIEW | EEMP-006 |
-| EEMP-008 | Academic catalog and class operations | NOT_STARTED | EEMP-007 |
-| EEMP-009 | Enrollment and attendance | NOT_STARTED | EEMP-008 |
-| EEMP-010 | Assessment, grades, report cards | NOT_STARTED | EEMP-009 |
+| EEMP-008 | Academic catalog and class operations | IN_REVIEW | EEMP-007 |
+| EEMP-009 | Enrollment and attendance | IN_REVIEW | EEMP-008 |
+| EEMP-010 | Assessment, grades, report cards | IN_REVIEW | EEMP-009 |
 | EEMP-011 | Workflow engine | NOT_STARTED | EEMP-005 |
 | EEMP-012 | Consultation and support booking | NOT_STARTED | EEMP-011 |
 | EEMP-013 | Academic planning and paid service | NOT_STARTED | EEMP-011, EEMP-012 |
@@ -52,3 +52,18 @@ Integration tests use the SQLite fallback provider (no SQL Server/Docker in the 
 | EEMP-005 | Permission catalog, roles CRUD, tenant-wide/branch assignments, no self-grant, immutable system roles, TenantAdmin without people access, revocation on next request; tests `AuthorizationTests.*`, `IsolationTests.Branch_manager_sees_only_own_branch`, `Sibling_branch_records_are_not_found_and_cannot_be_created` | Supervision grants (90-day) and support access (DL-037..042) not in M1 scope |
 | EEMP-006 | `/organization`, `/branches` with branch scope and in-use protection; tests `IsolationTests.Organization_read_and_update`, `Branch_update_with_stale_rowversion_returns_409` | — |
 | EEMP-007 | `/students` (+guardian links), `/guardians`, `/teachers`, `/staff`, `/portal/me/profile`, `/portal/me/students`; tests `IsolationTests.People_crud_with_guardian_links_and_stale_rowversion_conflict`, `Portal_shows_only_own_profile_and_linked_students` | Cross-institute identity/transfer (OD-004 alternative) deferred |
+
+## Milestone 2 backend evidence (2026-11-24, branch `feature/m2-academic-backend`)
+
+Authorized by DL-053; runs on accepted assumptions DL-054 (OD-007, OD-026, OD-020) and the decisions in DL-055 (single Academic
+module pending confirmation). Stacked on `feature/m1-backend` (PR #1). Not `DONE` until user verification.
+
+Commands (run in `backend/`, .NET SDK 10.0.404): `dotnet build EEMP.slnx` → 0 warnings, 0 errors (warnings as errors);
+`dotnet test EEMP.slnx` → UnitTests 54/54, ArchitectureTests 62/62, IntegrationTests 45/45 passed (11 new academic integration tests);
+`./check-migrations.sh` → no pending model changes in all 6 contexts. Integration tests use the SQLite fallback provider.
+
+| ID | Evidence | Open items |
+|---|---|---|
+| EEMP-008 | `/academic-years`, `/terms`, `/subjects`, `/courses`, `/grading-schemes`, `/classes` (+ `/schedule`, `/teachers`, `/roster`), `/portal/me/classes`; rules: term inside year/no overlap, slot validation, room/teacher/student timetable conflicts, effective-dated teacher assignments, branch scope; tests `AcademicTests.Catalog_crud_rules_and_permissions`, `Classes_schedule_conflicts_teachers_and_branch_scope`, `Teacher_acts_only_on_assigned_classes`, unit `ScheduleRuleTests.*` | Holidays/exceptions and dated substitutions not modeled (DL-054); split into separate catalog/enrollment/assessment/report modules pending (DL-055) |
+| EEMP-009 | `/enrollments` (+ withdraw), `/classes/{id}/attendance` (GET sheet, PUT idempotent bulk), `/attendance/sessions`, `/attendance`; capacity guarded by class rowversion, branch match, timetable conflicts, re-enrollment; tests `Enrollment_capacity_branch_and_timetable_rules`, `Bulk_attendance_is_idempotent_and_validated`, `Concurrent_enrollments_cannot_exceed_capacity`, unit `EnrollmentRuleTests.*` | Attendance policies/notifications out of scope |
+| EEMP-010 | `/classes/{id}/assessments`, `/assessments/{id}` (+ `/results`, `/submit`, `/return`, `/approve`, `/publish`, `/reopen`, `/history`), `/classes/{id}/gradebook`, `/report-cards` (generate, list, get, versions, publish, batch publish), portal timetable/attendance/grades/report cards; append-only grade history; published snapshots; versioned report cards; tests `Grade_workflow_publish_gating_history_and_portal_visibility`, `Report_cards_are_versioned_and_portal_sees_published_only`, `Portal_timetable_and_attendance_for_linked_student`, `Academic_data_is_isolated_between_tenants`, `Academic_errors_are_localized`, unit `GradeCalculatorTests.*`, `AssessmentWorkflowTests.*` | Report-card PDF/templates not implemented; existing tenants' system roles not auto-updated with new permissions (DL-056) |

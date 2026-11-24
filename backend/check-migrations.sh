@@ -11,3 +11,4 @@ check src/Modules/Tenancy/EEMP.Modules.Tenancy.Infrastructure TenancyDbContext
 check src/Modules/Identity/EEMP.Modules.Identity.Infrastructure IdentityModuleDbContext
 check src/Modules/Organization/EEMP.Modules.Organization.Infrastructure OrganizationDbContext
 check src/Modules/People/EEMP.Modules.People.Infrastructure PeopleDbContext
+check src/Modules/Academic/EEMP.Modules.Academic.Infrastructure AcademicDbContext

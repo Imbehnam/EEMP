@@ -3,14 +3,16 @@
 ASP.NET Core (.NET 10 LTS) modular monolith. Milestone 1 covers tracker items EEMP-002..007:
 repository/CI/local environment, tenant context and isolation, authentication, dynamic
 authorization with branch scopes, organization/central office/branches, and
-student/guardian/teacher/staff profiles. The API contract shared with the frontend is
-`/api/v1` (see "API conventions" below).
+student/guardian/teacher/staff profiles. Milestone 2 (EEMP-008..010) adds the academic core:
+catalog, classes and timetable, enrollment, attendance, assessments and the grade workflow,
+report cards and the student/guardian/teacher portal views. The API contract shared with the
+frontend is `/api/v1` (see "API conventions" below).
 
 ## Layout
 
 ```
 backend/
-  EEMP.slnx                     solution (22 projects)
+  EEMP.slnx                     solution (26 projects)
   global.json                   SDK 10.0.404 (rollForward latestFeature)
   Directory.Build.props         nullable, warnings as errors, analyzers
   Directory.Packages.props      central package versions
@@ -35,7 +37,9 @@ backend/
 
 Modules and schemas: `tenancy` (tenants), `identity` (users, roles, role permissions, scoped
 assignments, refresh tokens), `organization` (central office, branches), `people` (students,
-guardians, teachers, staff, student-guardian links), plus `audit` (audit events).
+guardians, teachers, staff, student-guardian links), `academic` (years, terms, subjects, courses,
+grading schemes, classes, schedule slots, teacher assignments, enrollments, attendance, assessments,
+results, grade history, report cards and versions), plus `audit` (audit events).
 
 ## Run locally
 
@@ -86,6 +90,13 @@ supplied via configuration/environment. Nothing secret is committed.
 
 Demo tenant: branches NORTH and SOUTH, students S0001–S0003, teachers T0001–T0002, one staff
 member, one guardian linked to S0001. Passwords need 8+ characters with upper, lower and a digit.
+
+Academic sample data (added once, also to databases seeded before M2): year `1405-1406`
+(2026-09-23 → 2027-06-21) with `Term 1` / `Term 2`; subjects MATH, PHYS, LIT; courses MATH-7, PHYS-7;
+grading schemes IR20 (default), PCT, LETTER; class `MATH-7A` (NORTH, teacher.one, Sat & Mon 08:00–09:30,
+room 101, S0001 + S0002) and `PHYS-7S` (SOUTH, T0002, Sun 10:00–11:30, room 201, S0003); attendance
+for MATH-7A on 2026-11-21; `Quiz 1` published (S0001 18.5, S0002 15) and `Midterm` draft (S0001 17,
+hidden from the portal).
 
 ## Build, test, migrations
 
@@ -154,9 +165,23 @@ connection string when running `database update` from the CLI.
 - Audit: create/update/delete of audited entities and auth events (identifiers and changed field
   names only, never values or tokens).
 
+## Academic module (M2)
+
+- Endpoints: `/academic-years`, `/terms`, `/subjects`, `/courses`, `/grading-schemes`, `/classes`
+  (+ `/schedule`, `/teachers`, `/roster`, `/attendance`, `/attendance/sessions`, `/assessments`, `/gradebook`),
+  `/enrollments`, `/attendance`, `/assessments/{id}` (+ `/results`, `/history`, `/submit|return|approve|publish|reopen`),
+  `/report-cards` (+ `/generate`, `/publish`, `/{id}/publish`, `/{id}/versions/{n}`), `/portal/me/classes`,
+  `/portal/me/students/{id}/timetable|attendance|grades|report-cards`, `/portal/me/report-cards/{id}`.
+- Dates are `yyyy-MM-dd` tenant-local calendar dates (clients render Jalali for `fa`), times `HH:mm`.
+- Authorization: permission in the class's branch, or an active teacher assignment on the class for
+  teacher-capable operations (read, roster, attendance, assessments, scores, submit). Approve/publish/reopen
+  and report cards always need the permission. Guardians/students see only linked/own students and only
+  published grades and report cards.
+- Grade formula `weightedAverage.v1` and the default schemes are described in DL-054.
+
 ## Known limitations
 
-See `docs/08-planning/DECISION_LOG.md` (DL-048..DL-052) and `CHANGELOG.md`. Highlights: SQL Server
+See `docs/08-planning/DECISION_LOG.md` (DL-048..DL-056) and `CHANGELOG.md`. Highlights: SQL Server
 migrations were generated but not applied in the build sandbox (no SQL Server/Docker there);
 integration tests run on SQLite; SQL Server RLS is not implemented; tenant provisioning spans module
 contexts without one transaction; Redis is provisioned but unused; MFA is not implemented.
