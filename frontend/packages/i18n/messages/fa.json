@@ -202,7 +202,7 @@
     "currency": "واحد پول",
     "currencyHint": "کد سه‌حرفی ISO؛ هر مستأجر یک واحد پول دارد.",
     "createdAt": "تاریخ ایجاد",
-    "statusLabel": "{status, select, Provisioning {در حال راه‌اندازی} Active {فعال} Suspended {تعلیق‌شده} GracePeriod {دورهٔ مهلت} Restricted {محدودشده} Exporting {در حال برون‌بری} Offboarded {خاتمه‌یافته} other {{status}}}",
+    "statusLabel": "{status, select, active {فعال} suspended {تعلیق‌شده} other {{status}}}",
     "adminSection": "نخستین مدیر",
     "adminSectionHint": "این حساب می‌تواند وارد مؤسسه شود و مدیران دیگر را تعیین کند.",
     "adminUserName": "نام کاربری",
@@ -261,7 +261,14 @@
     "selectAll": "انتخاب همه",
     "module": "{module, select, organization {سازمان} branches {شعبه‌ها} roles {نقش‌ها} users {کاربران} students {دانش‌آموزان} guardians {اولیا} teachers {معلمان} staff {کارکنان} other {{module}}}",
     "action": "{action, select, read {مشاهده} manage {ایجاد، ویرایش و حذف} other {{action}}}",
-    "empty": "هنوز نقشی تعریف نشده است."
+    "empty": "هنوز نقشی تعریف نشده است.",
+    "sensitive": "حساس",
+    "sensitiveHint": "مجوزهای حساس به اطلاعات شخصی یا مدیریت کاربران و نقش‌ها دسترسی می‌دهند. فقط در صورت نیاز اعطا کنید.",
+    "branchScoped": "به‌ازای هر شعبه",
+    "orgWide": "کل سازمان",
+    "matrixCaption": "مجوزها بر اساس بخش و عملیات",
+    "moduleColumn": "بخش",
+    "scopeColumn": "دامنهٔ اعمال"
   },
   "users": {
     "title": "کاربران",
@@ -313,14 +320,14 @@
     "birthDate": "تاریخ تولد",
     "birthDateHint": "قالب: YYYY-MM-DD (میلادی). پس از ذخیره به تقویم شما نمایش داده می‌شود.",
     "gender": "جنسیت",
-    "genderLabel": "{gender, select, Male {مرد} Female {زن} other {{gender}}}",
+    "genderLabel": "{gender, select, male {مرد} female {زن} other {سایر}}",
     "unspecified": "مشخص نشده",
     "phone": "شمارهٔ همراه",
     "email": "ایمیل",
     "branch": "شعبه",
     "chooseBranch": "یک شعبه انتخاب کنید",
     "status": "وضعیت",
-    "statusLabel": "{status, select, Active {فعال} Inactive {غیرفعال} Graduated {دانش‌آموخته} Withdrawn {انصراف‌داده} other {{status}}}",
+    "statusLabel": "{status, select, active {فعال} inactive {غیرفعال} other {{status}}}",
     "studentNumber": "شمارهٔ دانش‌آموزی",
     "employeeNumber": "شمارهٔ پرسنلی",
     "subjects": "دروس",
@@ -336,13 +343,14 @@
     "guardian": "ولی",
     "chooseGuardian": "یک ولی انتخاب کنید",
     "relationship": "نسبت",
-    "relationshipLabel": "{relationship, select, Father {پدر} Mother {مادر} LegalGuardian {قیم قانونی} Other {سایر} other {{relationship}}}",
+    "relationshipLabel": "{relationship, select, father {پدر} mother {مادر} legalGuardian {قیم قانونی} other {سایر}}",
     "isPrimary": "رابط اصلی",
     "saveGuardians": "ذخیرهٔ اولیا",
     "guardiansSaved": "اولیا ذخیره شد.",
     "noGuardians": "ولی‌ای متصل نشده است.",
     "empty": "هنوز رکوردی ثبت نشده است.",
-    "deletedNotice": "رکورد حذف شد."
+    "deletedNotice": "رکورد حذف شد.",
+    "studentNumberHint": "برای تولید خودکار شماره، خالی بگذارید."
   },
   "portal": {
     "homeTitle": "خانه",
@@ -371,8 +379,8 @@
     "timeZoneHint": "ساعت‌ها در این منطقه نمایش داده می‌شوند. داده‌ها همیشه به وقت UTC ذخیره می‌شوند.",
     "saved": "ترجیحات ذخیره شد.",
     "preview": "پیش‌نمایش",
-    "previewDate": "اکنون: {date}",
-    "previewNumber": "عدد: {number}",
-    "calendarNote": "{calendar, select, persian {تاریخ‌ها به تقویم هجری شمسی (جلالی) نمایش داده می‌شوند.} other {تاریخ‌ها به تقویم میلادی نمایش داده می‌شوند.}}"
+    "calendarNote": "{calendar, select, persian {تاریخ‌ها به تقویم هجری شمسی (جلالی) نمایش داده می‌شوند.} other {تاریخ‌ها به تقویم میلادی نمایش داده می‌شوند.}}",
+    "previewDateLabel": "تاریخ و ساعت کنونی",
+    "previewNumberLabel": "قالب اعداد"
   }
 }

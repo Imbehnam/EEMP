@@ -202,7 +202,7 @@
     "currency": "Currency",
     "currencyHint": "Three-letter ISO code. One currency per tenant.",
     "createdAt": "Created",
-    "statusLabel": "{status, select, Provisioning {Provisioning} Active {Active} Suspended {Suspended} GracePeriod {Grace period} Restricted {Restricted} Exporting {Exporting} Offboarded {Offboarded} other {{status}}}",
+    "statusLabel": "{status, select, active {Active} suspended {Suspended} other {{status}}}",
     "adminSection": "First administrator",
     "adminSectionHint": "This account can sign in to the tenant and assign other administrators.",
     "adminUserName": "Username",
@@ -261,7 +261,14 @@
     "selectAll": "Select all",
     "module": "{module, select, organization {Organization} branches {Branches} roles {Roles} users {Users} students {Students} guardians {Guardians} teachers {Teachers} staff {Staff} other {{module}}}",
     "action": "{action, select, read {View} manage {Create, edit and delete} other {{action}}}",
-    "empty": "No roles yet."
+    "empty": "No roles yet.",
+    "sensitive": "Sensitive",
+    "sensitiveHint": "Sensitive permissions give access to personal data or to user and role management. Grant them only when needed.",
+    "branchScoped": "Per branch",
+    "orgWide": "Organization-wide",
+    "matrixCaption": "Permissions by module and action",
+    "moduleColumn": "Module",
+    "scopeColumn": "Applies to"
   },
   "users": {
     "title": "Users",
@@ -313,14 +320,14 @@
     "birthDate": "Date of birth",
     "birthDateHint": "Format: YYYY-MM-DD (Gregorian). Shown in your calendar after saving.",
     "gender": "Gender",
-    "genderLabel": "{gender, select, Male {Male} Female {Female} other {{gender}}}",
+    "genderLabel": "{gender, select, male {Male} female {Female} other {Other}}",
     "unspecified": "Not specified",
     "phone": "Mobile number",
     "email": "Email",
     "branch": "Branch",
     "chooseBranch": "Choose a branch",
     "status": "Status",
-    "statusLabel": "{status, select, Active {Active} Inactive {Inactive} Graduated {Graduated} Withdrawn {Withdrawn} other {{status}}}",
+    "statusLabel": "{status, select, active {Active} inactive {Inactive} other {{status}}}",
     "studentNumber": "Student number",
     "employeeNumber": "Employee number",
     "subjects": "Subjects",
@@ -336,13 +343,14 @@
     "guardian": "Guardian",
     "chooseGuardian": "Choose a guardian",
     "relationship": "Relationship",
-    "relationshipLabel": "{relationship, select, Father {Father} Mother {Mother} LegalGuardian {Legal guardian} Other {Other} other {{relationship}}}",
+    "relationshipLabel": "{relationship, select, father {Father} mother {Mother} legalGuardian {Legal guardian} other {Other}}",
     "isPrimary": "Primary contact",
     "saveGuardians": "Save guardians",
     "guardiansSaved": "Guardians saved.",
     "noGuardians": "No guardians linked.",
     "empty": "No records yet.",
-    "deletedNotice": "Record deleted."
+    "deletedNotice": "Record deleted.",
+    "studentNumberHint": "Leave empty to generate a number automatically."
   },
   "portal": {
     "homeTitle": "Home",
@@ -371,8 +379,8 @@
     "timeZoneHint": "Times are shown in this zone. Data is always stored in UTC.",
     "saved": "Preferences saved.",
     "preview": "Preview",
-    "previewDate": "Now: {date}",
-    "previewNumber": "Number: {number}",
-    "calendarNote": "{calendar, select, persian {Dates are shown in the Solar Hijri (Jalali) calendar.} other {Dates are shown in the Gregorian calendar.}}"
+    "calendarNote": "{calendar, select, persian {Dates are shown in the Solar Hijri (Jalali) calendar.} other {Dates are shown in the Gregorian calendar.}}",
+    "previewDateLabel": "Current date and time",
+    "previewNumberLabel": "Number format"
   }
 }
