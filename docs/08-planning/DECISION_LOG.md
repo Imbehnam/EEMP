@@ -47,10 +47,67 @@
 - Consequences: Package versions are managed centrally and must be re-reviewed against advisories at each upgrade.
 - Owner: Implementing agent, pending product-owner confirmation.
 
+## Milestone 1 decisions (2026-11-24)
+
+### DL-048 — Milestone 1 scope authorization
+- Date: 2026-11-24
+- Status: Approved (explicit product-owner instruction in the working session)
+- Context: DL-046 authorized only EEMP-002. The product owner then instructed implementation of milestone 1 = EEMP-002..007, backend and frontend in parallel against a shared contract (`/api/v1`).
+- Decision: Implement EEMP-002..007 on branch `feature/m1-backend` (backend) and open a draft PR to `main`. Items move to `IN_REVIEW`, not `DONE`, until user verification.
+- Consequences: EEMP-000/001 remain formally open; the open decisions M1 depends on are covered by the accepted assumptions below.
+- Owner: Product owner.
+
+### DL-049 — Accepted assumptions — pending business confirmation
+- Date: 2026-11-24
+- Status: Accepted assumption — pending business confirmation (each item can be revisited; changing it later has the noted cost)
+- Context: Open decisions blocking EEMP-003..007 (DL-046). The product owner directed that these working assumptions be used for M1.
+- Decision:
+  - OD-001: Iran-first market and jurisdiction.
+  - OD-019: locales `fa-IR` (default, RTL), `en` (LTR), `tr` (LTR), `ar` (RTL). Server-generated text (problem titles) is localized from catalogs for fa/en/tr/ar; clients translate stable `code`s.
+  - OD-020: Jalali display for fa, Gregorian for en/tr, Gregorian (optionally Hijri later) for ar. All instants persisted in UTC; dates of birth as `date`.
+  - OD-002: one tenant = one institute group (organization).
+  - OD-003: exactly one central office per tenant (unique index), many branches.
+  - OD-004: identities isolated per tenant for MVP (user name unique per tenant; the same person in two tenants has two accounts).
+  - OD-011: single currency per tenant (default IRR); money is `decimal` with explicit currency.
+  - OD-023: ASP.NET Core Identity (password hashing, lockout) + JWT access token (15 min) + rotating refresh token stored hashed in the database.
+  - OD-024: single shared deployment (one database, schema per module, TenantId on tenant-owned rows), Docker.
+- Alternatives: see `OPEN_DECISIONS.md` for each item.
+- Consequences: changing OD-004 to a global person identity needs a person-identity table and a migration of user/profile links; changing OD-003 needs dropping the unique central-office index; changing OD-011 needs currency on every money column (no money columns exist yet).
+- Owner: Product owner (confirmation pending).
+
+### DL-050 — Documentation conflict: browser auth (BFF cookies) vs JWT
+- Date: 2026-11-24
+- Status: Accepted assumption — pending business confirmation
+- Context: `docs/10-analysis/03_ARCHITECTURE_AND_DATA_MODEL_REVIEW.md` D-04 and `06_IMPLEMENTATION_SPEC_PHASE1.md` §4 recommend a Next.js BFF with HttpOnly/Secure/SameSite cookies and CSRF protection, no tokens in `localStorage`; the M1 shared contract (OD-023 assumption) specifies JWT access + refresh tokens returned in the login response.
+- Decision: Both, layered. The API issues bearer JWT + refresh tokens (contract). Browsers never hold them in script-readable storage: the Next.js apps act as BFF, keep tokens in HttpOnly cookies and enforce CSRF on mutating requests (frontend scope). The API has no cookie authentication, so it has no CSRF surface itself.
+- Alternatives: cookie authentication directly on the API (would need CSRF on the API and same-site deployment); tokens in browser storage (rejected by D-04).
+- Consequences: the "CSRF test passes for cookie auth" acceptance item belongs to the frontend BFF; the API's refresh endpoint must only be reachable by the BFF in production (network/CORS policy to be defined in deployment).
+- Owner: Product owner.
+
+### DL-051 — Documentation conflict: global identity vs per-tenant identities
+- Date: 2026-11-24
+- Status: Accepted assumption — pending business confirmation
+- Context: `OPEN_DECISIONS.md` OD-004 lists "global person identity with tenant-scoped profiles" as an option and the cross-institute referral design (`CROSS_INSTITUTE_REFERRAL.md`) assumes identities can be matched across tenants; the M1 contract assumes isolated identities per tenant.
+- Decision: Per-tenant isolated identities for M1 (DL-049, OD-004). Platform administrators are the only tenant-less accounts. A user account (Identity) is separate from person profiles (People), linked by `UserId`, so a later global-person layer can be added without merging accounts.
+- Consequences: cross-institute referral/transfer (EEMP-019) must re-open OD-004 before implementation.
+- Owner: Product owner.
+
+### DL-052 — M1 implementation notes and known gaps
+- Date: 2026-11-24
+- Status: Recorded (implementing agent)
+- Decision / facts:
+  - One DbContext and schema per module (`tenancy`, `identity`, `organization`, `people`, `audit`), each with its own `__EFMigrationsHistory` table (DL-043).
+  - SQL Server RLS (DL-045 defense-in-depth) is **not** implemented in M1: pooled-connection session-context handling was not proven (no SQL Server in the build sandbox). Isolation relies on EF global query filters (fail closed), save-pipeline tenant checks, tenant-composite foreign keys and service-level scope checks, covered by integration tests.
+  - Integration tests run on a SQLite fallback provider (schema from model, rowversion emulated); the SQL Server migrations were generated and checked for pending model changes but not applied to a real SQL Server.
+  - Tenant provisioning (tenant, central office, roles, first admin) writes to several module contexts without one transaction; a failure mid-way leaves a partial tenant (logged, 500). Outbox/compensation is future work.
+  - Out-of-scope reads return 404 (no existence leak to sibling branches/tenants); out-of-scope writes into a visible scope return 403 `authorization.forbidden_scope`.
+  - Redis is provisioned in docker-compose for upcoming work; M1 does not use it (rate limiting is in-process, per instance).
+- Owner: Implementing agent.
+
 ## Proposed, not yet approved
-- Shared database with TenantId and SQL Server RLS defense-in-depth (engine approved in DL-045; tenancy model awaits OD-002/OD-004).
+- SQL Server RLS defense-in-depth (engine approved in DL-045; shared database with TenantId adopted as an M1 assumption in DL-049; RLS not implemented, see DL-052).
 - Provider adapters for payments, SMS, video, storage.
-- Translation-key-based i18n with RTL/LTR.
+- Translation-key-based i18n with RTL/LTR (server side adopted for M1 via stable error codes, DL-049).
 - Durable notification scheduling with outbox/inbox and idempotency.
 
 ## New decisions
