@@ -1,5 +1,5 @@
 {
   "extends": "./packages/config/tsconfig/library.json",
   "compilerOptions": { "jsx": "react-jsx" },
-  "include": ["test", "packages/*/test", "e2e", "vitest.config.ts", "playwright.config.ts"]
+  "include": ["test", "packages/*/test", "e2e", "e2e-real", "vitest.config.ts", "playwright.config.ts"]
 }
