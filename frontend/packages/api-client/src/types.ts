@@ -170,7 +170,12 @@ export interface RoleInput {
   name: string;
   permissions: string[];
 }
-export type UpdateRoleRequest = RoleInput & { rowVersion: RowVersion };
+/** The role code is immutable after creation; PUT /roles/{id} takes name + permissions only. */
+export interface UpdateRoleRequest {
+  name: string;
+  permissions: string[];
+  rowVersion: RowVersion;
+}
 
 /** Assignment as sent to PUT /users/{id}/assignments. */
 export interface UserAssignment {
@@ -194,6 +199,7 @@ export interface TenantUser {
   locale: string | null;
   timeZone: string | null;
   assignments: UserAssignmentView[];
+  createdAt?: UtcInstant;
   rowVersion: RowVersion;
 }
 
@@ -240,10 +246,23 @@ export interface PersonBase {
   rowVersion: RowVersion;
 }
 
+export type GuardianRelationship = 'father' | 'mother' | 'legalGuardian' | 'grandparent' | 'sibling' | 'other';
+export const GUARDIAN_RELATIONSHIPS: readonly GuardianRelationship[] = [
+  'father', 'mother', 'legalGuardian', 'grandparent', 'sibling', 'other',
+];
+
 export interface StudentGuardianLink {
   guardianId: Guid;
-  relationship: string;
+  relationship: GuardianRelationship | (string & {});
   isPrimary: boolean;
+}
+
+/** GET /students/{id}/guardians item: the link plus guardian details (blank when the caller cannot read that guardian). */
+export interface StudentGuardianDetail extends StudentGuardianLink {
+  firstName: string;
+  lastName: string;
+  phone: string | null;
+  branchId: Guid;
 }
 
 export interface Student extends PersonBase {
@@ -255,7 +274,8 @@ export type Guardian = PersonBase;
 
 export interface Teacher extends PersonBase {
   employeeNumber: string;
-  subjects?: string[] | null;
+  /** Free text (backend stores one string, max 500), e.g. "Mathematics, Physics". Settled 2026-11-24. */
+  subjects?: string | null;
 }
 
 export interface Staff extends PersonBase {
@@ -292,3 +312,14 @@ export type PortalProfile =
   | { kind: 'teacher'; profile: Teacher }
   | { kind: 'staff'; profile: Staff };
 export type PortalKind = PortalProfile['kind'];
+
+/** GET /portal/me/students item: a linked-student summary (not the full record). Settled 2026-11-24. */
+export interface PortalStudent {
+  id: Guid;
+  branchId: Guid;
+  firstName: string;
+  lastName: string;
+  studentNumber: string;
+  relationship: GuardianRelationship | (string & {});
+  isPrimary: boolean;
+}

@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, it } from 'vitest';
 
 import { createMockBackend, DEFAULT_MOCK_PASSWORD, MOCK_API_BASE_URL, MOCK_IDS } from '../src/mock';
-import type { Paged, Permission, PortalProfile, Role, Student, TenantUser, TokenResponse } from '../src';
+import type { Paged, Permission, PortalProfile, PortalStudent, Role, Student, TenantUser, TokenResponse } from '../src';
 
 let backend: ReturnType<typeof createMockBackend>;
 
@@ -69,7 +69,7 @@ describe('mock backend: contract clarifications (2026-11-24)', () => {
   it('permissions carry isSensitive and branchScoped', async () => {
     const token = await login('demo', 'demo.admin');
     const permissions = (await call('GET', '/permissions', { token })).body as Permission[];
-    expect(permissions.find((p) => p.code === 'students.read')).toEqual({ code: 'students.read', module: 'students', isSensitive: true, branchScoped: true });
+    expect(permissions.find((p) => p.code === 'students.read')).toEqual({ code: 'students.read', module: 'people', isSensitive: true, branchScoped: true });
     expect(permissions.find((p) => p.code === 'organization.read')).toMatchObject({ isSensitive: false, branchScoped: false });
     expect(permissions.every((p) => /^[a-z]+\.(read|manage)$/.test(p.code))).toBe(true);
   });
@@ -87,9 +87,13 @@ describe('mock backend: contract clarifications (2026-11-24)', () => {
     expect(demoAdmin.assignments[0]).toEqual({ roleId: MOCK_IDS.roleTenantAdmin, roleCode: 'TenantAdmin', branchId: null });
 
     const guardian = await login('demo', 'guardian.ali');
-    const students = (await call('GET', '/portal/me/students', { token: guardian })).body as Student[];
+    const students = (await call('GET', '/portal/me/students', { token: guardian })).body as PortalStudent[];
     expect(Array.isArray(students)).toBe(true);
     expect(students.map((s) => s.studentNumber).sort()).toEqual(['ST-1001', 'ST-1002']);
+    // Same summary shape as the real API (settled 2026-11-24).
+    expect(Object.keys(students[0]!).sort()).toEqual(
+      ['branchId', 'firstName', 'id', 'isPrimary', 'lastName', 'relationship', 'studentNumber'].sort(),
+    );
   });
 
   it('portal profile is { kind, profile }', async () => {

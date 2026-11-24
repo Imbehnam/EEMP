@@ -1,7 +1,7 @@
 'use client';
 
 import {
-  GENDERS, PERSON_STATUSES,
+  GENDERS, GUARDIAN_RELATIONSHIPS, PERSON_STATUSES,
   type Branch, type Guardian, type PersonBase, type PersonByKind, type PersonKind, type Staff, type Student,
   type StudentGuardianLink, type Teacher,
 } from '@eemp/api-client';
@@ -14,7 +14,7 @@ import { useState, type FormEvent } from 'react';
 
 import { BackLink, CreateButton, FormActions, Notice, nullIfEmpty, PagedList, useFieldErrors } from '../components/common';
 
-export const RELATIONSHIPS = ['father', 'mother', 'legalGuardian', 'other'] as const;
+export const RELATIONSHIPS = GUARDIAN_RELATIONSHIPS;
 
 /** Branch lookup for labels and the branch select (only branches the user may read). */
 function useBranches() {
@@ -69,7 +69,7 @@ export function PeopleListScreen({ kind, notice }: { kind: PersonKind; notice?: 
   );
 }
 
-interface PersonValues {
+export interface PersonValues {
   branchId: string;
   firstName: string;
   lastName: string;
@@ -85,23 +85,27 @@ interface PersonValues {
   position: string;
 }
 
-const emptyValues: PersonValues = {
+export const emptyValues: PersonValues = {
   branchId: '', firstName: '', lastName: '', nationalId: '', birthDate: '', gender: '', phone: '', email: '', status: 'active',
   studentNumber: '', employeeNumber: '', subjects: '', position: '',
 };
 
-function toValues(p: PersonBase): PersonValues {
+export function toValues(p: PersonBase): PersonValues {
   return {
     branchId: p.branchId, firstName: p.firstName, lastName: p.lastName, nationalId: p.nationalId ?? '', birthDate: p.birthDate ?? '',
     gender: p.gender ?? '', phone: p.phone ?? '', email: p.email ?? '', status: p.status,
     studentNumber: (p as Student).studentNumber ?? '', employeeNumber: (p as Teacher).employeeNumber ?? '',
-    subjects: ((p as Teacher).subjects ?? []).join(', '), position: (p as Staff).position ?? '',
+    subjects: (p as Teacher).subjects ?? '', position: (p as Staff).position ?? '',
   };
 }
 
-/** Builds the kind-specific payload (create and update share it). */
-function toPayload(kind: PersonKind, v: PersonValues, isCreate: boolean) {
+/**
+ * Builds the kind-specific payload (create and update share it). PUT replaces the record, so the
+ * linked portal account (`userId`, not editable here) is carried over from the loaded record.
+ */
+export function toPayload(kind: PersonKind, v: PersonValues, isCreate: boolean, userId: string | null = null) {
   const base = {
+    userId,
     branchId: v.branchId, firstName: v.firstName.trim(), lastName: v.lastName.trim(), nationalId: nullIfEmpty(v.nationalId),
     birthDate: nullIfEmpty(v.birthDate), gender: (nullIfEmpty(v.gender) as PersonBase['gender']) ?? null, phone: nullIfEmpty(v.phone),
     email: nullIfEmpty(v.email), status: v.status as PersonBase['status'],
@@ -111,7 +115,7 @@ function toPayload(kind: PersonKind, v: PersonValues, isCreate: boolean) {
       // studentNumber is optional on create: the server generates one when omitted.
       return { ...base, ...(isCreate && !v.studentNumber.trim() ? {} : { studentNumber: v.studentNumber.trim() }) };
     case 'teachers':
-      return { ...base, employeeNumber: v.employeeNumber.trim(), subjects: v.subjects.split(/[,،]/).map((s) => s.trim()).filter(Boolean) };
+      return { ...base, employeeNumber: v.employeeNumber.trim(), subjects: nullIfEmpty(v.subjects) };
     case 'staff':
       return { ...base, employeeNumber: v.employeeNumber.trim(), position: v.position.trim() };
     default:
@@ -267,7 +271,9 @@ export function GuardianLinksEditor({ student, readOnly }: { student: Student; r
             loading={mutation.busy}
             onClick={async () => {
               setSaved(false);
-              const result = await mutation.run(current.filter((r) => r.guardianId));
+              const result = await mutation.run(
+                current.filter((r) => r.guardianId).map(({ guardianId, relationship, isPrimary }) => ({ guardianId, relationship, isPrimary })),
+              );
               if (result.ok) {
                 setSaved(true);
                 setRows(null);
@@ -295,7 +301,7 @@ export function PersonEditScreen({ kind, id, notice }: { kind: PersonKind; id: s
   const [saved, setSaved] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
   const mutation = useApiMutation((api, p: PersonBase, v: PersonValues) =>
-    api.people(kind).update(p.id, { ...toPayload(kind, v, false), rowVersion: p.rowVersion } as never) as Promise<PersonBase>,
+    api.people(kind).update(p.id, { ...toPayload(kind, v, false, p.userId ?? null), rowVersion: p.rowVersion } as never) as Promise<PersonBase>,
   );
   const remove = useApiMutation((api, personId: string) => api.people(kind).remove(personId));
   const errors = useFieldErrors(mutation.error);

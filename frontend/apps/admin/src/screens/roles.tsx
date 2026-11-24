@@ -1,6 +1,6 @@
 'use client';
 
-import type { Permission, Role, RoleInput } from '@eemp/api-client';
+import { groupPermissionsByResource, permissionAction, type Permission, type Role, type RoleInput } from '@eemp/api-client';
 import { ErrorAlert, LoadError, useApiMutation, useApiQuery, useSession } from '@eemp/app';
 import { Link, useRouter } from '@eemp/i18n/navigation';
 import { Alert, Badge, Button, Card, ConfirmDialog, DataTable, FormGrid, PageHeader, SearchBox, Spinner, StatePanel, TextField } from '@eemp/ui';
@@ -44,18 +44,9 @@ export function RolesListScreen({ notice }: { notice?: string }) {
   );
 }
 
-interface ModuleRow {
-  module: string;
-  actions: Permission[];
-}
+const groupByModule = groupPermissionsByResource;
 
-function groupByModule(permissions: Permission[]): ModuleRow[] {
-  const map = new Map<string, Permission[]>();
-  for (const p of permissions) map.set(p.module, [...(map.get(p.module) ?? []), p]);
-  return [...map.entries()].map(([module, actions]) => ({ module, actions }));
-}
-
-const actionOf = (code: string) => code.slice(code.lastIndexOf('.') + 1);
+const actionOf = permissionAction;
 
 /**
  * Permission matrix: one row per module, one column per action (read / manage).
@@ -131,10 +122,11 @@ export function PermissionMatrix({
 }
 
 function RoleForm({
-  initial, onSubmit, busy, error, onReload, isSystem, readOnly, cancelHref,
+  initial, onSubmit, busy, error, onReload, isSystem, isEdit, readOnly, cancelHref,
 }: {
   initial: RoleInput; onSubmit: (input: RoleInput) => void; busy: boolean; error: unknown; onReload?: () => void;
-  isSystem?: boolean; readOnly?: boolean; cancelHref: string;
+  /** The code is immutable once created (PUT /roles/{id} does not take it). */
+  isSystem?: boolean; isEdit?: boolean; readOnly?: boolean; cancelHref: string;
 }) {
   const t = useTranslations('roles');
   const common = useTranslations('common');
@@ -152,7 +144,7 @@ function RoleForm({
       {isSystem && <Alert tone="info" style={{ marginBlockEnd: 12 }}>{t('systemHint')}</Alert>}
       <fieldset disabled={readOnly} style={{ border: 0, padding: 0, margin: 0 }}>
         <FormGrid>
-          <TextField label={t('code')} dir="ltr" required readOnly={isSystem} value={v.code} error={errors.code} onChange={(e) => setV({ ...v, code: e.target.value })} />
+          <TextField label={t('code')} dir="ltr" required readOnly={isSystem || isEdit} value={v.code} error={errors.code} onChange={(e) => setV({ ...v, code: e.target.value })} />
           <TextField label={t('name')} required value={v.name} error={errors.name} onChange={(e) => setV({ ...v, name: e.target.value })} />
         </FormGrid>
         <h2 style={{ fontSize: '1.0625rem', marginBlock: '24px 8px' }}>{t('permissions')}</h2>
@@ -203,7 +195,7 @@ export function RoleEditScreen({ id, notice }: { id: string; notice?: string }) 
   const [formKey, setFormKey] = useState(0);
   const [saved, setSaved] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
-  const mutation = useApiMutation((api, role: Role, input: RoleInput) => api.roles.update(role.id, { ...input, rowVersion: role.rowVersion }));
+  const mutation = useApiMutation((api, role: Role, input: RoleInput) => api.roles.update(role.id, { name: input.name, permissions: input.permissions, rowVersion: role.rowVersion }));
   const remove = useApiMutation((api, roleId: string) => api.roles.remove(roleId));
 
   if (query.error && !query.data) return <LoadError error={query.error} onRetry={query.reload} />;
@@ -227,6 +219,7 @@ export function RoleEditScreen({ id, notice }: { id: string; notice?: string }) 
           key={`${role.rowVersion}-${formKey}`}
           initial={{ code: role.code, name: role.name, permissions: role.permissions }}
           isSystem={role.isSystem}
+          isEdit
           readOnly={!canManage}
           busy={mutation.busy}
           error={mutation.error}

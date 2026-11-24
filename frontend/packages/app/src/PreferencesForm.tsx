@@ -1,6 +1,6 @@
 'use client';
 
-import { calendarOf, formatDateTime, formatNumber, listTimeZones, localeMetadata, locales, toSupportedLocale } from '@eemp/i18n';
+import { calendarOf, formatDateTime, formatNumber, listTimeZones, localeMetadata, locales, toApiLocale, toSupportedLocale } from '@eemp/i18n';
 import { useErrorTranslator } from '@eemp/i18n/react';
 import { Alert, Button, Card, DescriptionList, FormGrid, SelectField } from '@eemp/ui';
 import { useLocale, useTimeZone, useTranslations } from 'next-intl';
@@ -31,7 +31,7 @@ export function PreferencesForm({ saved }: { saved?: boolean }) {
 
   async function onSubmit(event: FormEvent) {
     event.preventDefault();
-    const result = await mutation.run({ locale, timeZone });
+    const result = await mutation.run({ locale: toApiLocale(locale), timeZone });
     if (!result.ok) return;
     setPreferenceCookie(TIME_ZONE_COOKIE, timeZone);
     setPreferenceCookie(LOCALE_COOKIE, locale);

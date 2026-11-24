@@ -43,6 +43,16 @@ export function toSupportedLocale(value: string | null | undefined, fallback: Lo
   return isLocale(base) ? base : fallback;
 }
 
+/**
+ * Locale tags used by the API (contract: `fa-IR`, `en`, `tr`, `ar`). Route/UI locales stay short (`fa`);
+ * convert at the API boundary with toApiLocale (send) and toSupportedLocale (read).
+ */
+export const apiLocales: Record<Locale, string> = { fa: 'fa-IR', en: 'en', tr: 'tr', ar: 'ar' };
+
+export function toApiLocale(value: string): string {
+  return apiLocales[toSupportedLocale(value)];
+}
+
 export function getDirection(locale: string): Direction {
   return isLocale(locale) ? localeMetadata[locale].dir : 'ltr';
 }

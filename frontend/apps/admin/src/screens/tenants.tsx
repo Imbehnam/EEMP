@@ -2,7 +2,7 @@
 
 import type { CreateTenantRequest, Tenant } from '@eemp/api-client';
 import { ErrorAlert, LoadError, useApiMutation, useApiQuery } from '@eemp/app';
-import { listTimeZones, localeMetadata, locales } from '@eemp/i18n';
+import { listTimeZones, localeMetadata, locales, toApiLocale, toSupportedLocale } from '@eemp/i18n';
 import { useLocaleFormat } from '@eemp/i18n/react';
 import { Link, useRouter } from '@eemp/i18n/navigation';
 import { Badge, Button, Card, Checkbox, ConfirmDialog, Fieldset, FormGrid, PageHeader, SelectField, Spinner, TextField } from '@eemp/ui';
@@ -84,7 +84,7 @@ export function TenantsListScreen({ notice }: { notice?: string }) {
           { key: 'name', header: t('name'), isRowHeader: true, cell: (row) => <Link href={`/tenants/${row.id}`}>{row.name}</Link> },
           { key: 'slug', header: t('slug'), cell: (row) => <span className="eemp-ltr">{row.slug}</span> },
           { key: 'status', header: common('status'), cell: (row) => <TenantStatusBadge status={row.status} /> },
-          { key: 'locale', header: t('defaultLocale'), cell: (row) => localeMetadata[row.defaultLocale as 'fa']?.nativeName ?? row.defaultLocale },
+          { key: 'locale', header: t('defaultLocale'), cell: (row) => localeMetadata[toSupportedLocale(row.defaultLocale)].nativeName },
           { key: 'created', header: t('createdAt'), cell: (row) => format.instantDate(row.createdAt) },
           {
             key: 'actions',
@@ -184,6 +184,12 @@ function TenantFields({
   );
 }
 
+/** Form values hold UI locale codes (`fa`); the API takes its own tags (`fa-IR`). */
+const toApiLocales = (v: Pick<TenantFormValues, 'defaultLocale' | 'supportedLocales'>) => ({
+  defaultLocale: toApiLocale(v.defaultLocale),
+  supportedLocales: v.supportedLocales.map(toApiLocale),
+});
+
 export function TenantCreateScreen() {
   const t = useTranslations('tenants');
   const router = useRouter();
@@ -196,7 +202,7 @@ export function TenantCreateScreen() {
 
   async function onSubmit(event: FormEvent) {
     event.preventDefault();
-    const result = await mutation.run({ ...values, adminUser: admin });
+    const result = await mutation.run({ ...values, ...toApiLocales(values), adminUser: admin });
     if (result.ok) router.push(`/tenants/${result.value.id}?notice=created`);
   }
 
@@ -239,8 +245,7 @@ export function TenantEditScreen({ id, notice }: { id: string; notice?: string }
   const [saved, setSaved] = useState(false);
   const mutation = useApiMutation((api, tenant: Tenant, v: TenantFormValues) =>
     api.platform.tenants.update(tenant.id, {
-      name: v.name, defaultLocale: v.defaultLocale, supportedLocales: v.supportedLocales, timeZone: v.timeZone,
-      currency: v.currency, rowVersion: tenant.rowVersion,
+      name: v.name, ...toApiLocales(v), timeZone: v.timeZone, currency: v.currency, rowVersion: tenant.rowVersion,
     }),
   );
   const toggle = useStatusToggle((updated) => (updated ? query.setData(updated) : query.reload()));
@@ -250,7 +255,8 @@ export function TenantEditScreen({ id, notice }: { id: string; notice?: string }
   const tenant = query.data;
   if (!tenant) return <Spinner label={common('loading')} />;
   const current: TenantFormValues = values ?? {
-    slug: tenant.slug, name: tenant.name, defaultLocale: tenant.defaultLocale, supportedLocales: tenant.supportedLocales,
+    slug: tenant.slug, name: tenant.name, defaultLocale: toSupportedLocale(tenant.defaultLocale),
+    supportedLocales: tenant.supportedLocales.map((l) => toSupportedLocale(l)),
     timeZone: tenant.timeZone, currency: tenant.currency,
   };
 

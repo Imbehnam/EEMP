@@ -91,11 +91,16 @@
       "forbidden": "Bu işlem için yetkiniz yok.",
       "invalid_refresh_token": "Oturumunuzun süresi doldu. Lütfen yeniden giriş yapın.",
       "portal_not_allowed": "Bu hesap bu portalı kullanamaz.",
-      "locked_out": "Çok fazla deneme yapıldı. Lütfen birkaç dakika bekleyip tekrar deneyin."
+      "locked_out": "Çok fazla deneme yapıldı. Lütfen birkaç dakika bekleyip tekrar deneyin.",
+      "unauthorized": "Devam etmek için oturum açmalısınız.",
+      "refresh_token_reused": "Oturumunuz güvenlik nedeniyle iptal edildi.",
+      "account_inactive": "Hesap etkin değil.",
+      "session_revoked": "Oturumunuz artık geçerli değil."
     },
     "tenant": {
       "forbidden": "Bu işlem kurumunuzun erişim alanı dışında.",
-      "suspended": "Bu kurumun hesabı askıya alındı. Platform işletmecisine başvurun."
+      "suspended": "Bu kurumun hesabı askıya alındı. Platform işletmecisine başvurun.",
+      "slug_taken": "Bu kurum tanımlayıcısı zaten kullanılıyor."
     },
     "validation": {
       "failed": "Lütfen işaretli alanları düzeltin.",
@@ -114,26 +119,34 @@
       "unknown_role": "Geçerli bir rol seçin.",
       "unknown_guardian": "Geçerli bir veli seçin.",
       "unknown_permission": "İzinlerden biri tanınmıyor.",
-      "single_primary_guardian": "Yalnızca bir veli birincil iletişim kişisi olabilir."
+      "single_primary_guardian": "Yalnızca bir veli birincil iletişim kişisi olabilir.",
+      "invalid_value": "Bu değer geçerli değil.",
+      "invalid_timezone": "Geçerli bir saat dilimi seçin.",
+      "password_too_weak": "Parola çok zayıf (büyük ve küçük harf ile rakam içeren en az 8 karakter)."
     },
     "resource": {
-      "not_found": "Bu kayıt bulunamadı veya artık erişiminiz yok."
+      "not_found": "Bu kayıt bulunamadı veya artık erişiminiz yok.",
+      "duplicate": "Bu değere sahip bir kayıt zaten var."
     },
     "concurrency": {
       "conflict": "Bu kaydı başka biri değiştirdi. En son sürümü yükleyip tekrar deneyin."
     },
     "branch": {
-      "in_use": "Bu şubeye hâlâ kişiler atanmış olduğu için silinemez."
+      "in_use": "Bu şubeye hâlâ kişiler atanmış olduğu için silinemez.",
+      "code_taken": "Bu şube kodu zaten kullanılıyor."
     },
     "role": {
       "system_immutable": "Sistem rolleri silinemez ve kodları değiştirilemez.",
-      "in_use": "Bu rol kullanıcılara atanmış olduğu için silinemez."
+      "in_use": "Bu rol kullanıcılara atanmış olduğu için silinemez.",
+      "code_taken": "Bu rol kodu zaten kullanılıyor."
     },
     "user": {
-      "cannot_deactivate_self": "Kendi hesabınızı devre dışı bırakamazsınız."
+      "cannot_deactivate_self": "Kendi hesabınızı devre dışı bırakamazsınız.",
+      "username_taken": "Bu kullanıcı adı zaten kullanılıyor."
     },
     "portal": {
-      "profile_not_linked": "Hesabınız henüz bir öğrenci, veli veya öğretmen kaydına bağlanmadı."
+      "profile_not_linked": "Hesabınız henüz bir öğrenci, veli veya öğretmen kaydına bağlanmadı.",
+      "profile_not_found": "Hesabınıza bağlı bir profil yok."
     },
     "security": {
       "csrf_failed": "Güvenlik belirtecinizin süresi doldu. Sayfayı yenileyip tekrar deneyin."
@@ -147,6 +160,24 @@
     },
     "http": {
       "method_not_allowed": "Bu işlem desteklenmiyor."
+    },
+    "authorization": {
+      "forbidden": "Bu işlemi gerçekleştirme yetkiniz yok.",
+      "forbidden_scope": "Bu işlem erişim kapsamınızın dışında.",
+      "self_grant_forbidden": "Kendi erişim atamalarınızı değiştiremezsiniz."
+    },
+    "rate_limit": {
+      "exceeded": "Çok fazla istek; lütfen daha sonra tekrar deneyin."
+    },
+    "people": {
+      "guardian_not_found": "Seçilen veli bulunamadı.",
+      "branch_not_found": "Seçilen şube bulunamadı.",
+      "user_not_found": "Seçilen kullanıcı bulunamadı.",
+      "user_already_linked": "Bu kullanıcı zaten başka bir profile bağlı."
+    },
+    "identity": {
+      "branch_not_found": "Seçilen şube bulunamadı.",
+      "role_not_found": "Seçilen rol bulunamadı."
     }
   },
   "nav": {
@@ -259,7 +290,7 @@
     "permissionCount": "{count, plural, =0 {İzin yok} one {# izin} other {# izin}}",
     "systemHint": "Sistem rolleri platform tarafından sağlanır. Kodları değiştirilemez ve silinemezler.",
     "selectAll": "Tümünü seç",
-    "module": "{module, select, organization {Organizasyon} branches {Şubeler} roles {Roller} users {Kullanıcılar} students {Öğrenciler} guardians {Veliler} teachers {Öğretmenler} staff {Personel} other {{module}}}",
+    "module": "{module, select, organization {Organizasyon} branches {Şubeler} roles {Roller} users {Kullanıcılar} students {Öğrenciler} guardians {Veliler} teachers {Öğretmenler} staff {Personel} audit {Denetim kaydı} other {{module}}}",
     "action": "{action, select, read {Görüntüleme} manage {Oluşturma, düzenleme ve silme} other {{action}}}",
     "empty": "Henüz rol yok.",
     "sensitive": "Hassas",
@@ -343,7 +374,7 @@
     "guardian": "Veli",
     "chooseGuardian": "Bir veli seçin",
     "relationship": "Yakınlık",
-    "relationshipLabel": "{relationship, select, father {Baba} mother {Anne} legalGuardian {Yasal vasi} other {Diğer}}",
+    "relationshipLabel": "{relationship, select, father {Baba} mother {Anne} legalGuardian {Yasal vasi} grandparent {Büyükanne/Büyükbaba} sibling {Kardeş} other {Diğer}}",
     "isPrimary": "Birincil iletişim kişisi",
     "saveGuardians": "Velileri kaydet",
     "guardiansSaved": "Veliler kaydedildi.",

@@ -29,6 +29,8 @@ export const ErrorCodes = {
   server: 'server.error',
 } as const;
 
+const DUPLICATE_CODES = new Set(['resource.duplicate', 'branch.code_taken', 'role.code_taken', 'user.username_taken', 'tenant.slug_taken']);
+
 export class ApiError extends Error {
   readonly status: number;
   readonly code: string;
@@ -43,11 +45,20 @@ export class ApiError extends Error {
     this.code = problem.code ?? fallbackCode(status);
     this.params = problem.params ?? {};
     this.fieldErrors = normalizeFieldErrors(problem.errors);
+    // Duplicate-value conflicts name the offending field in params.field: surface them on that field too.
+    const field = this.params.field;
+    if (typeof field === 'string' && field && !this.fieldErrors[field] && DUPLICATE_CODES.has(this.code)) {
+      this.fieldErrors[field] = [this.code];
+    }
     this.traceId = problem.traceId;
   }
 
+  /**
+   * Optimistic-concurrency conflict only. Other 409s (duplicate values, in-use records) carry their own
+   * codes (`resource.duplicate`, `branch.code_taken`, `role.in_use`, ...) and are shown as plain errors.
+   */
   get isConflict(): boolean {
-    return this.status === 409 || this.code === ErrorCodes.concurrencyConflict;
+    return this.code === ErrorCodes.concurrencyConflict;
   }
 
   get isUnauthorized(): boolean {

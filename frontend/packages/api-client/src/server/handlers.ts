@@ -8,7 +8,17 @@ import { clearSessionCookies, readTokens, refreshTokens, setPreferenceCookies, s
 
 /** Backend routes that must never be reachable through the generic proxy (they handle raw tokens). */
 const BLOCKED = new Set(['auth/login', 'auth/refresh', 'auth/logout']);
-const FORWARD_REQUEST_HEADERS = ['accept', 'accept-language', 'content-type', 'x-correlation-id'];
+/**
+ * x-forwarded-for carries the browser's address (Next.js fills it from the socket when no proxy did), so the
+ * API's per-client auth rate limit does not lump every user behind this server into one bucket.
+ */
+const FORWARD_REQUEST_HEADERS = ['accept', 'accept-language', 'content-type', 'x-correlation-id', 'x-forwarded-for'];
+
+/** Client-address header for direct BFF -> API calls (login/refresh/logout). */
+export function forwardedFor(request: { headers: Headers }): Record<string, string> {
+  const value = request.headers.get('x-forwarded-for');
+  return value ? { 'X-Forwarded-For': value } : {};
+}
 const FORWARD_RESPONSE_HEADERS = ['content-type', 'x-correlation-id', 'location', 'x-total-count'];
 
 function problemResponse(status: number, code: string, extra: Record<string, unknown> = {}) {
@@ -68,6 +78,7 @@ export function createAuthHandlers(options: AuthHandlerOptions) {
         Accept: 'application/json',
         'Accept-Language': request.headers.get('accept-language') ?? 'fa',
         'X-Correlation-Id': correlationId(request),
+        ...forwardedFor(request),
       },
       body: JSON.stringify({
         tenantSlug: payload.tenantSlug ? String(payload.tenantSlug).trim().toLowerCase() : null,
@@ -105,6 +116,7 @@ export function createAuthHandlers(options: AuthHandlerOptions) {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
+          ...forwardedFor(request),
           ...(accessToken ? { Authorization: `Bearer ${accessToken}` } : {}),
         },
         body: JSON.stringify({ refreshToken }),
@@ -124,7 +136,7 @@ export function createAuthHandlers(options: AuthHandlerOptions) {
     const cfg = config();
     const next = safeNextPath(request.nextUrl.searchParams.get('next'), '/');
     const { refreshToken } = readTokens(cfg, request.cookies);
-    const result = refreshToken ? await refreshTokens(cfg, refreshToken) : null;
+    const result = refreshToken ? await refreshTokens(cfg, refreshToken, forwardedFor(request)) : null;
     if (!result?.ok) {
       const response = NextResponse.redirect(new URL(options.loginPath(next), request.url));
       clearSessionCookies(cfg, response);
@@ -169,7 +181,7 @@ export function createBffProxy(options: { appId: string }) {
 
     const tryRefresh = async () => {
       if (!refreshToken) return false;
-      const result = await refreshTokens(cfg, refreshToken);
+      const result = await refreshTokens(cfg, refreshToken, forwardedFor(request));
       if (!result.ok) return false;
       rotated = result.tokens;
       accessToken = result.tokens.accessToken;

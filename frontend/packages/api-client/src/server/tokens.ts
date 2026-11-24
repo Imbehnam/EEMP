@@ -76,7 +76,7 @@ const REUSE_WINDOW_MS = 10_000;
  * Single-flight refresh. Refresh tokens rotate (single use), so concurrent requests holding the
  * same refresh token must share one backend call; the result is reused briefly for stragglers.
  */
-export function refreshTokens(config: BffConfig, refreshToken: string): Promise<RefreshResult> {
+export function refreshTokens(config: BffConfig, refreshToken: string, extraHeaders: Record<string, string> = {}): Promise<RefreshResult> {
   const now = Date.now();
   for (const [key, entry] of inflight) {
     if (entry.settledAt && now - entry.settledAt > REUSE_WINDOW_MS) inflight.delete(key);
@@ -89,7 +89,7 @@ export function refreshTokens(config: BffConfig, refreshToken: string): Promise<
     promise: (async (): Promise<RefreshResult> => {
       const response = await config.fetch(`${config.apiBaseUrl}/auth/refresh`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
+        headers: { 'Content-Type': 'application/json', Accept: 'application/json', ...extraHeaders },
         body: JSON.stringify({ refreshToken }),
         cache: 'no-store',
       });

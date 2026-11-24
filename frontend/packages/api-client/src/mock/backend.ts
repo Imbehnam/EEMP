@@ -146,7 +146,7 @@ export function createMockBackend(options: MockBackendOptions = {}): MockBackend
 
   function demand(user: MockUser, permission: string, branchId?: string | null) {
     if (user.isPlatformAdmin) throw new HttpError(403, 'tenant.forbidden');
-    if (!permissionsFor(user, branchId).has(permission)) throw new HttpError(403, 'auth.forbidden');
+    if (!permissionsFor(user, branchId).has(permission)) throw new HttpError(403, 'authorization.forbidden');
   }
 
   /** Branches where the user holds a permission (null => all branches of the tenant). */
@@ -171,7 +171,7 @@ export function createMockBackend(options: MockBackendOptions = {}): MockBackend
       displayName: user.displayName,
       tenantId: user.tenantId,
       tenantName: tenant?.name ?? null,
-      locale: user.locale ?? tenant?.defaultLocale ?? 'fa',
+      locale: user.locale ?? tenant?.defaultLocale ?? 'fa-IR',
       timeZone: user.timeZone ?? tenant?.timeZone ?? 'Asia/Tehran',
       isPlatformAdmin: user.isPlatformAdmin,
       permissions: [...permissionsFor(user)].sort(),
@@ -266,7 +266,8 @@ export function createMockBackend(options: MockBackendOptions = {}): MockBackend
     if (path === '/auth/me' && method === 'GET') return json(200, me(user));
     if (path === '/auth/me/preferences' && method === 'PUT') {
       const errors = required(body, ['locale', 'timeZone']);
-      if (body.locale && !['fa', 'en', 'tr', 'ar'].includes(String(body.locale))) errors.locale = ['validation.unsupported_locale'];
+      // API locale tags, as the real backend (fa-IR, not the route code fa).
+      if (body.locale && !['fa-IR', 'en', 'tr', 'ar'].includes(String(body.locale))) errors.locale = ['validation.unsupported_locale'];
       if (body.timeZone && !isValidTimeZone(String(body.timeZone))) errors.timeZone = ['validation.invalid_time_zone'];
       assertValid(errors);
       user.locale = String(body.locale);
@@ -276,7 +277,7 @@ export function createMockBackend(options: MockBackendOptions = {}): MockBackend
 
     // ---- platform ----
     if (segments[0] === 'platform') {
-      if (!user.isPlatformAdmin) throw new HttpError(403, 'auth.forbidden');
+      if (!user.isPlatformAdmin) throw new HttpError(403, 'authorization.forbidden');
       return platformRoutes(segments.slice(1), method, url, body);
     }
     if (user.isPlatformAdmin) throw new HttpError(403, 'tenant.forbidden'); // platform ops ≠ tenant data
@@ -608,7 +609,7 @@ export function createMockBackend(options: MockBackendOptions = {}): MockBackend
       }
       if (kind === 'teachers') {
         base.employeeNumber = String(body.employeeNumber);
-        base.subjects = Array.isArray(body.subjects) ? (body.subjects as string[]) : null;
+        base.subjects = typeof body.subjects === 'string' && body.subjects.trim() ? body.subjects.trim() : null;
       }
       if (kind === 'staff') {
         base.employeeNumber = String(body.employeeNumber);
@@ -618,7 +619,7 @@ export function createMockBackend(options: MockBackendOptions = {}): MockBackend
     };
 
     if (seg.length === 1 && method === 'GET') {
-      if (branchesWith(user, `${kind}.read`)?.size === 0) throw new HttpError(403, 'auth.forbidden');
+      if (branchesWith(user, `${kind}.read`)?.size === 0) throw new HttpError(403, 'authorization.forbidden');
       return json(200, paginate(list.filter(visible), url, (p) => [
         p.firstName, p.lastName, `${p.firstName} ${p.lastName}`, p.nationalId, p.email, p.phone,
         (p as Student).studentNumber, (p as Teacher).employeeNumber,
@@ -637,7 +638,12 @@ export function createMockBackend(options: MockBackendOptions = {}): MockBackend
 
     if (kind === 'students' && seg[2] === 'guardians') {
       const student = person as Student;
-      if (method === 'GET') return json(200, student.guardians);
+      const details = () =>
+        student.guardians.map((l) => {
+          const g = data.guardians.find((x) => x.id === l.guardianId);
+          return { ...l, firstName: g?.firstName ?? '', lastName: g?.lastName ?? '', phone: g?.phone ?? null, branchId: g?.branchId ?? '' };
+        });
+      if (method === 'GET') return json(200, details());
       if (method === 'PUT') {
         demand(user, 'students.manage', student.branchId);
         const links = Array.isArray(body) ? (body as unknown as Student['guardians']) : null;
@@ -649,7 +655,7 @@ export function createMockBackend(options: MockBackendOptions = {}): MockBackend
         }
         student.guardians = links.map((l) => ({ guardianId: l.guardianId, relationship: l.relationship, isPrimary: !!l.isPrimary }));
         student.rowVersion = nextVersion();
-        return json(200, student.guardians);
+        return json(200, details());
       }
     }
     if (seg.length === 2 && method === 'GET') return json(200, person);
@@ -680,12 +686,21 @@ export function createMockBackend(options: MockBackendOptions = {}): MockBackend
       if (teacher) return json(200, { kind: 'teacher', profile: teacher });
       const staff = own<Staff>('staff');
       if (staff) return json(200, { kind: 'staff', profile: staff });
-      throw new HttpError(404, 'portal.profile_not_linked');
+      throw new HttpError(404, 'portal.profile_not_found');
     }
     if (seg[1] === 'me' && seg[2] === 'students') {
       const guardian = own<Guardian>('guardians');
-      if (!guardian) throw new HttpError(403, 'auth.forbidden');
-      return json(200, data.students.filter((s) => s.guardians.some((g) => g.guardianId === guardian.id)));
+      // Mirrors the real API: a non-guardian gets an empty list; items are linked-student summaries.
+      if (!guardian) return json(200, []);
+      return json(
+        200,
+        data.students.flatMap((s) => {
+          const link = s.guardians.find((g) => g.guardianId === guardian.id);
+          return link
+            ? [{ id: s.id, branchId: s.branchId, firstName: s.firstName, lastName: s.lastName, studentNumber: s.studentNumber, relationship: link.relationship, isPrimary: link.isPrimary }]
+            : [];
+        }),
+      );
     }
     throw new HttpError(404, 'resource.not_found');
   }

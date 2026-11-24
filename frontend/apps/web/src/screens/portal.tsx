@@ -1,6 +1,6 @@
 'use client';
 
-import type { PersonBase, PortalKind, PortalProfile, Staff, Student, Teacher } from '@eemp/api-client';
+import type { PersonBase, PortalKind, PortalProfile, PortalStudent, Staff, Student, Teacher } from '@eemp/api-client';
 import { LoadError, PreferencesForm, useApiQuery, useSession } from '@eemp/app';
 import { Link } from '@eemp/i18n/navigation';
 import { useLocaleFormat } from '@eemp/i18n/react';
@@ -75,7 +75,7 @@ export function PersonDetails({ person, kind }: { person: PersonBase; kind: Port
       {kind === 'teacher' && (
         <>
           <dt>{t('subjects')}</dt>
-          <dd>{(person as Teacher).subjects?.join('، ') || none}</dd>
+          <dd>{(person as Teacher).subjects || none}</dd>
         </>
       )}
       {kind === 'staff' && (
@@ -123,13 +123,26 @@ export function ProfileScreen() {
   );
 }
 
+/** Linked-student summary from GET /portal/me/students (the guardian sees a summary, not the full record). */
+function LinkedStudentDetails({ student }: { student: PortalStudent }) {
+  const t = useTranslations('people');
+  return (
+    <DescriptionList>
+      <dt>{t('fullName')}</dt>
+      <dd>{`${student.firstName} ${student.lastName}`}</dd>
+      <dt>{t('studentNumber')}</dt>
+      <dd className="eemp-ltr">{student.studentNumber}</dd>
+      <dt>{t('relationship')}</dt>
+      <dd>{t('relationshipLabel', { relationship: student.relationship })}</dd>
+    </DescriptionList>
+  );
+}
+
 export function MyStudentsScreen() {
   const t = useTranslations('portal');
   const common = useTranslations('common');
   const { user } = useSession();
   const query = useApiQuery('portal-students', (api) => api.portal.students());
-  const profile = useApiQuery('portal-profile', (api) => api.portal.profile());
-  const guardianId = profile.data?.kind === 'guardian' ? profile.data.profile.id : null;
   return (
     <>
       <PageHeader title={t('myStudentsTitle')} description={t('myStudentsIntro')} />
@@ -141,15 +154,12 @@ export function MyStudentsScreen() {
         <StatePanel title={t('noStudents')} />
       ) : (
         <div style={{ display: 'grid', gap: 16 }} data-user={user.id}>
-          {query.data.map((student) => {
-            const link = guardianId ? student.guardians.find((g) => g.guardianId === guardianId) : undefined;
-            return (
-              <Card key={student.id} aria-label={`${student.firstName} ${student.lastName}`}>
-                {link?.isPrimary && <p style={{ marginBlockStart: 0 }}><Badge tone="success">{t('primaryContact')}</Badge></p>}
-                <PersonDetails person={student} kind="student" />
-              </Card>
-            );
-          })}
+          {query.data.map((student) => (
+            <Card key={student.id} aria-label={`${student.firstName} ${student.lastName}`}>
+              {student.isPrimary && <p style={{ marginBlockStart: 0 }}><Badge tone="success">{t('primaryContact')}</Badge></p>}
+              <LinkedStudentDetails student={student} />
+            </Card>
+          ))}
         </div>
       )}
     </>

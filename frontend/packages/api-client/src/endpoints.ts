@@ -15,10 +15,11 @@ import type {
   PersonKind,
   PersonUpdate,
   PortalProfile,
+  PortalStudent,
   PreferencesRequest,
   Role,
   RoleInput,
-  Student,
+  StudentGuardianDetail,
   StudentGuardianLink,
   Tenant,
   TenantUser,
@@ -108,14 +109,14 @@ export function createEndpoints(client: ApiClient) {
       remove: (personId: Guid) => client.delete(`/${kind}/${id(personId)}`),
     }),
     studentGuardians: {
-      get: (studentId: Guid) => client.get<StudentGuardianLink[]>(`/students/${id(studentId)}/guardians`),
+      get: (studentId: Guid) => client.get<StudentGuardianDetail[]>(`/students/${id(studentId)}/guardians`),
       set: (studentId: Guid, body: StudentGuardianLink[]) =>
-        client.put<StudentGuardianLink[] | void>(`/students/${id(studentId)}/guardians`, body),
+        client.put<StudentGuardianDetail[]>(`/students/${id(studentId)}/guardians`, body),
     },
     portal: {
       profile: () => client.get<PortalProfile>('/portal/me/profile'),
       /** Plain array (not paged) per contract clarification. */
-      students: () => client.get<Student[]>('/portal/me/students'),
+      students: () => client.get<PortalStudent[]>('/portal/me/students'),
     },
   };
 }

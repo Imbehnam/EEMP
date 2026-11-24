@@ -91,11 +91,16 @@
       "forbidden": "ليست لديك صلاحية لتنفيذ ذلك.",
       "invalid_refresh_token": "انتهت صلاحية جلستك. يُرجى تسجيل الدخول مرة أخرى.",
       "portal_not_allowed": "لا يمكن لهذا الحساب استخدام هذه البوابة.",
-      "locked_out": "محاولات كثيرة جدًا. يُرجى الانتظار بضع دقائق ثم المحاولة مرة أخرى."
+      "locked_out": "محاولات كثيرة جدًا. يُرجى الانتظار بضع دقائق ثم المحاولة مرة أخرى.",
+      "unauthorized": "يجب تسجيل الدخول للمتابعة.",
+      "refresh_token_reused": "تم إلغاء جلستك لأسباب أمنية.",
+      "account_inactive": "الحساب غير نشط.",
+      "session_revoked": "جلستك لم تعد صالحة."
     },
     "tenant": {
       "forbidden": "هذا الإجراء خارج نطاق صلاحيات مؤسستك.",
-      "suspended": "حساب هذه المؤسسة معلّق. تواصل مع مشغّل المنصة."
+      "suspended": "حساب هذه المؤسسة معلّق. تواصل مع مشغّل المنصة.",
+      "slug_taken": "معرّف المؤسسة هذا مستخدم بالفعل."
     },
     "validation": {
       "failed": "يُرجى تصحيح الحقول المميزة.",
@@ -114,26 +119,34 @@
       "unknown_role": "اختر دورًا صالحًا.",
       "unknown_guardian": "اختر ولي أمر صالحًا.",
       "unknown_permission": "إحدى الصلاحيات غير معروفة.",
-      "single_primary_guardian": "يمكن لولي أمر واحد فقط أن يكون جهة الاتصال الأساسية."
+      "single_primary_guardian": "يمكن لولي أمر واحد فقط أن يكون جهة الاتصال الأساسية.",
+      "invalid_value": "هذه القيمة غير صالحة.",
+      "invalid_timezone": "اختر منطقة زمنية صالحة.",
+      "password_too_weak": "كلمة المرور ضعيفة جدًا (8 أحرف على الأقل تتضمن حروفًا كبيرة وصغيرة ورقمًا)."
     },
     "resource": {
-      "not_found": "لم يُعثر على هذا السجل، أو لم تعد لديك صلاحية الوصول إليه."
+      "not_found": "لم يُعثر على هذا السجل، أو لم تعد لديك صلاحية الوصول إليه.",
+      "duplicate": "يوجد سجل بهذه القيمة بالفعل."
     },
     "concurrency": {
       "conflict": "قام شخص آخر بتعديل هذا السجل. حمّل أحدث نسخة وحاول مرة أخرى."
     },
     "branch": {
-      "in_use": "لا يمكن حذف هذا الفرع لأنه لا يزال مرتبطًا بأشخاص."
+      "in_use": "لا يمكن حذف هذا الفرع لأنه لا يزال مرتبطًا بأشخاص.",
+      "code_taken": "رمز الفرع هذا مستخدم بالفعل."
     },
     "role": {
       "system_immutable": "لا يمكن حذف أدوار النظام ولا تغيير رموزها.",
-      "in_use": "لا يمكن حذف هذا الدور لأنه مُسند إلى مستخدمين."
+      "in_use": "لا يمكن حذف هذا الدور لأنه مُسند إلى مستخدمين.",
+      "code_taken": "رمز الدور هذا مستخدم بالفعل."
     },
     "user": {
-      "cannot_deactivate_self": "لا يمكنك تعطيل حسابك الخاص."
+      "cannot_deactivate_self": "لا يمكنك تعطيل حسابك الخاص.",
+      "username_taken": "اسم المستخدم هذا مستخدم بالفعل."
     },
     "portal": {
-      "profile_not_linked": "لم يُربط حسابك بعد بسجل طالب أو ولي أمر أو معلم."
+      "profile_not_linked": "لم يُربط حسابك بعد بسجل طالب أو ولي أمر أو معلم.",
+      "profile_not_found": "لا يوجد ملف مرتبط بحسابك."
     },
     "security": {
       "csrf_failed": "انتهت صلاحية رمز الأمان. أعد تحميل الصفحة وحاول مرة أخرى."
@@ -147,6 +160,24 @@
     },
     "http": {
       "method_not_allowed": "هذا الإجراء غير مدعوم."
+    },
+    "authorization": {
+      "forbidden": "ليس لديك إذن لتنفيذ هذا الإجراء.",
+      "forbidden_scope": "هذا الإجراء خارج نطاق صلاحياتك.",
+      "self_grant_forbidden": "لا يمكنك تغيير صلاحياتك الخاصة."
+    },
+    "rate_limit": {
+      "exceeded": "طلبات كثيرة جدًا؛ يرجى المحاولة لاحقًا."
+    },
+    "people": {
+      "guardian_not_found": "ولي الأمر المحدد غير موجود.",
+      "branch_not_found": "الفرع المحدد غير موجود.",
+      "user_not_found": "المستخدم المحدد غير موجود.",
+      "user_already_linked": "هذا المستخدم مرتبط بالفعل بملف آخر."
+    },
+    "identity": {
+      "branch_not_found": "الفرع المحدد غير موجود.",
+      "role_not_found": "الدور المحدد غير موجود."
     }
   },
   "nav": {
@@ -259,7 +290,7 @@
     "permissionCount": "{count, plural, zero {لا توجد صلاحيات} one {صلاحية واحدة} two {صلاحيتان} few {# صلاحيات} many {# صلاحية} other {# صلاحية}}",
     "systemHint": "أدوار النظام توفرها المنصة. لا يمكن تغيير رموزها ولا حذفها.",
     "selectAll": "تحديد الكل",
-    "module": "{module, select, organization {المؤسسة} branches {الفروع} roles {الأدوار} users {المستخدمون} students {الطلاب} guardians {أولياء الأمور} teachers {المعلمون} staff {الموظفون} other {{module}}}",
+    "module": "{module, select, organization {المؤسسة} branches {الفروع} roles {الأدوار} users {المستخدمون} students {الطلاب} guardians {أولياء الأمور} teachers {المعلمون} staff {الموظفون} audit {سجل التدقيق} other {{module}}}",
     "action": "{action, select, read {عرض} manage {إنشاء وتعديل وحذف} other {{action}}}",
     "empty": "لا توجد أدوار بعد.",
     "sensitive": "حساسة",
@@ -343,7 +374,7 @@
     "guardian": "ولي الأمر",
     "chooseGuardian": "اختر ولي أمر",
     "relationship": "صلة القرابة",
-    "relationshipLabel": "{relationship, select, father {الأب} mother {الأم} legalGuardian {الوصي القانوني} other {أخرى}}",
+    "relationshipLabel": "{relationship, select, father {الأب} mother {الأم} legalGuardian {الوصي القانوني} grandparent {الجد/الجدة} sibling {الأخ/الأخت} other {أخرى}}",
     "isPrimary": "جهة الاتصال الأساسية",
     "saveGuardians": "حفظ أولياء الأمور",
     "guardiansSaved": "تم حفظ أولياء الأمور.",

@@ -2,7 +2,7 @@
 
 import type { Branch, CreateUserRequest, Role, TenantUser, UserAssignment } from '@eemp/api-client';
 import { ErrorAlert, LoadError, useApiMutation, useApiQuery, useSession } from '@eemp/app';
-import { listTimeZones, localeMetadata, locales } from '@eemp/i18n';
+import { listTimeZones, localeMetadata, locales, toApiLocale, toSupportedLocale } from '@eemp/i18n';
 import { Link, useRouter } from '@eemp/i18n/navigation';
 import { Alert, Badge, Button, Card, ConfirmDialog, FormGrid, PageHeader, SelectField, Spinner, TextField } from '@eemp/ui';
 import { useTranslations } from 'next-intl';
@@ -49,6 +49,9 @@ export function UsersListScreen({ notice }: { notice?: string }) {
     </>
   );
 }
+
+/** Empty means "organization default"; otherwise send the API's locale tag (`fa-IR`). */
+const apiLocaleOrNull = (value: string) => (value.trim() ? toApiLocale(value) : null);
 
 type UserValues = { displayName: string; email: string; phone: string; locale: string; timeZone: string };
 
@@ -99,7 +102,7 @@ export function UserCreateScreen() {
             e.preventDefault();
             const result = await mutation.run({
               userName: userName.trim(), displayName: v.displayName.trim(), email: nullIfEmpty(v.email), phone: nullIfEmpty(v.phone),
-              password, locale: nullIfEmpty(v.locale), timeZone: nullIfEmpty(v.timeZone),
+              password, locale: apiLocaleOrNull(v.locale), timeZone: nullIfEmpty(v.timeZone),
             });
             if (result.ok) router.push(`/users/${result.value.id}?notice=created`);
           }}
@@ -202,7 +205,7 @@ export function UserEditScreen({ id, notice }: { id: string; notice?: string }) 
   const mutation = useApiMutation((api, u: TenantUser, v: UserValues) =>
     api.users.update(u.id, {
       displayName: v.displayName.trim(), email: nullIfEmpty(v.email), phone: nullIfEmpty(v.phone),
-      locale: nullIfEmpty(v.locale), timeZone: nullIfEmpty(v.timeZone), rowVersion: u.rowVersion,
+      locale: apiLocaleOrNull(v.locale), timeZone: nullIfEmpty(v.timeZone), rowVersion: u.rowVersion,
     }),
   );
   const status = useApiMutation((api, u: TenantUser) => (u.isActive ? api.users.deactivate(u.id) : api.users.activate(u.id)));
@@ -211,7 +214,7 @@ export function UserEditScreen({ id, notice }: { id: string; notice?: string }) 
   if (query.error && !query.data) return <LoadError error={query.error} onRetry={query.reload} />;
   const user = query.data;
   if (!user) return <Spinner label={common('loading')} />;
-  const v = values ?? { displayName: user.displayName, email: user.email ?? '', phone: user.phone ?? '', locale: user.locale ?? '', timeZone: user.timeZone ?? '' };
+  const v = values ?? { displayName: user.displayName, email: user.email ?? '', phone: user.phone ?? '', locale: user.locale ? toSupportedLocale(user.locale) : '', timeZone: user.timeZone ?? '' };
 
   return (
     <>

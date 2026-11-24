@@ -91,11 +91,16 @@
       "forbidden": "اجازهٔ انجام این کار را ندارید.",
       "invalid_refresh_token": "نشست شما منقضی شده است. لطفاً دوباره وارد شوید.",
       "portal_not_allowed": "این حساب امکان استفاده از این درگاه را ندارد.",
-      "locked_out": "تعداد تلاش‌ها بیش از حد مجاز است. چند دقیقه بعد دوباره تلاش کنید."
+      "locked_out": "تعداد تلاش‌ها بیش از حد مجاز است. چند دقیقه بعد دوباره تلاش کنید.",
+      "unauthorized": "برای ادامه باید وارد شوید.",
+      "refresh_token_reused": "نشست شما به دلایل امنیتی باطل شد.",
+      "account_inactive": "حساب کاربری غیرفعال است.",
+      "session_revoked": "نشست شما دیگر معتبر نیست."
     },
     "tenant": {
       "forbidden": "این عملیات خارج از محدودهٔ دسترسی سازمان شماست.",
-      "suspended": "حساب این مؤسسه تعلیق شده است. با گردانندهٔ پلتفرم تماس بگیرید."
+      "suspended": "حساب این مؤسسه تعلیق شده است. با گردانندهٔ پلتفرم تماس بگیرید.",
+      "slug_taken": "این شناسه مؤسسه قبلاً استفاده شده است."
     },
     "validation": {
       "failed": "لطفاً خطاهای مشخص‌شده را اصلاح کنید.",
@@ -114,26 +119,34 @@
       "unknown_role": "یک نقش معتبر انتخاب کنید.",
       "unknown_guardian": "یک ولی معتبر انتخاب کنید.",
       "unknown_permission": "یکی از مجوزها شناخته‌شده نیست.",
-      "single_primary_guardian": "فقط یک ولی می‌تواند رابط اصلی باشد."
+      "single_primary_guardian": "فقط یک ولی می‌تواند رابط اصلی باشد.",
+      "invalid_value": "مقدار واردشده معتبر نیست.",
+      "invalid_timezone": "یک منطقه زمانی معتبر انتخاب کنید.",
+      "password_too_weak": "رمز عبور ضعیف است (حداقل ۸ نویسه شامل حرف بزرگ، حرف کوچک و عدد)."
     },
     "resource": {
-      "not_found": "این رکورد پیدا نشد یا دیگر به آن دسترسی ندارید."
+      "not_found": "این رکورد پیدا نشد یا دیگر به آن دسترسی ندارید.",
+      "duplicate": "مقدار تکراری است."
     },
     "concurrency": {
       "conflict": "این رکورد توسط شخص دیگری تغییر کرده است. آخرین نسخه را بارگذاری کنید و دوباره تلاش کنید."
     },
     "branch": {
-      "in_use": "هنوز افرادی به این شعبه اختصاص دارند؛ بنابراین قابل حذف نیست."
+      "in_use": "هنوز افرادی به این شعبه اختصاص دارند؛ بنابراین قابل حذف نیست.",
+      "code_taken": "کد شعبه تکراری است."
     },
     "role": {
       "system_immutable": "نقش‌های سیستمی قابل حذف نیستند و کد آن‌ها تغییر نمی‌کند.",
-      "in_use": "این نقش به کاربرانی اختصاص داده شده و قابل حذف نیست."
+      "in_use": "این نقش به کاربرانی اختصاص داده شده و قابل حذف نیست.",
+      "code_taken": "کد نقش تکراری است."
     },
     "user": {
-      "cannot_deactivate_self": "نمی‌توانید حساب خودتان را غیرفعال کنید."
+      "cannot_deactivate_self": "نمی‌توانید حساب خودتان را غیرفعال کنید.",
+      "username_taken": "این نام کاربری قبلاً استفاده شده است."
     },
     "portal": {
-      "profile_not_linked": "حساب شما هنوز به پروندهٔ دانش‌آموز، ولی یا معلم متصل نشده است."
+      "profile_not_linked": "حساب شما هنوز به پروندهٔ دانش‌آموز، ولی یا معلم متصل نشده است.",
+      "profile_not_found": "پرونده‌ای به حساب شما متصل نیست."
     },
     "security": {
       "csrf_failed": "توکن امنیتی منقضی شده است. صفحه را دوباره بارگذاری کنید و مجدداً تلاش کنید."
@@ -147,6 +160,24 @@
     },
     "http": {
       "method_not_allowed": "این عملیات پشتیبانی نمی‌شود."
+    },
+    "authorization": {
+      "forbidden": "شما مجوز انجام این عملیات را ندارید.",
+      "forbidden_scope": "این عملیات خارج از محدوده دسترسی شماست.",
+      "self_grant_forbidden": "تغییر دسترسی‌های خودتان مجاز نیست."
+    },
+    "rate_limit": {
+      "exceeded": "تعداد درخواست‌ها بیش از حد مجاز است؛ کمی بعد تلاش کنید."
+    },
+    "people": {
+      "guardian_not_found": "ولی انتخاب‌شده یافت نشد.",
+      "branch_not_found": "شعبه انتخاب‌شده یافت نشد.",
+      "user_not_found": "کاربر انتخاب‌شده یافت نشد.",
+      "user_already_linked": "این کاربر قبلاً به پرونده دیگری متصل شده است."
+    },
+    "identity": {
+      "branch_not_found": "شعبه انتخاب‌شده یافت نشد.",
+      "role_not_found": "نقش انتخاب‌شده یافت نشد."
     }
   },
   "nav": {
@@ -259,7 +290,7 @@
     "permissionCount": "{count, plural, =0 {بدون مجوز} other {# مجوز}}",
     "systemHint": "نقش‌های سیستمی توسط پلتفرم تعریف شده‌اند؛ کدشان تغییر نمی‌کند و قابل حذف نیستند.",
     "selectAll": "انتخاب همه",
-    "module": "{module, select, organization {سازمان} branches {شعبه‌ها} roles {نقش‌ها} users {کاربران} students {دانش‌آموزان} guardians {اولیا} teachers {معلمان} staff {کارکنان} other {{module}}}",
+    "module": "{module, select, organization {سازمان} branches {شعبه‌ها} roles {نقش‌ها} users {کاربران} students {دانش‌آموزان} guardians {اولیا} teachers {معلمان} staff {کارکنان} audit {ممیزی} other {{module}}}",
     "action": "{action, select, read {مشاهده} manage {ایجاد، ویرایش و حذف} other {{action}}}",
     "empty": "هنوز نقشی تعریف نشده است.",
     "sensitive": "حساس",
@@ -343,7 +374,7 @@
     "guardian": "ولی",
     "chooseGuardian": "یک ولی انتخاب کنید",
     "relationship": "نسبت",
-    "relationshipLabel": "{relationship, select, father {پدر} mother {مادر} legalGuardian {قیم قانونی} other {سایر}}",
+    "relationshipLabel": "{relationship, select, father {پدر} mother {مادر} legalGuardian {قیم قانونی} grandparent {پدربزرگ/مادربزرگ} sibling {خواهر/برادر} other {سایر}}",
     "isPrimary": "رابط اصلی",
     "saveGuardians": "ذخیرهٔ اولیا",
     "guardiansSaved": "اولیا ذخیره شد.",

@@ -2,7 +2,7 @@
 
 import type { Organization } from '@eemp/api-client';
 import { ErrorAlert, LoadError, useApiMutation, useApiQuery, useSession } from '@eemp/app';
-import { listTimeZones, localeMetadata, locales } from '@eemp/i18n';
+import { listTimeZones, localeMetadata, locales, toApiLocale, toSupportedLocale } from '@eemp/i18n';
 import { Button, Card, FormGrid, PageHeader, SelectField, Spinner, TextAreaField, TextField } from '@eemp/ui';
 import { useTranslations } from 'next-intl';
 import { useMemo, useState, type FormEvent } from 'react';
@@ -13,7 +13,7 @@ type OrgValues = Record<'name' | 'legalName' | 'phone' | 'email' | 'address' | '
 
 const toValues = (o: Organization): OrgValues => ({
   name: o.name, legalName: o.legalName ?? '', phone: o.phone ?? '', email: o.email ?? '', address: o.address ?? '',
-  defaultLocale: o.defaultLocale, timeZone: o.timeZone,
+  defaultLocale: toSupportedLocale(o.defaultLocale), timeZone: o.timeZone,
 });
 
 export function OrganizationScreen() {
@@ -28,7 +28,7 @@ export function OrganizationScreen() {
   const mutation = useApiMutation((api, org: Organization, v: OrgValues) =>
     api.organization.update({
       name: v.name.trim(), legalName: nullIfEmpty(v.legalName), phone: nullIfEmpty(v.phone), email: nullIfEmpty(v.email),
-      address: nullIfEmpty(v.address), defaultLocale: v.defaultLocale, timeZone: v.timeZone, rowVersion: org.rowVersion,
+      address: nullIfEmpty(v.address), defaultLocale: toApiLocale(v.defaultLocale), timeZone: v.timeZone, rowVersion: org.rowVersion,
     }),
   );
   const errors = useFieldErrors(mutation.error);

@@ -44,10 +44,16 @@ export const MODULES = ['organization', 'branches', 'roles', 'users', 'students'
 const SENSITIVE_MODULES = new Set(['students', 'guardians', 'teachers', 'staff']);
 const BRANCH_SCOPED_MODULES = new Set(['branches', 'students', 'guardians', 'teachers', 'staff']);
 
+/** Module group as the real API reports it (several resources share one module, e.g. people). */
+const MODULE_GROUP: Record<(typeof MODULES)[number], string> = {
+  organization: 'organization', branches: 'organization', roles: 'identity', users: 'identity',
+  students: 'people', guardians: 'people', teachers: 'people', staff: 'people',
+};
+
 export const PERMISSIONS: Permission[] = MODULES.flatMap((module) =>
   (['read', 'manage'] as const).map((action) => ({
     code: `${module}.${action}`,
-    module,
+    module: MODULE_GROUP[module],
     // Granting role/user management can escalate privileges, so it is flagged as sensitive too.
     isSensitive: SENSITIVE_MODULES.has(module) || ((module === 'roles' || module === 'users') && action === 'manage'),
     branchScoped: BRANCH_SCOPED_MODULES.has(module),
@@ -95,8 +101,8 @@ export function createSeed(): MockState {
       id: IDS.tenantDemo,
       slug: 'demo',
       name: 'Demo Institute Group',
-      defaultLocale: 'fa',
-      supportedLocales: ['fa', 'en', 'tr', 'ar'],
+      defaultLocale: 'fa-IR',
+      supportedLocales: ['fa-IR', 'en', 'tr', 'ar'],
       timeZone: 'Asia/Tehran',
       currency: 'IRR',
       status: 'active',
@@ -107,8 +113,8 @@ export function createSeed(): MockState {
       id: IDS.tenantAlborz,
       slug: 'alborz',
       name: 'Alborz Academy',
-      defaultLocale: 'fa',
-      supportedLocales: ['fa', 'en'],
+      defaultLocale: 'fa-IR',
+      supportedLocales: ['fa-IR', 'en'],
       timeZone: 'Asia/Tehran',
       currency: 'IRR',
       status: 'active',
@@ -135,7 +141,7 @@ export function createSeed(): MockState {
       phone: '+982100000000',
       email: 'office@demo.example',
       address: 'Tehran',
-      defaultLocale: 'fa',
+      defaultLocale: 'fa-IR',
       timeZone: 'Asia/Tehran',
       rowVersion: rv(),
     },
@@ -177,7 +183,7 @@ export function createSeed(): MockState {
       person({
         id: IDS.teacher1, branchId: IDS.branchNorth, firstName: 'سارا', lastName: 'کریمی', nationalId: null,
         birthDate: null, gender: 'female', phone: null, email: 'teacher@demo.example', employeeNumber: 'T-01',
-        subjects: ['Mathematics', 'Physics'], userId: IDS.userTeacher,
+        subjects: 'Mathematics, Physics', userId: IDS.userTeacher,
       }) as Teacher,
     ],
     staff: [
@@ -191,7 +197,7 @@ export function createSeed(): MockState {
   const alborz: MockTenantData = {
     organization: {
       name: 'Alborz Academy', legalName: null, phone: null, email: null, address: null,
-      defaultLocale: 'fa', timeZone: 'Asia/Tehran', rowVersion: rv(),
+      defaultLocale: 'fa-IR', timeZone: 'Asia/Tehran', rowVersion: rv(),
     },
     branches: [{ id: IDS.branchAlborz, code: 'A01', name: 'Karaj', address: null, phone: null, isActive: true, rowVersion: rv() }],
     roles: [role(IDS.roleAlborzAdmin, 'TenantAdmin', 'Tenant administrator', TENANT_CONFIG)],
@@ -205,14 +211,14 @@ export function createSeed(): MockState {
   const users: MockUser[] = [
     user({ id: IDS.userPlatform, tenantId: null, userName: 'platform.admin', displayName: 'Platform Administrator', locale: 'en', timeZone: 'UTC', isPlatformAdmin: true, assignments: [] }),
     user({
-      id: IDS.userDemoAdmin, tenantId: IDS.tenantDemo, userName: 'demo.admin', displayName: 'مدیر دمو', locale: 'fa', timeZone: 'Asia/Tehran', isPlatformAdmin: false,
+      id: IDS.userDemoAdmin, tenantId: IDS.tenantDemo, userName: 'demo.admin', displayName: 'مدیر دمو', locale: 'fa-IR', timeZone: 'Asia/Tehran', isPlatformAdmin: false,
       assignments: [{ roleId: IDS.roleTenantAdmin, branchId: null }, { roleId: IDS.roleBranchManager, branchId: IDS.branchNorth }],
     }),
     user({ id: IDS.userManagerSouth, tenantId: IDS.tenantDemo, userName: 'manager.south', displayName: 'South Manager', locale: 'en', timeZone: 'Asia/Tehran', isPlatformAdmin: false, assignments: [{ roleId: IDS.roleBranchManager, branchId: IDS.branchSouth }] }),
-    user({ id: IDS.userTeacher, tenantId: IDS.tenantDemo, userName: 'teacher.sara', displayName: 'سارا کریمی', locale: 'fa', timeZone: 'Asia/Tehran', isPlatformAdmin: false, assignments: [{ roleId: IDS.roleTeacher, branchId: IDS.branchNorth }] }),
-    user({ id: IDS.userGuardian, tenantId: IDS.tenantDemo, userName: 'guardian.ali', displayName: 'علی احمدی', locale: 'fa', timeZone: 'Asia/Tehran', isPlatformAdmin: false, assignments: [{ roleId: IDS.roleGuardian, branchId: IDS.branchNorth }] }),
-    user({ id: IDS.userStudent, tenantId: IDS.tenantDemo, userName: 'student.reza', displayName: 'رضا احمدی', locale: 'fa', timeZone: 'Asia/Tehran', isPlatformAdmin: false, assignments: [{ roleId: IDS.roleStudent, branchId: IDS.branchNorth }] }),
-    user({ id: IDS.userAlborzAdmin, tenantId: IDS.tenantAlborz, userName: 'alborz.admin', displayName: 'Alborz Admin', locale: 'fa', timeZone: 'Asia/Tehran', isPlatformAdmin: false, assignments: [{ roleId: IDS.roleAlborzAdmin, branchId: null }] }),
+    user({ id: IDS.userTeacher, tenantId: IDS.tenantDemo, userName: 'teacher.sara', displayName: 'سارا کریمی', locale: 'fa-IR', timeZone: 'Asia/Tehran', isPlatformAdmin: false, assignments: [{ roleId: IDS.roleTeacher, branchId: IDS.branchNorth }] }),
+    user({ id: IDS.userGuardian, tenantId: IDS.tenantDemo, userName: 'guardian.ali', displayName: 'علی احمدی', locale: 'fa-IR', timeZone: 'Asia/Tehran', isPlatformAdmin: false, assignments: [{ roleId: IDS.roleGuardian, branchId: IDS.branchNorth }] }),
+    user({ id: IDS.userStudent, tenantId: IDS.tenantDemo, userName: 'student.reza', displayName: 'رضا احمدی', locale: 'fa-IR', timeZone: 'Asia/Tehran', isPlatformAdmin: false, assignments: [{ roleId: IDS.roleStudent, branchId: IDS.branchNorth }] }),
+    user({ id: IDS.userAlborzAdmin, tenantId: IDS.tenantAlborz, userName: 'alborz.admin', displayName: 'Alborz Admin', locale: 'fa-IR', timeZone: 'Asia/Tehran', isPlatformAdmin: false, assignments: [{ roleId: IDS.roleAlborzAdmin, branchId: null }] }),
   ];
 
   return { tenants, users, data: { [IDS.tenantDemo]: demo, [IDS.tenantAlborz]: alborz }, version: v };
