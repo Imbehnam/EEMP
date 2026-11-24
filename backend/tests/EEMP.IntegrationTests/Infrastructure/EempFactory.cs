@@ -1,3 +1,5 @@
+using Microsoft.AspNetCore.Builder;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.Data.Sqlite;
@@ -44,6 +46,34 @@ public class EempFactory : WebApplicationFactory<Program>
 public sealed class RateLimitedFactory : EempFactory
 {
     protected override int AuthPermitLimit => 3;
+}
+
+/// <summary>
+/// Rate-limited API reached through a same-host BFF: every request arrives from loopback (as the Next.js server
+/// calls it) and carries the browser's address in X-Forwarded-For.
+/// </summary>
+public sealed class BehindBffFactory : EempFactory
+{
+    protected override int AuthPermitLimit => 2;
+
+    protected override void ConfigureWebHost(Microsoft.AspNetCore.Hosting.IWebHostBuilder builder)
+    {
+        base.ConfigureWebHost(builder);
+        builder.ConfigureServices(s => s.AddSingleton<Microsoft.AspNetCore.Hosting.IStartupFilter, LoopbackRemoteAddress>());
+    }
+
+    private sealed class LoopbackRemoteAddress : Microsoft.AspNetCore.Hosting.IStartupFilter
+    {
+        public Action<Microsoft.AspNetCore.Builder.IApplicationBuilder> Configure(Action<Microsoft.AspNetCore.Builder.IApplicationBuilder> next) => app =>
+        {
+            app.Use(async (ctx, nextMiddleware) =>
+            {
+                ctx.Connection.RemoteIpAddress = System.Net.IPAddress.Loopback;
+                await nextMiddleware();
+            });
+            next(app);
+        };
+    }
 }
 
 [CollectionDefinition(Name)]

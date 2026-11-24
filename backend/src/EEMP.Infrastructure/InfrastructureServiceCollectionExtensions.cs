@@ -1,4 +1,5 @@
 using System.Globalization;
+using System.Net;
 using System.Threading.RateLimiting;
 using EEMP.Infrastructure.Audit;
 using EEMP.Infrastructure.Authorization;
@@ -11,6 +12,7 @@ using EEMP.SharedKernel.Tenancy;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.AspNetCore.Localization;
 using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.Extensions.Configuration;
@@ -25,6 +27,7 @@ public static class InfrastructureServiceCollectionExtensions
     {
         services.AddOptions<DatabaseOptions>().Bind(configuration.GetSection(DatabaseOptions.SectionName));
         services.AddOptions<RateLimitingOptions>().Bind(configuration.GetSection(RateLimitingOptions.SectionName));
+        ConfigureForwardedHeaders(services, configuration);
         services.AddSingleton(TimeProvider.System);
         services.AddHttpContextAccessor();
         services.AddScoped<ITenantContext, TenantContext>();
@@ -77,9 +80,30 @@ public static class InfrastructureServiceCollectionExtensions
         return services;
     }
 
+    /// <summary>
+    /// The web apps call the API through their server-side BFF, so without this every user would share the BFF's
+    /// address and one per-IP auth rate-limit bucket. X-Forwarded-For is honoured only from trusted proxies:
+    /// loopback by default (BFF on the same host) plus <c>ReverseProxy:KnownProxies</c> / <c>ReverseProxy:KnownNetworks</c>
+    /// (e.g. the web containers' network in Docker). Only the last hop is used (ForwardLimit = 1).
+    /// </summary>
+    private static void ConfigureForwardedHeaders(IServiceCollection services, IConfiguration configuration)
+    {
+        var section = configuration.GetSection("ReverseProxy");
+        services.Configure<ForwardedHeadersOptions>(o =>
+        {
+            o.ForwardedHeaders = ForwardedHeaders.XForwardedFor;
+            o.ForwardLimit = 1;
+            foreach (var ip in section.GetSection("KnownProxies").Get<string[]>() ?? [])
+                if (IPAddress.TryParse(ip, out var address)) o.KnownProxies.Add(address);
+            foreach (var cidr in section.GetSection("KnownNetworks").Get<string[]>() ?? [])
+                if (System.Net.IPNetwork.TryParse(cidr, out var network)) o.KnownIPNetworks.Add(network);
+        });
+    }
+
     /// <summary>Pipeline pieces that must run before authentication.</summary>
     public static IApplicationBuilder UseEempRequestPipeline(this IApplicationBuilder app, Action<IApplicationBuilder>? requestLogging = null)
     {
+        app.UseForwardedHeaders();
         app.UseMiddleware<CorrelationIdMiddleware>();
         // Request logging sits outside the exception handler so it records the final (mapped) status code.
         requestLogging?.Invoke(app);
