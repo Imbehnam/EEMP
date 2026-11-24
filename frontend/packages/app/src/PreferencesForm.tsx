@@ -8,7 +8,7 @@ import { useMemo, useState, type FormEvent } from 'react';
 
 import { LOCALE_COOKIE, setPreferenceCookie, TIME_ZONE_COOKIE } from './cookies';
 import { ErrorAlert, toApiErrorLike } from './ErrorAlert';
-import { switchLocalePath } from './LocaleSwitcher';
+import { switchLocalePath } from './paths';
 import { useSession } from './session';
 import { useApiMutation } from './use-api';
 

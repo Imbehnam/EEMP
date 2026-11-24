@@ -5,15 +5,7 @@ import { useLocale, useTranslations } from 'next-intl';
 import { useId } from 'react';
 
 import { LOCALE_COOKIE, setPreferenceCookie } from './cookies';
-
-/** Replace the locale prefix of a pathname (`/fa/users?x=1` -> `/en/users?x=1`). */
-export function switchLocalePath(pathname: string, search: string, nextLocale: string): string {
-  const parts = pathname.split('/');
-  if ((locales as readonly string[]).includes(parts[1] ?? '')) parts[1] = nextLocale;
-  else parts.splice(1, 0, nextLocale);
-  const path = parts.join('/').replace(/\/+$/, '') || `/${nextLocale}`;
-  return `${path}${search}`;
-}
+import { switchLocalePath } from './paths';
 
 /**
  * Language switcher. Uses a full navigation because direction (RTL/LTR), font and the Emotion

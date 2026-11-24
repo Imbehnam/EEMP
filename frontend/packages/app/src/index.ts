@@ -1,4 +1,5 @@
 export * from './cookies';
+export * from './paths';
 export * from './bff';
 export * from './session';
 export * from './use-api';

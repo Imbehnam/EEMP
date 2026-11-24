@@ -6,6 +6,7 @@ import { useTranslations } from 'next-intl';
 import type { ReactNode } from 'react';
 
 import type { ThemePreference } from './cookies';
+import { isActivePath } from './paths';
 import { LocaleSwitcher } from './LocaleSwitcher';
 import { useSession } from './session';
 import { SignOutButton } from './SignOutButton';
@@ -21,11 +22,6 @@ export interface FrameNavSection {
   /** Key in the `nav` namespace. */
   labelKey?: string;
   items: FrameNavItem[];
-}
-
-export function isActivePath(pathname: string, href: string): boolean {
-  if (href === '/') return pathname === '/' || pathname === '';
-  return pathname === href || pathname.startsWith(`${href}/`);
 }
 
 /** Authenticated chrome: navigation (pre-filtered by permission), language, theme, sign-out. */
