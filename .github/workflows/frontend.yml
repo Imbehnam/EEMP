@@ -55,3 +55,77 @@ jobs:
           name: playwright-report
           path: frontend/playwright-report
           retention-days: 7
+
+  # End-to-end against the real .NET API (SQLite fallback + Development seed). Uses the backend in this
+  # checkout when present (after both M1 PRs merge); until then it checks out the backend branch.
+  e2e-real-api:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      BACKEND_REF: feature/m1-backend
+      DOTNET_NOLOGO: '1'
+      DOTNET_CLI_TELEMETRY_OPTOUT: '1'
+    steps:
+      - uses: actions/checkout@v4
+      - name: Check out backend branch (if this ref has no backend yet)
+        if: ${{ hashFiles('backend/EEMP.slnx') == '' }}
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ env.BACKEND_REF }}
+          path: backend-src
+          sparse-checkout: backend
+      - name: Locate backend
+        working-directory: .
+        run: |
+          if [ -f backend/EEMP.slnx ]; then echo "BACKEND_DIR=$PWD/backend" >> "$GITHUB_ENV"; else echo "BACKEND_DIR=$PWD/backend-src/backend" >> "$GITHUB_ENV"; fi
+      - uses: actions/setup-dotnet@v4
+        with:
+          global-json-file: ${{ env.BACKEND_DIR }}/global.json
+      - name: Build API
+        working-directory: .
+        run: dotnet build "$BACKEND_DIR/src/EEMP.Api/EEMP.Api.csproj" -c Release -o "$RUNNER_TEMP/api"
+      - name: Start API (SQLite, dev seed, 1-minute access tokens)
+        working-directory: .
+        env:
+          ASPNETCORE_ENVIRONMENT: Development
+          ASPNETCORE_URLS: http://127.0.0.1:5080
+          Database__Provider: Sqlite
+          Database__ConnectionString: Data Source=${{ runner.temp }}/eemp-e2e.db
+          Jwt__SigningKey: ci-e2e-signing-key-0123456789abcdef0123456789
+          Jwt__AccessTokenMinutes: '1'
+          RateLimiting__AuthPermitLimit: '1000'
+          Seed__PlatformAdminPassword: Platform123
+          Seed__DemoAdminPassword: DemoAdmin123
+          Seed__DemoUserPassword: DemoUser123
+        run: |
+          nohup dotnet "$RUNNER_TEMP/api/EEMP.Api.dll" > "$RUNNER_TEMP/api.log" 2>&1 &
+          for i in $(seq 1 60); do curl -sf http://127.0.0.1:5080/health/live && exit 0; sleep 1; done
+          cat "$RUNNER_TEMP/api.log"; exit 1
+      - uses: pnpm/action-setup@v4
+        with:
+          package_json_file: frontend/package.json
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+          cache-dependency-path: frontend/pnpm-lock.yaml
+      - run: pnpm install --frozen-lockfile
+      - name: Build apps
+        run: pnpm build
+      - name: Install Playwright Chromium
+        run: pnpm exec playwright install --with-deps chromium
+      - name: E2E against the real API
+        run: pnpm test:e2e:real
+      - name: API log and Playwright report
+        if: failure()
+        working-directory: .
+        run: tail -200 "$RUNNER_TEMP/api.log" || true
+      - name: Upload Playwright report
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report-real
+          path: |
+            frontend/playwright-report-real
+            frontend/test-results-real
+          retention-days: 7
