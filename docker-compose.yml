@@ -1,0 +1,58 @@
+# Local development stack: SQL Server, Redis, API.
+# Secrets come from ./.env (copy .env.example); nothing secret is committed.
+# Redis is provisioned for upcoming caching/rate-limit/session work; the M1 API does not use it yet.
+name: eemp
+
+services:
+  sqlserver:
+    image: mcr.microsoft.com/mssql/server:2022-latest
+    environment:
+      ACCEPT_EULA: "Y"
+      MSSQL_PID: Developer
+      MSSQL_SA_PASSWORD: ${MSSQL_SA_PASSWORD:?Set MSSQL_SA_PASSWORD in .env}
+    ports:
+      - "1433:1433"
+    volumes:
+      - sqlserver-data:/var/opt/mssql
+    healthcheck:
+      test: ["CMD-SHELL", "/opt/mssql-tools18/bin/sqlcmd -S localhost -U sa -P \"$$MSSQL_SA_PASSWORD\" -C -Q 'SELECT 1' || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 20s
+
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+
+  api:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    depends_on:
+      sqlserver:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    environment:
+      ASPNETCORE_ENVIRONMENT: Development
+      Database__Provider: SqlServer
+      Database__ConnectionString: "Server=sqlserver,1433;Database=eemp;User Id=sa;Password=${MSSQL_SA_PASSWORD};TrustServerCertificate=True;Encrypt=False"
+      Database__ApplyMigrationsOnStartup: "true"
+      Jwt__SigningKey: ${JWT_SIGNING_KEY:?Set JWT_SIGNING_KEY (32+ chars) in .env}
+      Seed__Enabled: "true"
+      Seed__PlatformAdminPassword: ${SEED_PLATFORM_ADMIN_PASSWORD:-}
+      Seed__DemoAdminPassword: ${SEED_DEMO_ADMIN_PASSWORD:-}
+      Seed__DemoUserPassword: ${SEED_DEMO_USER_PASSWORD:-}
+      ConnectionStrings__Redis: redis:6379
+    ports:
+      - "5080:8080"
+
+volumes:
+  sqlserver-data:
