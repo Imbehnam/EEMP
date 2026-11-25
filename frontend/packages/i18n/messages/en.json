@@ -217,7 +217,8 @@
       "invalid_date_range": "The end date must be after the start date.",
       "invalid_time_range": "The end time must be after the start time.",
       "slot_overlap": "Two periods of this class overlap.",
-      "score_out_of_range": "The score must be between zero and the maximum."
+      "score_out_of_range": "The score must be between zero and the maximum.",
+      "archive_too_large": "Too many report cards for one archive (maximum {max})."
     }
   },
   "nav": {
@@ -794,7 +795,11 @@
       "weight": "Weight",
       "score": "Score",
       "attendance": "Attendance",
-      "formula": "Calculated with {formula}."
+      "formula": "Calculated with {formula}.",
+      "downloadPdf": "Download PDF",
+      "downloadArchive": "Download all PDFs (ZIP)",
+      "downloading": "Preparing…",
+      "archiveHint": "The ZIP contains only the published report cards of this class's students."
     },
     "portal": {
       "myClassesTitle": "My classes",

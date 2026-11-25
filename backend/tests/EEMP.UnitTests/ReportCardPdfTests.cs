@@ -1,4 +1,5 @@
 using System.Diagnostics;
+using System.Globalization;
 using System.Text;
 using System.Text.RegularExpressions;
 using EEMP.Infrastructure.Localization;
@@ -47,6 +48,38 @@ public class ReportCardPdfTests
     {
         var runs = Bidi.Visual("سال 1405-1406", rtlParagraph: true);
         Assert.Equal(["1405-1406", "سال "], runs.Select(r => r.Text).ToArray());
+    }
+
+    [Fact]
+    public void Paragraph_direction_follows_the_first_strong_character()
+    {
+        Assert.False(Bidi.ParagraphRtl("Mathematics 7 - A (MATH-7A)", fallback: true));
+        Assert.True(Bidi.ParagraphRtl("۱ (منتشرشده)", fallback: false));
+        Assert.True(Bidi.ParagraphRtl("۲۰ / ۱۸٫۷۵", fallback: true));
+        Assert.False(Bidi.ParagraphRtl("18.75 / 20", fallback: false));
+    }
+
+    [Fact]
+    public void Dates_do_not_depend_on_the_request_culture()
+    {
+        // The API runs requests under the Accept-Language culture; fa-IR uses the Persian calendar for parsing too.
+        var previous = (CultureInfo.CurrentCulture, CultureInfo.CurrentUICulture);
+        try
+        {
+            CultureInfo.CurrentCulture = CultureInfo.CurrentUICulture = new CultureInfo("fa-IR");
+            var text = ExtractText(Render(PersianSample(), "fa"));
+            if (text is not null)
+            {
+                Assert.Contains("مهر", text);   // term start 2026-09-23 = 1 Mehr 1405
+                Assert.DoesNotContain("۲۰۲۶", text);
+            }
+            var en = ExtractText(Render(EnglishSample(), "en"));
+            if (en is not null) Assert.Contains("23 September 2026", en);
+        }
+        finally
+        {
+            (CultureInfo.CurrentCulture, CultureInfo.CurrentUICulture) = previous;
+        }
     }
 
     [Theory]

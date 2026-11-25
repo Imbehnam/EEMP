@@ -1,4 +1,6 @@
-import { expect, test } from '@playwright/test';
+import { readFileSync } from 'node:fs';
+
+import { expect, test, type Page } from '@playwright/test';
 
 import { ADMIN, signIn, WEB } from './helpers';
 
@@ -121,4 +123,58 @@ test('academic navigation is hidden without permissions', async ({ page }) => {
   await page.goto(`${WEB}/en`); // sign-in lands on the user's preferred language (fa)
   await expect(page.getByRole('link', { name: 'My classes' })).toBeVisible();
   await expect(page.getByRole('link', { name: 'Grades' })).toHaveCount(0);
+});
+
+/** Clicks a download button and returns the saved file's name and bytes. */
+async function downloadFrom(page: Page, testId: string) {
+  const [download] = await Promise.all([page.waitForEvent('download'), page.getByTestId(testId).click()]);
+  return { name: download.suggestedFilename(), bytes: readFileSync((await download.path())!) };
+}
+
+test('report cards: PDF of a version and the class ZIP download through the admin BFF', async ({ page }) => {
+  await signIn(page, ADMIN, 'en', 'demo', 'demo.admin');
+  await page.goto(`${ADMIN}/en/academic/report-cards`);
+  await expect(page.locator('select[name="term"]')).not.toHaveValue('');
+  await page.getByRole('button', { name: 'Generate' }).click();
+  await page.getByRole('dialog').getByRole('button', { name: 'Generate' }).click();
+  await expect(page.getByRole('status').filter({ hasText: /Created \d+/ })).toBeVisible();
+  await page.getByRole('button', { name: 'Publish all drafts' }).click();
+  await page.getByRole('dialog').getByRole('button', { name: 'Publish all drafts' }).click();
+  await expect(page.getByRole('status').filter({ hasText: /published/ })).toBeVisible();
+
+  await page.locator('select[name="class"]').selectOption(MATH_7A);
+  await expect(page.getByText('The ZIP contains only the published report cards')).toBeVisible();
+  const zip = await downloadFrom(page, 'rc-archive');
+  expect(zip.name).toMatch(/^report-cards-[0-9a-f]{8}\.zip$/);
+  expect(zip.bytes.subarray(0, 4).toString('latin1')).toBe('PK\u0003\u0004');
+
+  await page.getByRole('link', { name: 'Sara Ahmadi' }).click();
+  await expect(page.getByTestId('rc-pdf')).toHaveText('Download PDF');
+  await expect(page.getByRole('button', { name: 'Print' })).toBeVisible(); // HTML print stays available
+  const pdf = await downloadFrom(page, 'rc-pdf');
+  expect(pdf.name).toMatch(/^report-card-[0-9a-f]{8}-v1\.pdf$/);
+  expect(pdf.bytes.subarray(0, 5).toString('latin1')).toBe('%PDF-');
+  expect(pdf.bytes.toString('latin1')).toContain('lang en');
+});
+
+test('portal: a guardian downloads the published report card PDF (fa)', async ({ browser }) => {
+  // The web app has its own mock: a staff member generates and publishes there through the BFF first.
+  const staff = await browser.newPage();
+  await signIn(staff, WEB, 'en', 'demo', 'demo.admin');
+  const csrf = (await staff.context().cookies()).find((c) => c.name === 'eemp_web_csrf')!.value;
+  const termId = 'e0000000-0000-4000-8000-000000000011';
+  for (const action of ['generate', 'publish']) {
+    const res = await staff.request.post(`${WEB}/api/bff/report-cards/${action}`, { data: { termId }, headers: { 'x-csrf-token': csrf } });
+    expect(res.status(), action).toBe(200);
+  }
+
+  const guardian = await browser.newPage();
+  await signIn(guardian, WEB, 'fa', 'demo', 'guardian.ali');
+  await guardian.goto(`${WEB}/fa/report-cards?student=${STUDENT_2}`);
+  await guardian.getByRole('link', { name: 'Term 1' }).click();
+  await expect(guardian.getByTestId('rc-pdf')).toHaveText('دریافت PDF');
+  const pdf = await downloadFrom(guardian, 'rc-pdf');
+  expect(pdf.name).toMatch(/^report-card-[0-9a-f]{8}-v1\.pdf$/);
+  expect(pdf.bytes.subarray(0, 5).toString('latin1')).toBe('%PDF-');
+  expect(pdf.bytes.toString('latin1')).toContain('lang fa-IR');
 });

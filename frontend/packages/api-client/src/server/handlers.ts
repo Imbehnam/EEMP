@@ -19,7 +19,9 @@ export function forwardedFor(request: { headers: Headers }): Record<string, stri
   const value = request.headers.get('x-forwarded-for');
   return value ? { 'X-Forwarded-For': value } : {};
 }
-const FORWARD_RESPONSE_HEADERS = ['content-type', 'x-correlation-id', 'location', 'x-total-count'];
+const FORWARD_RESPONSE_HEADERS = ['content-type', 'x-correlation-id', 'location', 'x-total-count', 'content-disposition'];
+/** Binary downloads (report-card PDFs, archives) are streamed through instead of buffered. */
+const STREAMED_TYPES = ['application/pdf', 'application/zip', 'application/octet-stream'];
 
 function problemResponse(status: number, code: string, extra: Record<string, unknown> = {}) {
   return NextResponse.json(
@@ -46,8 +48,13 @@ async function passThrough(upstream: Response): Promise<NextResponse> {
     const value = upstream.headers.get(name);
     if (value) headers.set(name, value);
   }
-  const body = upstream.status === 204 || upstream.status === 304 ? null : await upstream.arrayBuffer();
-  return new NextResponse(body, { status: upstream.status, headers });
+  if (upstream.status === 204 || upstream.status === 304) return new NextResponse(null, { status: upstream.status, headers });
+  const type = (upstream.headers.get('content-type') ?? '').split(';')[0]!.trim().toLowerCase();
+  if (upstream.ok && upstream.body && STREAMED_TYPES.includes(type)) {
+    headers.set('X-Content-Type-Options', 'nosniff');
+    return new NextResponse(upstream.body, { status: upstream.status, headers });
+  }
+  return new NextResponse(await upstream.arrayBuffer(), { status: upstream.status, headers });
 }
 
 export interface AuthHandlerOptions {

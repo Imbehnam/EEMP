@@ -217,7 +217,8 @@
       "invalid_date_range": "يجب أن يكون تاريخ النهاية بعد تاريخ البداية.",
       "invalid_time_range": "يجب أن يكون وقت النهاية بعد وقت البداية.",
       "slot_overlap": "تتداخل حصتان من هذا الصف.",
-      "score_out_of_range": "يجب أن تكون الدرجة بين الصفر والحد الأقصى."
+      "score_out_of_range": "يجب أن تكون الدرجة بين الصفر والحد الأقصى.",
+      "archive_too_large": "عدد بطاقات التقرير كبير جدًا لأرشيف واحد (الحد الأقصى {max})."
     }
   },
   "nav": {
@@ -794,7 +795,11 @@
       "weight": "الوزن",
       "score": "الدرجة",
       "attendance": "الحضور",
-      "formula": "حُسبت بطريقة {formula}."
+      "formula": "حُسبت بطريقة {formula}.",
+      "downloadPdf": "تنزيل PDF",
+      "downloadArchive": "تنزيل كل ملفات PDF (ZIP)",
+      "downloading": "جارٍ التحضير…",
+      "archiveHint": "يحتوي ملف ZIP على بطاقات التقرير المنشورة لطلاب هذا الصف فقط."
     },
     "portal": {
       "myClassesTitle": "صفوفي",

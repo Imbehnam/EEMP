@@ -1,4 +1,6 @@
-import { expect, test } from '@playwright/test';
+import { readFileSync } from 'node:fs';
+
+import { expect, test, type Page } from '@playwright/test';
 
 import { ADMIN, alertBox, api, apiLogin, msg, PASSWORDS, signIn, unique, WEB } from './helpers';
 
@@ -158,4 +160,39 @@ test('report cards: branch manager generates and publishes; guardian opens the p
   await expect(guardian.getByRole('heading', { name: 'Sara Ahmadi', level: 2 })).toBeVisible();
   await expect(guardian.getByText('(Mathematics 7 - A)')).toBeVisible();
   await expect(guardian.getByTestId('rc-average')).not.toHaveText('—');
+});
+
+/** Clicks a download button and returns the saved file's name and bytes. */
+async function downloadFrom(page: Page, testId: string) {
+  const [download] = await Promise.all([page.waitForEvent('download'), page.getByTestId(testId).click()]);
+  return { name: download.suggestedFilename(), bytes: readFileSync((await download.path())!) };
+}
+
+test('report-card PDFs: manager downloads a version and the class ZIP; guardian downloads the published card (fa)', async ({ browser }) => {
+  // Runs after the publish spec above (serial): Term 1 cards are published.
+  const manager = await browser.newPage();
+  await signIn(manager, ADMIN, 'en', 'demo', 'branch.manager', PASSWORDS.demoUser);
+  await manager.goto(`${ADMIN}/en/academic/report-cards`);
+  await expect(manager.locator('select[name="term"]')).not.toHaveValue('');
+  const { cls } = await mathClass();
+  await manager.locator('select[name="class"]').selectOption(cls.id);
+  const zip = await downloadFrom(manager, 'rc-archive');
+  expect(zip.name).toMatch(/^report-cards-[0-9a-f]{8}\.zip$/);
+  expect(zip.bytes.subarray(0, 4).toString('latin1')).toBe('PK\u0003\u0004');
+  expect(zip.bytes.toString('latin1')).toContain('S0001-v');
+
+  await manager.getByRole('link', { name: 'Sara Ahmadi' }).click();
+  const pdf = await downloadFrom(manager, 'rc-pdf');
+  expect(pdf.name).toMatch(/^report-card-[0-9a-f]{8}-v\d+\.pdf$/);
+  expect(pdf.bytes.subarray(0, 5).toString('latin1')).toBe('%PDF-');
+  expect(pdf.bytes.length).toBeGreaterThan(5_000); // embedded font subset + content
+
+  const guardian = await browser.newPage();
+  await signIn(guardian, WEB, 'fa', 'demo', 'guardian.one', PASSWORDS.demoUser);
+  await guardian.goto(`${WEB}/fa/report-cards`);
+  await guardian.getByRole('link', { name: 'Term 1' }).click();
+  await expect(guardian.getByTestId('rc-pdf')).toHaveText('دریافت PDF');
+  const portal = await downloadFrom(guardian, 'rc-pdf');
+  expect(portal.name).toMatch(/^report-card-[0-9a-f]{8}-v\d+\.pdf$/);
+  expect(portal.bytes.subarray(0, 5).toString('latin1')).toBe('%PDF-');
 });

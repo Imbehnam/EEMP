@@ -82,3 +82,19 @@ Commands (in `frontend/`, pnpm 10, Node 22): `pnpm lint` (0 warnings), `pnpm typ
 | EEMP-008 | Admin: academic years (+ terms) with Jalali date entry for `fa`, subjects, courses, grading schemes (bands, default), classes list/filters/create, class overview with weekly schedule editor (room/teacher/student conflicts named), teacher assignments; portal teacher "My classes"; nav by `catalog.read`/`classes.read`; tests `mock-academic.test.ts`, `calendar.test.ts`, `e2e/academic.spec.ts`, `e2e-real/academic.real.spec.ts` (Jalali term + overlap) | Holidays/exceptions not modeled (backend DL-054) |
 | EEMP-009 | Admin roster (enroll with capacity/branch/timetable errors, withdraw), attendance sheet with period picker and bulk mark (shared with the teacher portal); student/guardian attendance view; real-API spec "teacher.one marks attendance … idempotent save" | Attendance history per student in admin (uses `/attendance` list) not built |
 | EEMP-010 | Assessments + weights, score entry (mark/score/comment/reason), workflow buttons gated by `grades.manage/approve/publish` (teacher: submit only), grade history, gradebook with live totals, report cards (generate, list, versions, publish one, batch publish, print); portal published grades, report cards; guardian student picker; real-API specs for grade entry → publish → guardian sees only published, report cards publish → guardian opens card | No PDF (browser print only); report-card list filter by branch not exposed |
+
+## Report-card PDF export (EEMP-010 follow-up, 2026-11-26, branch `feature/report-card-pdf`)
+
+Closes the "Report-card PDF not implemented" gap of EEMP-010 (DL-056) — decisions DL-057 (library/licence/font) and DL-058
+(behaviour). Branch from `main` with `fix/e2e-real-api-seed` (PR #4) and `feature/m2-academic-frontend` (PR #5) merged in, since
+neither was merged yet. Stays `IN_REVIEW` until user verification.
+
+Commands: backend (`backend/`, .NET SDK 10.0.404) `dotnet build EEMP.slnx -c Release` → 0 warnings/0 errors (warnings as errors);
+`dotnet test` → UnitTests 71/71 (15 new PDF tests, `pdftotext` assertions), ArchitectureTests 62/62, IntegrationTests 51/51
+(3 new: `ReportCardPdfTests.*`). Frontend (`frontend/`, pnpm 10, Node 22) `pnpm lint`, `pnpm typecheck`, `pnpm test` → 11 files /
+85 tests, `pnpm build`, `pnpm test:e2e` → 16/16 (2 new), `pnpm test:e2e:real` against this branch's API (SQLite) → 31/31 (1 new).
+Rendered samples were inspected visually (fa/en/ar first pages).
+
+| ID | Evidence | Open items |
+|---|---|---|
+| EEMP-010 (PDF) | `GET /report-cards/{id}/versions/{n}/pdf`, `GET /portal/me/report-cards/{id}/pdf`, `GET /report-cards/pdf-archive?classId=`; SkiaSharp + HarfBuzzSharp renderer with embedded Vazirmatn (OFL); fa/ar RTL shaping, Persian/Arabic-Indic digits, Jalali for fa; tests `ReportCardPdfTests` (unit: bidi, locale, culture-independent dates, fa/en/ar/tr text extraction, multi-page; integration: permissions, branch scope, draft → portal 404, unlinked guardian/student 404, teacher 404/403, tenant isolation, content type, safe file name, archive); frontend "Download PDF" (admin detail, portal detail) and "Download all PDFs (ZIP)" (admin list with a class selected) through the BFF, fa/en/tr/ar strings, Vitest `report-card-pdf.test.ts` + BFF streaming tests, Playwright mock + real-API download specs | Not audited; untagged PDF; no tenant logo/templates (EEMP-021); Docker image not built here (DL-058) |

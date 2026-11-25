@@ -26,6 +26,7 @@ import type {
   PortalReportCardSummary,
   ReportCard,
   ReportCardListQuery,
+  ReportCardPdfLanguage,
   ReportCardScope,
   ReportCardSummary,
   ReportCardVersion,
@@ -158,6 +159,11 @@ export function createAcademicEndpoints(client: ApiClient) {
       generate: (body: ReportCardScope) => client.post<GenerateReportCardsResult>('/report-cards/generate', body),
       publish: (reportCardId: Guid, body: { rowVersion: RowVersion }) => client.post<ReportCard>(`/report-cards/${id(reportCardId)}/publish`, body),
       publishBatch: (body: ReportCardScope) => client.post<{ published: number }>('/report-cards/publish', body),
+      /** Server-rendered PDF of one version (any status) from its stored snapshot. `lang`: fa-IR | en | tr | ar. */
+      pdf: (reportCardId: Guid, versionNo: number, lang?: ReportCardPdfLanguage) =>
+        client.download(`/report-cards/${id(reportCardId)}/versions/${versionNo}/pdf`, { query: { lang } }),
+      /** ZIP of the published PDFs of a class's students (term of the class), within the caller's branch scope. */
+      archive: (classId: Guid, lang?: ReportCardPdfLanguage) => client.download('/report-cards/pdf-archive', { query: { classId: id(classId), lang } }),
     },
     portal: {
       /** Teacher: classes with an active assignment for the caller's teacher profile. */
@@ -169,6 +175,9 @@ export function createAcademicEndpoints(client: ApiClient) {
       grades: (studentId: Guid, termId?: Guid) => client.get<PortalClassGrades[]>(`/portal/me/students/${id(studentId)}/grades`, { query: { termId } }),
       reportCards: (studentId: Guid) => client.get<PortalReportCardSummary[]>(`/portal/me/students/${id(studentId)}/report-cards`),
       reportCard: (reportCardId: Guid) => client.get<PortalReportCard>(`/portal/me/report-cards/${id(reportCardId)}`),
+      /** PDF of the latest published version (own or linked student only). */
+      reportCardPdf: (reportCardId: Guid, lang?: ReportCardPdfLanguage) =>
+        client.download(`/portal/me/report-cards/${id(reportCardId)}/pdf`, { query: { lang } }),
     },
   };
 }

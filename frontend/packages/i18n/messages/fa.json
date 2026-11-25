@@ -217,7 +217,8 @@
       "invalid_date_range": "تاریخ پایان باید بعد از تاریخ شروع باشد.",
       "invalid_time_range": "ساعت پایان باید بعد از ساعت شروع باشد.",
       "slot_overlap": "دو جلسه از این کلاس با هم تداخل دارند.",
-      "score_out_of_range": "نمره باید بین صفر و حداکثر نمره باشد."
+      "score_out_of_range": "نمره باید بین صفر و حداکثر نمره باشد.",
+      "archive_too_large": "تعداد کارنامه‌ها برای یک فایل فشرده بیش از حد مجاز ({max}) است."
     }
   },
   "nav": {
@@ -794,7 +795,11 @@
       "weight": "ضریب",
       "score": "نمره",
       "attendance": "حضور و غیاب",
-      "formula": "محاسبه با {formula}."
+      "formula": "محاسبه با {formula}.",
+      "downloadPdf": "دریافت PDF",
+      "downloadArchive": "دریافت PDF همه (ZIP)",
+      "downloading": "در حال آماده‌سازی…",
+      "archiveHint": "فایل فشرده فقط شامل کارنامه‌های منتشرشده دانش‌آموزان این کلاس است."
     },
     "portal": {
       "myClassesTitle": "کلاس‌های من",

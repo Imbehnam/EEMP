@@ -549,3 +549,11 @@ export interface PortalReportCard {
   publishedAt: UtcInstant | null;
   content: ReportCardContent;
 }
+
+/** Report-card PDF languages accepted by `?lang=` (also derived from Accept-Language when omitted). */
+export type ReportCardPdfLanguage = 'fa-IR' | 'en' | 'tr' | 'ar';
+
+/** Maps an app locale (fa | en | tr | ar) to the PDF `lang` parameter. */
+export function reportCardPdfLanguage(locale: string): ReportCardPdfLanguage {
+  return locale === 'fa' || locale.startsWith('fa-') ? 'fa-IR' : locale === 'tr' ? 'tr' : locale === 'ar' ? 'ar' : 'en';
+}

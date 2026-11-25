@@ -151,6 +151,40 @@ describe('BFF proxy', () => {
   });
 });
 
+describe('BFF proxy: binary downloads', () => {
+  it('streams a report-card PDF with its Content-Disposition and nosniff', async () => {
+    const at = cookieValue(await signIn(), 'eemp_admin_at')!;
+    const gen = await proxy.POST(
+      req('/api/bff/report-cards/generate', {
+        method: 'POST', cookies: { eemp_admin_at: at, eemp_admin_csrf: CSRF }, headers: { 'x-csrf-token': CSRF },
+        body: { termId: 'e0000000-0000-4000-8000-000000000011' },
+      }),
+      ctx('report-cards', 'generate'),
+    );
+    const card = ((await gen.json()) as { items: { id: string }[] }).items[0]!;
+    const response = await proxy.GET(
+      req(`/api/bff/report-cards/${card.id}/versions/1/pdf?lang=fa-IR`, { cookies: { eemp_admin_at: at } }),
+      ctx('report-cards', card.id, 'versions', '1', 'pdf'),
+    );
+    expect(response.status).toBe(200);
+    expect(response.headers.get('content-type')).toBe('application/pdf');
+    expect(response.headers.get('content-disposition')).toMatch(/^attachment; filename=report-card-[0-9a-f]{8}-v1\.pdf/);
+    expect(response.headers.get('x-content-type-options')).toBe('nosniff');
+    expect(response.headers.get('cache-control')).toBe('no-store');
+    const bytes = new Uint8Array(await response.arrayBuffer());
+    expect(new TextDecoder().decode(bytes.slice(0, 5))).toBe('%PDF-');
+    expect(new TextDecoder().decode(bytes)).toContain('lang fa-IR');
+  });
+
+  it('passes problem+json through for a missing card', async () => {
+    const at = cookieValue(await signIn(), 'eemp_admin_at')!;
+    const id = '00000000-0000-4000-8000-000000000000';
+    const response = await proxy.GET(req(`/api/bff/report-cards/${id}/versions/1/pdf`, { cookies: { eemp_admin_at: at } }), ctx('report-cards', id, 'versions', '1', 'pdf'));
+    expect(response.status).toBe(404);
+    expect(response.headers.get('content-type')).toContain('application/problem+json');
+  });
+});
+
 describe('safeNextPath', () => {
   it('only allows same-app relative paths', () => {
     expect(safeNextPath('/fa/users', '/')).toBe('/fa/users');

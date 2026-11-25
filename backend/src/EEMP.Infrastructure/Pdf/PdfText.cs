@@ -180,6 +180,21 @@ public static class Bidi
     }
 
     private static Cls Strong(Cls c) => c == Cls.Num ? Cls.R : c;
+
+    /// <summary>
+    /// Paragraph direction from the first strong character (UBA P2/P3, like HTML <c>dir="auto"</c>); <paramref name="fallback"/>
+    /// when the text has none (numbers, punctuation). Keeps Latin-only data such as "Mathematics 7 (MATH-7A)" intact in RTL documents.
+    /// </summary>
+    public static bool ParagraphRtl(string text, bool fallback)
+    {
+        foreach (var c in text)
+        {
+            if (IsDigit(c)) continue;
+            if (IsRtlChar(c) && !IsNumberSeparator(c) && !IsNumberSuffix(c)) return true;
+            if (char.IsLetter(c)) return false;
+        }
+        return fallback;
+    }
 }
 
 /// <summary>Shaped, bidi-ordered single line: glyphs positioned from x = 0 with the original text attached (for copy/search).</summary>
@@ -199,7 +214,7 @@ public sealed class PdfTextShaper(PdfFontSet fonts, string language)
     {
         var runs = new List<ShapedRun>();
         float x = 0;
-        foreach (var run in Bidi.Visual(text, rtlParagraph))
+        foreach (var run in Bidi.Visual(text, Bidi.ParagraphRtl(text, rtlParagraph)))
         {
             using var buffer = new HbBuffer();
             using var hbLanguage = new Language(language);

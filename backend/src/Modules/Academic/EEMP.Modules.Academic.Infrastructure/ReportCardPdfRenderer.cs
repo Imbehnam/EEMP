@@ -1,3 +1,4 @@
+using System.Globalization;
 using EEMP.Infrastructure.Localization;
 using EEMP.Infrastructure.Pdf;
 using EEMP.Modules.Academic.Application;
@@ -26,7 +27,8 @@ public sealed class ReportCardPdfRenderer(IServerTextLocalizer text) : IReportCa
             total is null ? none : $"{locale.Number(total.Value, scheme.DecimalPlaces)} / {locale.Number(scheme.MaxScore, scheme.DecimalPlaces)}";
         string Result(Application.GradeTotalDto? total) => total is null ? none : total.Passed ? L("passed") : L("failed");
         string Band(Application.GradeTotalDto? total) => total?.Label is { Length: > 0 } label ? Lopt("band", label) : none;
-        string Date(string iso) => DateOnly.TryParseExact(iso, "yyyy-MM-dd", out var d) ? locale.Date(d) : iso;
+        // Snapshot dates are ISO Gregorian: parse invariantly (the request culture may be fa-IR with the Persian calendar).
+        string Date(string iso) => DateOnly.TryParseExact(iso, "yyyy-MM-dd", CultureInfo.InvariantCulture, DateTimeStyles.None, out var d) ? locale.Date(d) : iso;
 
         var doc = new PdfFlowDocument(PdfFontSet.Shared.Value, locale.Language, locale.Rtl);
         var muted = PdfFlowDocument.Muted;

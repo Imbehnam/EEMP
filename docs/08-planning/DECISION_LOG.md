@@ -178,10 +178,71 @@
 - Status: Recorded (implementing agent)
 - Facts:
   - Report-card PDF generation, templates per academic level/locale and printable output are not implemented (JSON snapshot only).
+    *Update 2026-11-26:* server-side PDF export added (DL-057, DL-058); per-level/per-tenant templates remain open.
   - System roles of tenants created before M2 are not updated with the new permissions (provisioning only creates missing roles);
     existing tenants must have roles edited or a role-sync step added. The demo tenant seed is created fresh in tests/dev.
   - Teacher substitutions by date, holidays and timetable exceptions are not modeled (DL-054).
   - Same SQLite/SQL Server limitations as M1 (DL-052): the `academic` migration was generated and checked, not applied to SQL Server.
+- Owner: Implementing agent.
+
+### DL-057 — PDF rendering library and font for report cards
+- Date: 2026-11-26
+- Status: Recorded (implementing agent) — library choice reversible; QuestPDF can be adopted later if the business confirms eligibility or buys a licence
+- Context: report cards must be rendered on the server as PDF in fa/ar (RTL, joined letters, Persian/Arabic-Indic digits) and en/tr.
+  The suggested library was QuestPDF. Its licence was checked on 2026-11-26 (https://www.questpdf.com/license/community.html and
+  https://www.questpdf.com/license/guide.html, Community License v3.0, effective 6 July 2026): it is a *source-available commercial*
+  licence, not OSI. It is free only for individuals, small businesses with annual gross revenue under USD 1,000,000 (consolidated),
+  qualifying charities/academic institutions, and OSI-licensed open-source projects; public-sector entities and publicly traded companies
+  are never eligible; production use otherwise needs a paid Professional/Enterprise licence (90-day transition when eligibility is lost).
+  Code written by an AI agent for an organisation counts as that organisation's developer use.
+- Decision: **QuestPDF is not used.** EEMP is a commercial multi-tenant SaaS whose operator revenue, ownership and customer mix (possibly
+  public schools) are not confirmed, and the repository has no OSI licence, so Community eligibility cannot be asserted and a later paid
+  licence would be a recurring cost decided by the business, not by engineering. Instead the backend renders PDFs with
+  **SkiaSharp 4.157.0 (MIT)** (Skia PDF backend, `SKDocument.CreatePdf`) and **HarfBuzzSharp 14.4.0.200 (MIT)** for OpenType shaping
+  (Arabic joining, ligatures, marks, `locl` for Persian digits), plus a small in-house layer (`EEMP.Infrastructure/Pdf`): a minimal
+  Unicode bidi (UBA W1–W7, N1–N2, L2 without explicit embeddings; paragraph direction from the first strong character, like
+  `dir="auto"`), word wrap, and a flow layout with tables (repeated headers), mirrored for RTL, two-pass for "page n of N". Text runs are
+  written with their UTF-8 text and clusters, so the PDF text is extractable/searchable (verified with poppler `pdftotext`).
+  Native assets: `SkiaSharp.NativeAssets.Linux.NoDependencies` and `HarfBuzzSharp.NativeAssets.Linux` (glibc + libstdc++ only; no
+  fontconfig, no system fonts).
+- Font: **Vazirmatn v33.003** Regular and Bold (SIL Open Font License 1.1) embedded as resources in `EEMP.Infrastructure`
+  (`backend/src/EEMP.Infrastructure/Pdf/Fonts/`, licence text `OFL.txt` committed next to the fonts and copied to
+  `licenses/Vazirmatn-OFL.txt` in the build output). Vazirmatn covers Persian, Arabic and Latin incl. Turkish letters, so one family
+  serves all four languages. The OFL allows embedding/bundling; the font is not sold on its own and keeps its name.
+- Alternatives: QuestPDF (licence above); iText 7/8 (AGPL or commercial); PdfSharp/MigraDoc (MIT, no complex-script shaping);
+  headless Chromium HTML→PDF (best shaping, but a browser in the API image and a larger attack surface).
+- Consequences: we own a small text-layout layer (bidi is a pragmatic subset; explicit embeddings/isolates are not supported — data
+  strings are rendered with first-strong direction). Fonts are embedded as Skia writes them (~150 KB per report card; whether
+  the SkiaSharp native build subsets them was not verified). Swapping to QuestPDF later only replaces `ReportCardPdfRenderer` and the Pdf layer; endpoints and tests stay.
+- Owner: Implementing agent (licence/business confirmation: product owner).
+
+### DL-058 — Report-card PDF export behaviour
+- Date: 2026-11-26
+- Status: Recorded (implementing agent)
+- Decision / facts:
+  - The PDF is built only from the stored `ReportCardVersion.Content` snapshot (student, year, term, lines, scores, totals, band labels,
+    average, attendance) — never from client data and never recomputed. Institute (central office name) and branch names are display
+    labels read at render time via `IOrganizationSettings.GetInstituteNameAsync` / `IBranchDirectory.GetNameAsync` (they are not part of
+    the snapshot; a later rename shows the new name on re-download).
+  - Endpoints (contract §8): admin `GET /report-cards/{id}/versions/{versionNo}/pdf` (`reportcards.read`, card's branch in scope, any
+    version status — drafts/superseded are marked with a notice banner); portal `GET /portal/me/report-cards/{id}/pdf` (latest published
+    version, own student or linked guardian only; teachers are not portal readers of report cards); admin
+    `GET /report-cards/pdf-archive?classId=` (ZIP of the *published* versions of the class's non-withdrawn students in the class's term,
+    within the caller's `reportcards.read` scope, at most 200 cards → otherwise `422 academic.archive_too_large`). Everything outside scope
+    → 404 (no existence leak), consistent with the JSON reads.
+  - Language: `?lang=` (fa-IR, fa, en, tr, ar; region subtags accepted) else the Accept-Language request culture, default fa-IR; other
+    values → `400 validation.failed` (`lang: validation.unsupported_locale`). Labels come from the server catalogs
+    (`reportCard.pdf.*` in `messages.{fa,en,tr,ar}.json`). Dates: Jalali with Persian digits for fa; Gregorian otherwise (Arabic-Indic
+    digits for ar, matching the web apps' `nu-arab`). Instants are shown in the tenant time zone. Snapshot dates are parsed invariantly.
+  - Response: `application/pdf` (or `application/zip`), `Content-Disposition: attachment` with a file name made of the card id prefix and
+    version only (`report-card-1a2b3c4d-v2.pdf`) — no names or student numbers in headers or logs. ZIP entries are named by the
+    institute-assigned student number (sanitised to `[A-Za-z0-9_-]`), e.g. `S0001-v1.pdf`. `Cache-Control: no-store`.
+  - The BFF streams `application/pdf|zip|octet-stream` responses through (no buffering), forwards `Content-Disposition`, adds `nosniff`;
+    the browser saves the blob via a temporary object URL. HTML print stays available next to the download button.
+- Known gaps: PDF downloads are not written to the audit trail (reads are not audited anywhere yet); PDFs are not tagged (PDF/UA) or
+  PDF/A; no per-tenant logo/letterhead or per-level templates (EEMP-021); archive is generated synchronously in memory (bounded by the
+  200-card cap); the Docker image was not built in the sandbox (no Docker) — native libraries were verified on linux-arm64 (sandbox) and
+  are published for linux-x64/arm64 and musl.
 - Owner: Implementing agent.
 
 ## Proposed, not yet approved

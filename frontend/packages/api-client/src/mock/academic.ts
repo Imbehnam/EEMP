@@ -24,6 +24,7 @@ import type {
   Term,
 } from '../academic-types';
 import type { Guid, Student } from '../types';
+import { binary, mockPdf, PDF_LANGUAGES, storedZip } from './files';
 import { assertValid, HttpError, json, paginate, required, uuid } from './http';
 import type { MockTenantData, MockUser } from './seed';
 
@@ -1132,7 +1133,42 @@ export function academicRoutes(ctx: AcademicContext, seg: string[], method: stri
     return { term, scope };
   };
 
+  /* ----- report-card PDFs (mock stand-in; the API renders the real document from the stored snapshot) ----- */
+  const pdfLang = () => {
+    const lang = url.searchParams.get('lang');
+    if (lang && !PDF_LANGUAGES.includes(lang.split(/[-_]/)[0]!.toLowerCase())) {
+      throw new HttpError(400, 'validation.failed', { errors: { lang: ['validation.unsupported_locale'] } });
+    }
+    return lang ?? 'fa-IR';
+  };
+  type MockVersion = MockReportCard['versions'][number];
+  const shortId = (value: string) => value.replace(/-/g, '').slice(0, 8);
+  const pdfName = (c: MockReportCard, v: MockVersion) => `report-card-${shortId(c.id)}-v${v.versionNo}.pdf`;
+  const pdfOf = (c: MockReportCard, v: MockVersion, lang: string) =>
+    mockPdf(['EEMP report card (mock)', `card ${c.id}`, `version ${v.versionNo} ${v.status}`, `lang ${lang}`, `student ${v.content.student.studentNumber}`,
+      ...v.content.lines.map((l) => `${l.classCode}: ${l.total ? l.total.value : '-'}`)]);
+  const publishedVersion = (c: MockReportCard) => [...c.versions].reverse().find((x) => x.status === 'published');
+
   if (seg[0] === 'report-cards') {
+    if (seg[1] === 'pdf-archive' && seg.length === 2 && method === 'GET') {
+      demand('reportcards.read');
+      const classId = url.searchParams.get('classId');
+      if (!classId) throw new HttpError(400, 'validation.failed', { errors: { classId: ['validation.required'] } });
+      const cls = classAccess(classId, 'reportcards.read', false, 'reportcards.read');
+      const lang = pdfLang();
+      const scope = ctx.scope('reportcards.read');
+      const sids = ac.enrollments.filter((e) => e.classId === cls.id && e.status !== 'withdrawn').map((e) => e.studentId);
+      const entries = ac.reportCards
+        .filter((c) => c.termId === cls.termId && sids.includes(c.studentId) && includes(scope, c.branchId))
+        .flatMap((c) => {
+          const v = publishedVersion(c);
+          if (!v) return [];
+          const safe = v.content.student.studentNumber.replace(/[^A-Za-z0-9_-]/g, '').slice(0, 40);
+          return [{ name: safe ? `${safe}-v${v.versionNo}.pdf` : pdfName(c, v), data: pdfOf(c, v, lang) }];
+        })
+        .sort((a, b) => a.name.localeCompare(b.name));
+      return binary(storedZip(entries), 'application/zip', `report-cards-${shortId(cls.id)}.zip`);
+    }
     if (seg[1] === 'generate' && method === 'POST') {
       demand('reportcards.manage');
       const { term, scope } = scopeCards('reportcards.manage');
@@ -1216,6 +1252,14 @@ export function academicRoutes(ctx: AcademicContext, seg: string[], method: stri
     if (seg.length === 2 && method === 'GET') {
       demand('reportcards.read');
       return json(200, cardDto(readable('reportcards.read')));
+    }
+    if (seg[2] === 'versions' && seg[3] && seg[4] === 'pdf' && seg.length === 5 && method === 'GET') {
+      demand('reportcards.read');
+      const lang = pdfLang();
+      const c = readable('reportcards.read');
+      const v = c.versions.find((x) => x.versionNo === Number(seg[3]));
+      if (!v) throw notFound();
+      return binary(pdfOf(c, v, lang), 'application/pdf', pdfName(c, v));
     }
     if (seg[2] === 'versions' && seg[3] && method === 'GET') {
       demand('reportcards.read');
@@ -1314,6 +1358,15 @@ export function academicRoutes(ctx: AcademicContext, seg: string[], method: stri
         const term = ac.terms.find((t) => t.id === c.termId);
         return v ? [{ id: c.id, termId: c.termId, termName: term?.name ?? '', versionNo: v.versionNo, publishedAt: v.publishedAt }] : [];
       }));
+    }
+    if (seg[2] === 'report-cards' && seg[3] && seg[4] === 'pdf' && seg.length === 5 && method === 'GET') {
+      const lang = pdfLang();
+      const c = ac.reportCards.find((x) => x.id === seg[3]);
+      if (!c) throw notFound();
+      portalStudent(c.studentId);
+      const v = publishedVersion(c);
+      if (!v) throw notFound();
+      return binary(pdfOf(c, v, lang), 'application/pdf', pdfName(c, v));
     }
     if (seg[2] === 'report-cards' && seg[3] && method === 'GET') {
       const c = ac.reportCards.find((x) => x.id === seg[3]);
