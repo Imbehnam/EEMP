@@ -4,6 +4,23 @@ All notable changes to this project are documented here. Dates are UTC.
 
 ## [Unreleased]
 
+### Added — Milestone 2 academic core frontend (EEMP-008..010), 2026-11-25
+- `@eemp/api-client`: typed DTOs and endpoints for every M2 route (`api.academic.*`); the mock backend implements the academic
+  contract (catalog, schedule conflicts, capacity, idempotent attendance, grade workflow + history, gradebook totals
+  `weightedAverage.v1`, versioned report cards, portal views with published data only) and the 15 new permissions.
+- `@eemp/i18n`: Jalali ⇄ Gregorian conversion (cross-checked against Intl for 2000–2040), locale date input parsing
+  (Persian/Arabic digits), Saturday-first weekdays and month grid.
+- `@eemp/app`: `DateField` (Jalali input for `fa`, ISO for en/tr/ar, Saturday-first month picker) and shared academic panels
+  (attendance sheet, score entry + workflow + history, assessments, gradebook, timetable, report-card view).
+- Admin console: academic years/terms, subjects, courses, grading schemes, classes (schedule, teachers, roster, attendance,
+  assessments, gradebook), assessment score entry and workflow, report cards (generate, versions, publish, batch publish, print);
+  navigation hidden by permission.
+- Client portal: teacher "My classes" (attendance, assessments/score entry, gradebook, roster); student/guardian timetable,
+  attendance, published grades and report cards with a linked-student picker for guardians.
+- Translations (fa/en/tr/ar) for all new strings and the 38 new error codes; role editor labels for the new permission groups.
+- Tests: Vitest (calendar, mock academic flows), Playwright mock (`e2e/academic.spec.ts`), Playwright real API
+  (`e2e-real/academic.real.spec.ts`). E2E ports configurable with `EEMP_E2E_ADMIN_PORT` / `EEMP_E2E_WEB_PORT`.
+
 ### Added — Milestone 2 academic core backend (EEMP-008..010), 2026-11-24
 - New `Academic` module (Domain/Application/Contracts/Infrastructure, schema `academic`, own migrations history, 17 tables):
   academic years, terms, subjects, courses, configurable grading schemes (IR20 0–20 default, PCT, LETTER), classes/sections with weekly

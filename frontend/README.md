@@ -3,6 +3,9 @@
 pnpm workspace with two Next.js 16 (App Router) apps and shared packages. Milestone 1 scope:
 authentication, platform tenants, organization, branches, roles and permissions, users and scope
 assignments, people (students, guardians, teachers, staff) and the client portal, in four locales.
+Milestone 2 adds the academic core: catalog (years, terms, subjects, courses, grading schemes), classes with schedules
+and teachers, enrollment, attendance, assessments with the grade workflow, gradebook and report cards in the console,
+and the teacher / student / guardian academic views in the portal (see `docs/05-experience/FRONTEND_IMPLEMENTATION.md`).
 
 | Path | What it is |
 | --- | --- |
@@ -59,6 +62,7 @@ e2e job does.
 | `pnpm test` | Vitest unit and integration suites |
 | `pnpm build` | `next build` for both apps |
 | `pnpm test:e2e` | Playwright smoke tests against the production builds in mock mode (run `pnpm build` first; `pnpm exec playwright install --with-deps chromium` once) |
+| `pnpm test:e2e:real` | Playwright suite against a running real API (`EEMP_E2E_API`, default `http://127.0.0.1:5080`; see `docs/09-quality/M2_FRONTEND_INTEGRATION_REPORT.md`) |
 | `pnpm i18n:check` | Catalog parity and ICU validity only |
 
 ## How requests flow
@@ -85,3 +89,6 @@ The browser never sees tokens and never calls the API directly.
   is never displayed. Unknown codes fall back to a generic message that includes the code.
 - Instants are stored in UTC and displayed in the user's IANA time zone. Calendar dates
   (`yyyy-mm-dd`) are formatted without any time-zone shift.
+- Academic date inputs (`DateField`) send ISO Gregorian to the API; `fa` users type and read Jalali dates
+  (`1405/09/03`, Persian or Latin digits), other locales ISO dates. Weeks start on Saturday.
+- E2E ports can be moved with `EEMP_E2E_ADMIN_PORT` / `EEMP_E2E_WEB_PORT` (defaults 3001 / 3000).
