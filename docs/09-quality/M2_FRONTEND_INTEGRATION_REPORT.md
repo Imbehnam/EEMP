@@ -43,6 +43,8 @@ New real-API specs (`e2e-real/academic.real.spec.ts`):
   disabled for students without a result yet.
 - M1 spec `people.real.spec.ts › cross-branch access…` failed once with `net::ERR_ABORTED` (an in-flight request hit 401 after the
   cookies were cleared and redirected to login); hardened by leaving the app (`about:blank`) before clearing cookies.
+- M1 spec `platform.real.spec.ts` failed once in CI (strict-mode match: the confirm dialog's button briefly showed the new
+  status's label before closing); hardened by waiting for the dialog to close.
 
 ## Gaps
 
