@@ -91,7 +91,8 @@ The mock backend was aligned with the real shapes (portal students summary, guar
 **Fix.**
 - Workflow (`.github/workflows/frontend.yml`): start the API from `$RUNNER_TEMP/api`, set `Seed__Enabled: 'true'` explicitly, and check a seeded sign-in (HTTP 200) right after the health check, printing the seed/content-root log lines and failing the step otherwise.
 - `e2e-real/global-setup.ts`: fail fast with a clear message when the seeded user cannot sign in.
-- Backend `feature/m1-backend` `d23471b`: the seed now logs a warning naming the content root when seed passwords are configured but `Seed:Enabled` is false (regression tests `DevelopmentSeedTests.cs`, +2 unit); compose network `KnownNetworks`. Merged into `feature/m2-academic-backend` (`610fd82`).
+- Backend: the seed now logs a warning naming the content root when seed passwords are configured but `Seed:Enabled` is false (regression tests `DevelopmentSeedTests.cs`, +2 unit); compose network `KnownNetworks`.
+- PRs #1–#3 had already been merged into `main` (with this job failing there too, run 45486375576), so the fix was pushed to the feature branches (`feature/m1-backend` `d23471b`, merged into `feature/m2-academic-backend` as `610fd82`; `feature/m1-frontend` `a2cc6c1`) and brought to `main` through branch `fix/e2e-real-api-seed` (draft PR).
 
 **Local verification (CI-equivalent).** API built `dotnet build … -c Release -o /tmp/api-ci`, started from that directory with the workflow's env on a fresh SQLite file; `pnpm build`; `pnpm test:e2e:real` → **25 passed (1.5 min)**. Backend `dotnet test EEMP.slnx -c Release`: m1 118 passed (33 unit, 48 architecture, 37 integration); m2 166 passed (56 unit, 62 architecture, 48 integration). Frontend `pnpm lint` and `pnpm typecheck` pass.
 

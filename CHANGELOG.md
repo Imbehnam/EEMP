@@ -55,13 +55,15 @@ All notable changes to this project are documented here. Dates are UTC.
 - OpenAPI now advertises the contract's camelCase paging parameters (`page`, `pageSize`, `search`).
 - Regression tests: `M1IntegrationRegressionTests.cs` (+3 integration tests).
 
-### Fixed — e2e-real-api CI job (frontend PR #2), 2026-11-25
+### Fixed — e2e-real-api CI job (failing on PR #2 and on main since its merge), 2026-11-25
 - The development seed no longer skips silently: when `Seed__*Password` values are configured but
   `Seed:Enabled` is false (e.g. the API was started outside its output directory, so the content root has no
   `appsettings.Development.json`), it logs a warning naming the content root. Regression tests:
   `DevelopmentSeedTests.cs` (+2 unit tests).
 - `docker-compose.yml`: the compose network has a fixed subnet (`EEMP_DOCKER_SUBNET`, default `172.29.0.0/24`)
   and the API trusts `X-Forwarded-For` from it (`ReverseProxy__KnownNetworks__0`), for the web apps' BFF.
+- `frontend.yml` `e2e-real-api`: the API is started from its output directory with `Seed__Enabled=true`, and a
+  seeded sign-in is checked before the suite; the real-suite global setup fails fast when the seed is missing.
 
 ### Known limitations
 - Migrations not yet applied against a real SQL Server (no SQL Server/Docker in the build sandbox); CI also
