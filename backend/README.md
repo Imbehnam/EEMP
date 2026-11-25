@@ -128,6 +128,7 @@ connection string when running `database update` from the CLI.
 | `Jwt:SigningKey` | — | required, 32+ chars, from env/secret store |
 | `Jwt:AccessTokenMinutes` / `Jwt:RefreshTokenDays` | 15 / 14 | |
 | `RateLimiting:AuthPermitLimit` / `AuthWindowSeconds` | 10 / 60 | per client IP on `/auth/login|refresh|logout` |
+| `ReverseProxy:KnownProxies` / `KnownNetworks` | [] / [] | extra trusted proxies (besides loopback) whose `X-Forwarded-For` sets the client IP — e.g. the Next.js BFF containers' network in Docker; without it every browser shares the BFF's rate-limit bucket |
 | `Cors:AllowedOrigins` | `[]` (localhost:3000/3001 in Development) | applied in Development only |
 | `Seed:*` | disabled | see above |
 | `OTEL_EXPORTER_OTLP_ENDPOINT` | unset | enables OTLP trace export when set |

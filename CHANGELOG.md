@@ -48,6 +48,21 @@ All notable changes to this project are documented here. Dates are UTC.
 - Tests: 31 unit, 48 architecture, 34 integration (SQLite fallback) — all passing.
 - Root `docker-compose.yml` (sqlserver, redis, api), `backend/Dockerfile`, `.github/workflows/backend.yml`.
 
+### Fixed — M1 end-to-end integration with the Next.js frontend, 2026-11-24
+- Auth rate limiting is now per browser client behind the BFF: `X-Forwarded-For` is honoured from trusted
+  proxies (loopback + `ReverseProxy:KnownProxies/KnownNetworks`, last hop only). Previously every user signing
+  in through the web apps shared the BFF's single per-IP bucket (10 logins/minute for the whole site).
+- OpenAPI now advertises the contract's camelCase paging parameters (`page`, `pageSize`, `search`).
+- Regression tests: `M1IntegrationRegressionTests.cs` (+3 integration tests).
+
+### Fixed — e2e-real-api CI job (frontend PR #2), 2026-11-25
+- The development seed no longer skips silently: when `Seed__*Password` values are configured but
+  `Seed:Enabled` is false (e.g. the API was started outside its output directory, so the content root has no
+  `appsettings.Development.json`), it logs a warning naming the content root. Regression tests:
+  `DevelopmentSeedTests.cs` (+2 unit tests).
+- `docker-compose.yml`: the compose network has a fixed subnet (`EEMP_DOCKER_SUBNET`, default `172.29.0.0/24`)
+  and the API trusts `X-Forwarded-For` from it (`ReverseProxy__KnownNetworks__0`), for the web apps' BFF.
+
 ### Known limitations
 - Migrations not yet applied against a real SQL Server (no SQL Server/Docker in the build sandbox); CI also
   runs integration tests on SQLite.
