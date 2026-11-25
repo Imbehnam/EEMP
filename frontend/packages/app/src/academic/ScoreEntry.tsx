@@ -2,7 +2,7 @@
 
 import {
   ASSESSMENT_TYPES, ApiError, RESULT_MARKS,
-  type Assessment, type AssessmentRequest, type AssessmentResults, type AssessmentType, type ResultEntry, type ResultMark, type WorkflowAction,
+  type Assessment, type AssessmentRequest, type AssessmentResults, type GradeHistoryEntry, type AssessmentType, type ResultEntry, type ResultMark, type WorkflowAction,
 } from '@eemp/api-client';
 import { useErrorTranslator, useLocaleFormat } from '@eemp/i18n/react';
 import { Alert, Button, Card, ConfirmDialog, DataTable, DescriptionList, FormGrid, SelectField, Spinner, TextAreaField, TextField } from '@eemp/ui';
@@ -289,7 +289,7 @@ export function ScoreEntryPanel({ assessmentId, perms, onDeleted }: { assessment
                           max={a.maxScore}
                           dir="ltr"
                           value={row.score}
-                          disabled={!editable || row.mark !== 'scored'}
+                          disabled={!editable || (row.mark !== '' && row.mark !== 'scored')}
                           aria-invalid={scoreError ? true : undefined}
                           onChange={(e) => set({ score: e.target.value, mark: row.mark || 'scored' })}
                           style={{ ...cellControl, maxInlineSize: '7rem' }}
@@ -397,7 +397,7 @@ const cellControl = {
   background: 'var(--eemp-color-surface)', color: 'inherit', inlineSize: '100%',
 } as const;
 
-function HistoryTable({ entries, loading, names }: { entries: import('@eemp/api-client').GradeHistoryEntry[]; loading: boolean; names: Map<string, string> }) {
+function HistoryTable({ entries, loading, names }: { entries: GradeHistoryEntry[]; loading: boolean; names: Map<string, string> }) {
   const t = useTranslations('academic.scores');
   const common = useTranslations('common');
   const labels = useAcademicLabels();

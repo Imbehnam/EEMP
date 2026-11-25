@@ -1,7 +1,8 @@
 import type { Metadata } from 'next';
 import { getTranslations } from 'next-intl/server';
 
-import { TeacherClassScreen, isTeacherTab } from '../../../../../screens/academic';
+import { TeacherClassScreen } from '../../../../../screens/academic';
+import { isTeacherTab } from '../../../../../screens/academic-tabs';
 
 export async function generateMetadata(): Promise<Metadata> {
   const t = await getTranslations('academic.portal');

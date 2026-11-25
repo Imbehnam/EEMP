@@ -4,8 +4,8 @@ import { join } from 'node:path';
 import { expect, type Page } from '@playwright/test';
 
 export const API = process.env.EEMP_E2E_API ?? 'http://127.0.0.1:5080';
-export const ADMIN = 'http://localhost:3001';
-export const WEB = 'http://localhost:3000';
+export const ADMIN = `http://localhost:${process.env.EEMP_E2E_ADMIN_PORT ?? 3001}`;
+export const WEB = `http://localhost:${process.env.EEMP_E2E_WEB_PORT ?? 3000}`;
 
 /** Development-seed credentials (backend Seed__* settings; dev only, never production secrets). */
 export const PASSWORDS = {

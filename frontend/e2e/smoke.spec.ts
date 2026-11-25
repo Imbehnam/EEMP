@@ -1,18 +1,6 @@
-import { expect, test, type Page } from '@playwright/test';
+import { expect, test } from '@playwright/test';
 
-const ADMIN = 'http://localhost:3001';
-const WEB = 'http://localhost:3000';
-const PASSWORD = process.env.EEMP_MOCK_PASSWORD || 'eemp-mock';
-
-async function signIn(page: Page, base: string, locale: string, tenant: string, user: string, password = PASSWORD, expectSuccess = true) {
-  await page.goto(`${base}/${locale}/login`);
-  await page.locator('input[name="tenantSlug"]').fill(tenant);
-  await page.locator('input[name="userName"]').fill(user);
-  await page.locator('input[name="password"]').fill(password);
-  await page.locator('button[type="submit"]').click();
-  // Login navigates with window.location; wait for it before the test navigates again.
-  if (expectSuccess) await page.waitForURL((url) => !url.pathname.endsWith('/login'));
-}
+import { ADMIN, signIn, WEB } from './helpers';
 
 test.describe('Persian browser', () => {
   test.use({ locale: 'fa-IR' });

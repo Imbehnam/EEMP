@@ -13,6 +13,7 @@ import { useTranslations } from 'next-intl';
 import type { ReactNode } from 'react';
 
 import { usePortalKind } from '../app/[locale]/(portal)/portal-kind';
+import { TEACHER_TABS, type TeacherTab } from './academic-tabs';
 
 /* ======================= teacher ======================= */
 
@@ -53,9 +54,6 @@ export function MyClassesScreen() {
   );
 }
 
-const TEACHER_TABS = ['attendance', 'assessments', 'gradebook', 'roster'] as const;
-export type TeacherTab = (typeof TEACHER_TABS)[number];
-export const isTeacherTab = (value: string | undefined): value is TeacherTab => (TEACHER_TABS as readonly string[]).includes(value ?? '');
 
 /**
  * Class workspace for its assigned teacher: attendance, assessments/score entry and gradebook. The API checks the

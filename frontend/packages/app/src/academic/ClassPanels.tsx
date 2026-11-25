@@ -100,7 +100,7 @@ export function GradebookPanel({ classId }: { classId: string }) {
       {g.students.length === 0 ? (
         <StatePanel title={t('empty')} />
       ) : (
-        <div style={{ overflowX: 'auto' }} role="region" aria-labelledby="gradebook-heading" tabIndex={0}>
+        <div style={{ overflowX: 'auto' }}>
           <table className="eemp-matrix" style={{ inlineSize: '100%', borderCollapse: 'collapse' }}>
             <caption className="eemp-visually-hidden">{t('title')}</caption>
             <thead>

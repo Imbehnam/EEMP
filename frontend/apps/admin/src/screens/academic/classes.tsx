@@ -17,6 +17,7 @@ import { useMemo, useState, type FormEvent } from 'react';
 
 import { BackLink, CreateButton, FormActions, Notice, nullIfEmpty, PagedList, useFieldErrors } from '../../components/common';
 import { useAcademicLookups } from './options';
+import { CLASS_TABS, type ClassTab } from './tabs';
 
 /* ======================= list ======================= */
 
@@ -152,8 +153,6 @@ export function ClassCreateScreen() {
 
 /* ======================= detail with tabs ======================= */
 
-export const CLASS_TABS = ['overview', 'roster', 'attendance', 'assessments', 'gradebook'] as const;
-export type ClassTab = (typeof CLASS_TABS)[number];
 
 export function ClassDetailScreen({ id, tab, notice }: { id: string; tab: ClassTab; notice?: string }) {
   const t = useTranslations('academic.classes');

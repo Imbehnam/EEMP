@@ -50,8 +50,8 @@ export function AttendanceSheetPanel({ classId, schedule, canMark, termStart, te
   const [saved, setSaved] = useState(false);
   useEffect(() => {
     if (sheet) setMarks(toMarks(sheet));
-    setSaved(false);
   }, [sheet]);
+  useEffect(() => setSaved(false), [date, slotId]);
 
   const mutation = useApiMutation((api, s: AttendanceSheet, m: Marks) =>
     api.academic.classes.markAttendance(classId, {
