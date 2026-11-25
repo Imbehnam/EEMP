@@ -1,3 +1,4 @@
+import { createAcademicEndpoints } from './academic-endpoints';
 import type { ApiClient } from './client';
 import type {
   Branch,
@@ -46,7 +47,7 @@ export function toPaged<T>(value: Paged<T> | T[] | null | undefined, query: Page
 const q = (query: PageQuery = {}) => ({ page: query.page, pageSize: query.pageSize, search: query.search });
 const id = (value: Guid) => encodeURIComponent(value);
 
-/** Typed endpoint map for every Milestone 1 contract operation (paths relative to /api/v1). */
+/** Typed endpoint map for every Milestone 1 and Milestone 2 contract operation (paths relative to /api/v1). */
 export function createEndpoints(client: ApiClient) {
   return {
     auth: {
@@ -118,6 +119,8 @@ export function createEndpoints(client: ApiClient) {
       /** Plain array (not paged) per contract clarification. */
       students: () => client.get<PortalStudent[]>('/portal/me/students'),
     },
+    /** Milestone 2 academic core (EEMP-008..010). */
+    academic: createAcademicEndpoints(client),
   };
 }
 
