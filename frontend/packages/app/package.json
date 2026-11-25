@@ -7,7 +7,8 @@
   "description": "Shared Next.js app wiring for apps/admin and apps/web: providers, session, data hooks, shared forms.",
   "exports": {
     ".": "./src/index.ts",
-    "./server": "./src/server.tsx"
+    "./server": "./src/server.tsx",
+    "./academic": "./src/academic/index.ts"
   },
   "scripts": {
     "typecheck": "tsc --noEmit -p tsconfig.json"

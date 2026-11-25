@@ -30,6 +30,21 @@ export function adminNavigation(user: CurrentUser): FrameNavSection[] {
       ],
     },
     {
+      labelKey: 'academicSection',
+      items: [
+        ...(can('catalog.read')
+          ? [
+              { href: '/academic/years', labelKey: 'academicYears' },
+              { href: '/academic/subjects', labelKey: 'subjects' },
+              { href: '/academic/courses', labelKey: 'courses' },
+              { href: '/academic/grading-schemes', labelKey: 'gradingSchemes' },
+            ]
+          : []),
+        ...(can('classes.read') ? [{ href: '/academic/classes', labelKey: 'classes' }] : []),
+        ...(can('reportcards.read') ? [{ href: '/academic/report-cards', labelKey: 'reportCards' }] : []),
+      ],
+    },
+    {
       labelKey: 'peopleSection',
       items: PERSON_KINDS.filter((kind) => can(`${kind}.read`)).map((kind) => ({ href: `/people/${kind}`, labelKey: kind })),
     },

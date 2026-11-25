@@ -15,6 +15,13 @@ export function PortalHomeScreen({ kind }: { kind: PortalKind | null }) {
   const cards = [
     { href: '/profile', label: t('cardProfile') },
     ...(kind === 'guardian' ? [{ href: '/students', label: t('cardStudents') }] : []),
+    ...(kind === 'teacher' ? [{ href: '/classes', label: t('cardClasses') }] : []),
+    ...(kind === 'student' || kind === 'guardian'
+      ? [
+          { href: '/timetable', label: t('cardTimetable') },
+          { href: '/grades', label: t('cardGrades') },
+        ]
+      : []),
     { href: '/settings', label: t('cardSettings') },
   ];
   return (
