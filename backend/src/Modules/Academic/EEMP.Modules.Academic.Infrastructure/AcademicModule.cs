@@ -1,10 +1,14 @@
+using System.Globalization;
+using System.IO.Compression;
 using EEMP.Infrastructure.Authorization;
+using EEMP.Infrastructure.Pdf;
 using EEMP.Infrastructure.Persistence;
 using EEMP.Infrastructure.Web;
 using EEMP.Modules.Academic.Application;
 using EEMP.Modules.Academic.Contracts;
 using EEMP.Modules.Academic.Domain;
 using EEMP.SharedKernel.Authorization;
+using EEMP.SharedKernel.Validation;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Routing;
@@ -27,6 +31,8 @@ public static class AcademicModule
         services.AddScoped<AssessmentService>();
         services.AddScoped<ReportCardService>();
         services.AddScoped<PortalAcademicService>();
+        services.AddScoped<ReportCardDocuments>();
+        services.AddSingleton<IReportCardPdfRenderer, ReportCardPdfRenderer>();
         services.AddScoped<IAcademicUsage, AcademicUsage>();
         return services;
     }
@@ -249,6 +255,63 @@ public static class AcademicModule
             Results.Ok(await s.GetVersionAsync(id, versionNo, ct))).RequirePermission(Permissions.ReportCardsRead);
         rc.MapPost("/{id:guid}/publish", async (Guid id, TransitionRequest req, ReportCardService s, CancellationToken ct) =>
             Results.Ok(await s.PublishAsync(id, req, ct))).RequirePermission(Permissions.ReportCardsPublish);
+
+        // PDF export (DL-057): rendered on the server from the stored version snapshot only.
+        rc.MapGet("/{id:guid}/versions/{versionNo:int}/pdf", async (Guid id, int versionNo, string? lang, ReportCardDocuments docs,
+                IReportCardPdfRenderer renderer, TimeProvider clock, HttpContext http, CancellationToken ct) =>
+            {
+                var locale = ResolveLocale(lang);
+                var doc = await docs.VersionAsync(id, versionNo, ct);
+                return Pdf(http, renderer.Render(doc, locale.Language, clock.GetUtcNow().UtcDateTime), FileName(doc));
+            }).RequirePermission(Permissions.ReportCardsRead).Produces(StatusCodes.Status200OK, contentType: "application/pdf");
+        rc.MapGet("/pdf-archive", async (Guid? classId, string? lang, ReportCardDocuments docs, IReportCardPdfRenderer renderer, TimeProvider clock,
+                HttpContext http, CancellationToken ct) =>
+            {
+                new Validator().When(classId is null || classId == Guid.Empty, "classId", Validator.Required).ThrowIfInvalid();
+                var locale = ResolveLocale(lang);
+                var items = await docs.PublishedForClassAsync(classId!.Value, ct);
+                var now = clock.GetUtcNow().UtcDateTime;
+                using var buffer = new MemoryStream();
+                using (var zip = new ZipArchive(buffer, ZipArchiveMode.Create, leaveOpen: true))
+                {
+                    var used = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+                    foreach (var (doc, studentNumber) in items)
+                    {
+                        var name = SafeSegment(studentNumber) is { Length: > 0 } safe ? $"{safe}-v{doc.VersionNo}.pdf" : FileName(doc);
+                        if (!used.Add(name)) name = FileName(doc);
+                        var entry = zip.CreateEntry(name, CompressionLevel.Fastest);
+                        await using var stream = entry.Open();
+                        var bytes = renderer.Render(doc, locale.Language, now);
+                        await stream.WriteAsync(bytes, ct);
+                    }
+                }
+                http.Response.Headers.CacheControl = "no-store";
+                return Results.File(buffer.ToArray(), "application/zip", $"report-cards-{classId.Value.ToString("N")[..8]}.zip");
+            }).RequirePermission(Permissions.ReportCardsRead).Produces(StatusCodes.Status200OK, contentType: "application/zip");
+    }
+
+    /// <summary><c>lang</c> query (fa-IR, fa, en, tr, ar) wins; otherwise the request culture from Accept-Language (default fa-IR).</summary>
+    private static PdfLocale ResolveLocale(string? lang)
+    {
+        if (!string.IsNullOrWhiteSpace(lang))
+        {
+            var requested = PdfLocale.TryResolve(lang);
+            if (requested is null) new Validator().Add("lang", Validator.UnsupportedLocale).ThrowIfInvalid();
+            return requested!;
+        }
+        return PdfLocale.TryResolve(CultureInfo.CurrentUICulture.Name) ?? PdfLocale.TryResolve(SupportedLocales.Default)!;
+    }
+
+    /// <summary>No personal data in the file name: card id prefix and version only.</summary>
+    private static string FileName(ReportCardDocument doc) => $"report-card-{doc.ReportCardId.ToString("N")[..8]}-v{doc.VersionNo}.pdf";
+
+    private static string SafeSegment(string value) =>
+        new string(value.Where(ch => char.IsAsciiLetterOrDigit(ch) || ch is '-' or '_').Take(40).ToArray());
+
+    private static IResult Pdf(HttpContext http, byte[] bytes, string fileName)
+    {
+        http.Response.Headers.CacheControl = "no-store";
+        return Results.File(bytes, "application/pdf", fileName);
     }
 
     private static void MapPortal(IEndpointRouteBuilder api)
@@ -265,5 +328,12 @@ public static class AcademicModule
         portal.MapGet("/students/{studentId:guid}/report-cards", async (Guid studentId, PortalAcademicService s, CancellationToken ct) =>
             Results.Ok(await s.ReportCardsAsync(studentId, ct)));
         portal.MapGet("/report-cards/{id:guid}", async (Guid id, PortalAcademicService s, CancellationToken ct) => Results.Ok(await s.ReportCardAsync(id, ct)));
+        portal.MapGet("/report-cards/{id:guid}/pdf", async (Guid id, string? lang, ReportCardDocuments docs, IReportCardPdfRenderer renderer,
+                TimeProvider clock, HttpContext http, CancellationToken ct) =>
+            {
+                var locale = ResolveLocale(lang);
+                var doc = await docs.PublishedForPortalAsync(id, ct);
+                return Pdf(http, renderer.Render(doc, locale.Language, clock.GetUtcNow().UtcDateTime), FileName(doc));
+            }).Produces(StatusCodes.Status200OK, contentType: "application/pdf");
     }
 }

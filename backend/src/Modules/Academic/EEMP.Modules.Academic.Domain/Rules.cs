@@ -15,6 +15,7 @@ public static class AcademicErrors
     public const string ClassInUse = "academic.class_in_use";
     public const string ClassNotOpen = "academic.class_not_open";
     public const string ClassFull = "academic.class_full";
+    public const string ArchiveTooLarge = "academic.archive_too_large";
     public const string AlreadyEnrolled = "academic.already_enrolled";
     public const string ScheduleConflict = "academic.schedule_conflict";
     public const string RoomConflict = "academic.room_conflict";

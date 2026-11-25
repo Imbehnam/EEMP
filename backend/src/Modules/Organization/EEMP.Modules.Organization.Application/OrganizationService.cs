@@ -158,10 +158,16 @@ public sealed class OrganizationProvisioner(IOrganizationDbContext db) : IOrgani
 public sealed class BranchDirectory(IOrganizationDbContext db) : IBranchDirectory
 {
     public Task<bool> ExistsAsync(Guid branchId, CancellationToken ct = default) => db.Branches.AnyAsync(b => b.Id == branchId, ct);
+
+    public Task<string?> GetNameAsync(Guid branchId, CancellationToken ct = default) =>
+        db.Branches.AsNoTracking().Where(b => b.Id == branchId).Select(b => (string?)b.Name).FirstOrDefaultAsync(ct);
 }
 
 public sealed class OrganizationSettings(IOrganizationDbContext db) : IOrganizationSettings
 {
     public async Task<string> GetTimeZoneAsync(CancellationToken ct = default) =>
         await db.CentralOffices.AsNoTracking().Select(o => o.TimeZone).FirstOrDefaultAsync(ct) ?? "Asia/Tehran";
+
+    public async Task<string> GetInstituteNameAsync(CancellationToken ct = default) =>
+        await db.CentralOffices.AsNoTracking().Select(o => o.Name).FirstOrDefaultAsync(ct) ?? "";
 }

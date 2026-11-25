@@ -330,6 +330,7 @@ public sealed class EnrollmentRuleTests : IAsyncLifetime
     private sealed class FixedSettings : IOrganizationSettings
     {
         public Task<string> GetTimeZoneAsync(CancellationToken ct = default) => Task.FromResult("Asia/Tehran");
+        public Task<string> GetInstituteNameAsync(CancellationToken ct = default) => Task.FromResult("Test institute");
     }
 
     private sealed class FakePeople : IPeopleDirectory
