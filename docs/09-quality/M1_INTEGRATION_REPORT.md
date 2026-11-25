@@ -6,12 +6,14 @@ Scope: Milestone 1 (EEMP-002..007) end to end, with no mock backend in the path.
 ## How to run it
 
 ```bash
-# 1. API on SQLite with the Development seed (from backend/src/EEMP.Api after `dotnet build`)
+# 1. API on SQLite with the Development seed. Run it FROM its output directory: the content root is the
+#    working directory, and Seed:Enabled=true lives in appsettings.Development.json (or set Seed__Enabled=true).
+cd backend/src/EEMP.Api/bin/Debug/net10.0      # after `dotnet build`
 ASPNETCORE_ENVIRONMENT=Development ASPNETCORE_URLS=http://127.0.0.1:5080 \
 Database__Provider=Sqlite Database__ConnectionString="Data Source=/tmp/eemp-e2e.db" \
 Jwt__SigningKey=<32+ byte dev key> Jwt__AccessTokenMinutes=1 RateLimiting__AuthPermitLimit=1000 \
-Seed__PlatformAdminPassword=Platform123 Seed__DemoAdminPassword=DemoAdmin123 Seed__DemoUserPassword=DemoUser123 \
-dotnet bin/Debug/net10.0/EEMP.Api.dll
+Seed__Enabled=true Seed__PlatformAdminPassword=Platform123 Seed__DemoAdminPassword=DemoAdmin123 Seed__DemoUserPassword=DemoUser123 \
+dotnet EEMP.Api.dll
 
 # 2. Frontend (from frontend/)
 pnpm install && pnpm build
@@ -22,6 +24,7 @@ pnpm test:e2e:real          # starts admin :3001 and web :3000 with EEMP_API_MOC
 - `Jwt__AccessTokenMinutes=1` lets the refresh spec see a real expiry in about 30 seconds. The access cookie lives `expiresAt - 30s`. With longer tokens that spec skips itself.
 - `RateLimiting__AuthPermitLimit=1000` is needed because the whole suite signs in from one address.
 - Seed passwords can be overridden with `EEMP_E2E_PLATFORM_PASSWORD`, `EEMP_E2E_DEMO_ADMIN_PASSWORD` and `EEMP_E2E_DEMO_USER_PASSWORD`. The API URL can be overridden with `EEMP_E2E_API`.
+- The suite's global setup now fails fast if `demo/student.one` cannot sign in (API up but seed missing), instead of letting every test time out at sign-in.
 - CI runs the same flow in the `e2e-real-api` job of `.github/workflows/frontend.yml`. It uses the backend from the same checkout once it exists, and checks out `feature/m1-backend` until then.
 
 The suite lives in `frontend/e2e-real/` and has its own Playwright config. Files must match `*.real.spec.ts`, so the default `pnpm test:e2e` (mock, `./e2e`) does not pick it up.
@@ -79,10 +82,24 @@ The mock backend was aligned with the real shapes (portal students summary, guar
 | Mock e2e | `pnpm test:e2e` | 7 passed |
 | Real-API e2e | `pnpm test:e2e:real` | **25 passed** (1.3 min) |
 
+## CI fix: `e2e-real-api` job (2026-11-25)
+
+**Symptom.** On PR #2 (run 45473198875, job 138726397020) 14 of 19 executed tests failed (6 did not run): browser sign-ins timed out waiting to leave `/login`, and direct `POST /auth/login` for `demo/student.one` returned 401. The 5 that passed were the wrong-password and not-linked checks, which do not need seeded users. The same suite passed 25/25 in the sandbox.
+
+**Root cause.** The job started the API with `dotnet "$RUNNER_TEMP/api/EEMP.Api.dll"` from the checkout root. ASP.NET Core takes the content root from the working directory (the log shows `Content root path: /home/runner/work/EEMP/EEMP`), so neither `appsettings.json` nor `appsettings.Development.json` was loaded. `Seed:Enabled=true` exists only in `appsettings.Development.json`, so `Seed:Enabled` was false and the development seed returned without creating any user and without logging anything; the `Seed__*Password` variables were read but unused. Environment (`Development`), SQLite path and password policy were all fine. Reproduced locally with the identical build (`-c Release -o <dir>`) and env: started from the repo root, student.one sign-in → 401; started from the output directory, or with `Seed__Enabled=true` → 200.
+
+**Fix.**
+- Workflow (`.github/workflows/frontend.yml`): start the API from `$RUNNER_TEMP/api`, set `Seed__Enabled: 'true'` explicitly, and check a seeded sign-in (HTTP 200) right after the health check, printing the seed/content-root log lines and failing the step otherwise.
+- `e2e-real/global-setup.ts`: fail fast with a clear message when the seeded user cannot sign in.
+- Backend: the seed now logs a warning naming the content root when seed passwords are configured but `Seed:Enabled` is false (regression tests `DevelopmentSeedTests.cs`, +2 unit); compose network `KnownNetworks`.
+- PRs #1–#3 had already been merged into `main` (with this job failing there too, run 45486375576), so the fix was pushed to the feature branches (`feature/m1-backend` `d23471b`, merged into `feature/m2-academic-backend` as `610fd82`; `feature/m1-frontend` `a2cc6c1`) and brought to `main` through branch `fix/e2e-real-api-seed` (draft PR).
+
+**Local verification (CI-equivalent).** API built `dotnet build … -c Release -o /tmp/api-ci`, started from that directory with the workflow's env on a fresh SQLite file; `pnpm build`; `pnpm test:e2e:real` → **25 passed (1.5 min)**. Backend `dotnet test EEMP.slnx -c Release`: m1 118 passed (33 unit, 48 architecture, 37 integration); m2 166 passed (56 unit, 62 architecture, 48 integration). Frontend `pnpm lint` and `pnpm typecheck` pass.
+
 ## Remaining gaps
 
 - OpenAPI has no response schemas (minimal APIs return untyped `IResult`), so response types cannot be generated or diffed automatically yet. Adding `.Produces<T>()` or typed results would close this.
-- Behind Docker or another proxy, set `ReverseProxy:KnownNetworks` to the web containers' network. Otherwise forwarded addresses are ignored and the BFF's address is used again. Not yet wired into `docker-compose.yml`.
+- Behind Docker or another proxy, `ReverseProxy:KnownNetworks` must cover the web containers' network, otherwise forwarded addresses are ignored and the BFF's address is used again. `docker-compose.yml` now pins the compose network subnet (`EEMP_DOCKER_SUBNET`, default `172.29.0.0/24`) and trusts it; compose has no web containers yet, so this is untested with a containerised BFF (no Docker in the sandbox, `docker compose config` not run).
 - Person `PUT` unlinks the portal account when `userId` is omitted. That is safe in the UI now, but a PATCH-like rule ("omitted = unchanged") on the API would be more forgiving for other clients. It needs a business decision.
 - The real suite runs on SQLite. SQL Server-specific behaviour (rowversion and collation search) is not covered end to end.
 - The real suite shares one database and creates uniquely named records. It does not clean up, and seed records it edits (Ali Karimi's last name, Sara Ahmadi's phone, the organization phone) change on each run.

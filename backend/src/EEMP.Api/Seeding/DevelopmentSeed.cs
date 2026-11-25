@@ -48,7 +48,20 @@ public static class DevelopmentSeed
     {
         var options = root.GetRequiredService<Microsoft.Extensions.Options.IOptions<SeedOptions>>().Value;
         var logger = root.GetRequiredService<ILoggerFactory>().CreateLogger("EEMP.Seed");
-        if (!options.Enabled) return;
+        if (!options.Enabled)
+        {
+            // Seed:Enabled normally comes from appsettings.Development.json, which is read from the content root
+            // (the working directory). Starting the API from another directory silently drops it, so say so when
+            // the seed passwords show the caller clearly expected a seed.
+            if (!string.IsNullOrEmpty(options.PlatformAdminPassword) || !string.IsNullOrEmpty(options.DemoAdminPassword) || !string.IsNullOrEmpty(options.DemoUserPassword))
+            {
+                var contentRoot = root.GetService<IHostEnvironment>()?.ContentRootPath;
+                logger.LogWarning("Seed passwords are configured but Seed:Enabled is false, so the development seed did not run. " +
+                    "Seed:Enabled is set in appsettings.Development.json under the content root {ContentRoot}; start the API from its " +
+                    "output directory or set Seed__Enabled=true.", contentRoot);
+            }
+            return;
+        }
         if (string.IsNullOrEmpty(options.PlatformAdminPassword) || string.IsNullOrEmpty(options.DemoAdminPassword) || string.IsNullOrEmpty(options.DemoUserPassword))
         {
             logger.LogWarning("Seed is enabled but Seed__PlatformAdminPassword / Seed__DemoAdminPassword / Seed__DemoUserPassword are not all set; skipping seed.");
