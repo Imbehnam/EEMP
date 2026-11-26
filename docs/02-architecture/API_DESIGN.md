@@ -25,3 +25,15 @@ Validation, authentication, authorization, not-found, conflict/concurrency, busi
   from opaque ids only (no personal data), plus `Cache-Control: no-store`; errors stay `application/problem+json`.
 - Language via `?lang=` (fa-IR, en, tr, ar) or `Accept-Language`; labels come from the server text catalogs.
 - Endpoints: `GET /report-cards/{id}/versions/{versionNo}/pdf`, `GET /portal/me/report-cards/{id}/pdf`, `GET /report-cards/pdf-archive?classId=`.
+
+## Institute finance (M3, DL-059..DL-066)
+Full contract: `docs/08-planning/M3_FINANCE_CONTRACT.md`.
+- Money: JSON numbers with an explicit ISO 4217 `currency` taken from the tenant, never from the client; stored `decimal(19,4)` and
+  rounded to the currency's minor unit (IRR: 0 decimals). Clients never send totals, balances, payment status or currency.
+- Staff endpoints under `/finance` (settings, fee-types, fee-items, invoices + issue/void/credit-notes/installments/discounts/generate,
+  approvals, discounts/{id}/approve|reject, refunds, payments + cheque-status/refunds, students/{id}/account|apply-credit, late-fees/apply,
+  reports/outstanding|aging|collections, invoices/{id}/pdf, payments/{id}/receipt/pdf). All branch-scoped and audited.
+- Portal endpoints under `/portal/me/finance` for the student and linked guardians; drafts are never visible.
+- The only anonymous finance endpoint is the payment-provider callback `GET|POST /finance/gateway/{provider}/callback/{paymentId}`:
+  it is bound to the payment id + stored provider authority, verifies with the stored amount and is idempotent.
+- Idempotency: `idempotencyKey` on manual and online payments; invoice generation is idempotent per (enrollment, fee item).

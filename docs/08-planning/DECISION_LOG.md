@@ -301,6 +301,10 @@ owner approved (2026-11-26) that discount and refund approvals live inside Finan
   public API. Because the generic audit stores only changed field names, every finance state change also writes an append-only
   `finance.FinanceAudit` row (actor, action, entity, invoice/payment/student ids, amount, currency, UTC time) in the same SaveChanges;
   the context refuses to update or delete audit rows.
+- Workflow seam (2026-11-26, after EEMP-011 draft PR #7): `IFinanceApprovals.SubmitAsync(ApprovalSubject)` is called in the maker's unit
+  of work and is a no-op locally; a workflow implementation calls `IWorkflowService.StartAsync` with idempotency key `finance:{kind}:{id}`
+  and its `IWorkflowEventHandler` (SubjectModule `finance`) applies the outcome through `ApprovalService.DecideDiscountAsync/DecideRefundAsync`,
+  which are idempotent for replayed (at-least-once) decisions. `EnsureCanDecideAsync` holds the local maker ≠ checker rule.
 - Owner: Product owner (approval model), implementing agent (design).
 
 ### DL-064 — FinanceOfficer role and startup system-role sync
