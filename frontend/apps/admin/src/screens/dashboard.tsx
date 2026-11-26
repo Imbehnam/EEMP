@@ -104,7 +104,7 @@ export function DashboardScreen() {
           </Card>
         )}
         <Card aria-labelledby="links-heading">
-          <h2 id="links-heading" style={{ fontSize: '1.0625rem', marginBlockStart: 0 }}>{t('quickLinks')}</h2>
+          <h2 id="links-heading" style={{ fontSize: '1.0625rem', marginBlock: '0 1.25rem' }}>{t('quickLinks')}</h2>
           <ul style={{ margin: 0, padding: 0, listStyle: 'none', display: 'grid', gap: 12, gridTemplateColumns: 'repeat(auto-fill, minmax(min(100%, 12rem), 1fr))' }}>
             {links.map((l) => (
               <li key={l.href}>
