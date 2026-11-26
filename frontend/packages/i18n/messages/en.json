@@ -53,7 +53,9 @@
       "next": "Next",
       "summary": "Showing {from}–{to} of {total}",
       "summaryEmpty": "No records"
-    }
+    },
+    "close": "Close",
+    "breadcrumb": "Breadcrumb"
   },
   "states": {
     "forbiddenTitle": "You don’t have access to this page",
@@ -81,7 +83,8 @@
     "submit": "Sign in",
     "signedOut": "You’ve been signed out.",
     "sessionExpired": "Your session has expired. Please sign in again.",
-    "mockNotice": "Demo mode: data is simulated and nothing is sent to a server."
+    "mockNotice": "Demo mode: data is simulated and nothing is sent to a server.",
+    "tagline": "One place for your institute: classes, grades, finance and approvals."
   },
   "errors": {
     "unknown": "Something went wrong ({code}).",
@@ -318,7 +321,10 @@
     "yourAccess": "Your access",
     "quickLinks": "Quick links",
     "noPermissions": "No permissions have been assigned to you yet. Contact your administrator.",
-    "permissionCount": "{count, plural, =0 {No permissions} one {# permission} other {# permissions}}"
+    "permissionCount": "{count, plural, =0 {No permissions} one {# permission} other {# permissions}}",
+    "kpiTitle": "At a glance",
+    "kpiViewAll": "View all",
+    "kpiPermissions": "Your permissions"
   },
   "tenants": {
     "title": "Tenants",

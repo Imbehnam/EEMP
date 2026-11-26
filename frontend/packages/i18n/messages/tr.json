@@ -53,7 +53,9 @@
       "next": "Sonraki",
       "summary": "{total} kayıttan {from}–{to} gösteriliyor",
       "summaryEmpty": "Kayıt yok"
-    }
+    },
+    "close": "Kapat",
+    "breadcrumb": "Sayfa yolu"
   },
   "states": {
     "forbiddenTitle": "Bu sayfaya erişiminiz yok",
@@ -81,7 +83,8 @@
     "submit": "Giriş yap",
     "signedOut": "Oturumunuz kapatıldı.",
     "sessionExpired": "Oturumunuzun süresi doldu. Lütfen yeniden giriş yapın.",
-    "mockNotice": "Demo modu: veriler simüle edilir ve hiçbir sunucuya gönderilmez."
+    "mockNotice": "Demo modu: veriler simüle edilir ve hiçbir sunucuya gönderilmez.",
+    "tagline": "Kurumunuz için tek yer: sınıflar, notlar, finans ve onaylar."
   },
   "errors": {
     "unknown": "Bir şeyler ters gitti ({code}).",
@@ -318,7 +321,10 @@
     "yourAccess": "Erişiminiz",
     "quickLinks": "Hızlı bağlantılar",
     "noPermissions": "Size henüz bir izin atanmadı. Yöneticinize başvurun.",
-    "permissionCount": "{count, plural, =0 {İzin yok} one {# izin} other {# izin}}"
+    "permissionCount": "{count, plural, =0 {İzin yok} one {# izin} other {# izin}}",
+    "kpiTitle": "Bir bakışta",
+    "kpiViewAll": "Tümünü gör",
+    "kpiPermissions": "İzinleriniz"
   },
   "tenants": {
     "title": "Kurumlar",

@@ -12,8 +12,8 @@ export function ThemeToggle({ initial = 'system' }: { initial?: ThemePreference 
   const [theme, setTheme] = useState<ThemePreference>(initial);
   const labels: Record<ThemePreference, string> = { light: t('themeLight'), dark: t('themeDark'), system: t('themeSystem') };
   return (
-    <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
-      <label htmlFor={id} style={{ fontSize: '0.8125rem' }}>{t('theme')}</label>
+    <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+      <label htmlFor={id} className="eemp-hide-sm eemp-compact-label">{t('theme')}</label>
       <select
         id={id}
         className="eemp-compact-select"

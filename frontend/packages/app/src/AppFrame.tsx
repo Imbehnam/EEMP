@@ -1,7 +1,7 @@
 'use client';
 
 import { Link, usePathname } from '@eemp/i18n/navigation';
-import { AppShell, type LinkComponent, type NavSection } from '@eemp/ui';
+import { AppShell, type Crumb, type LinkComponent, type NavSection } from '@eemp/ui';
 import { useTranslations } from 'next-intl';
 import type { ReactNode } from 'react';
 
@@ -39,6 +39,18 @@ export function AppFrame({
     .filter((i) => isActivePath(pathname, i.href))
     .sort((a, b) => b.href.length - a.href.length)[0]?.href;
 
+  // Breadcrumb trail derived from the navigation: Home › Section › Page (linked while on a sub-page).
+  const homeHref = sections[0]?.items[0]?.href ?? '/';
+  const activeSection = sections.find((s) => s.items.some((i) => i.href === activeHref));
+  const activeItem = activeSection?.items.find((i) => i.href === activeHref);
+  const breadcrumbs: Crumb[] = [];
+  if (activeItem && activeItem.href !== homeHref) {
+    breadcrumbs.push({ label: t(sections[0]?.items[0]?.labelKey ?? 'home'), href: homeHref });
+    if (activeSection?.labelKey) breadcrumbs.push({ label: t(activeSection.labelKey) });
+    const onItemPage = pathname.replace(/\/+$/, '') === activeItem.href;
+    breadcrumbs.push({ label: t(activeItem.labelKey), href: activeItem.href, current: onItemPage });
+  }
+
   const navSections: NavSection[] = sections
     .filter((s) => s.items.length > 0)
     .map((s) => ({
@@ -51,16 +63,18 @@ export function AppFrame({
       brand={brand}
       context={context}
       sections={navSections}
+      breadcrumbs={breadcrumbs}
       Link={Link as unknown as LinkComponent}
       labels={{
         skipToContent: common('skipToContent'),
         primaryNav: common('primaryNav'),
         openMenu: common('openMenu'),
         closeMenu: common('closeMenu'),
+        breadcrumb: common('breadcrumb'),
       }}
       headerActions={
         <>
-          <span style={{ fontSize: '0.8125rem', color: 'var(--eemp-color-fg-muted)' }} data-testid="signed-in-user">
+          <span className="eemp-hide-sm eemp-compact-label" data-testid="signed-in-user">
             {shell('signedInAs', { name: user.displayName })}
           </span>
           <LocaleSwitcher />

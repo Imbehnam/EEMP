@@ -422,3 +422,79 @@ table,
 .eemp-matrix tbody tr:nth-of-type(even) {
   background: color-mix(in srgb, var(--eemp-color-surface-muted) 45%, transparent);
 }
+
+/* Sign-in page: soft brand panel + raised form card (single column on small screens). */
+.eemp-login {
+  min-block-size: 100vh;
+  display: grid;
+  place-items: center;
+  align-content: center;
+  gap: 2.5rem;
+  padding: 1.5rem 1rem;
+  box-sizing: border-box;
+}
+.eemp-login-card {
+  inline-size: 100%;
+  max-inline-size: 28rem;
+  box-sizing: border-box;
+}
+.eemp-login-brand {
+  display: none;
+}
+.eemp-login-badge {
+  display: inline-grid;
+  place-items: center;
+  min-inline-size: 2.75rem;
+  block-size: 2.75rem;
+  padding-inline: 0.75rem;
+  border-radius: var(--eemp-radius-md);
+  background: var(--eemp-color-primary);
+  color: var(--eemp-color-primary-fg);
+  box-shadow: var(--eemp-shadow-raised-sm);
+  font-weight: 800;
+  letter-spacing: 0.04em;
+}
+@media (min-width: 1024px) {
+  .eemp-login {
+    grid-template-columns: minmax(0, 26rem) minmax(0, 28rem);
+    justify-content: center;
+    gap: 4rem;
+  }
+  .eemp-login-brand {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.75rem;
+    padding: 2.5rem;
+    border-radius: 2rem;
+    background: var(--eemp-color-bg);
+    box-shadow: var(--eemp-shadow-pressed);
+  }
+  .eemp-login-badge {
+    visibility: hidden;
+  }
+}
+.eemp-login-mark {
+  display: inline-grid;
+  place-items: center;
+  inline-size: 4.5rem;
+  block-size: 4.5rem;
+  border-radius: 1.25rem;
+  background: var(--eemp-color-primary);
+  color: var(--eemp-color-primary-fg);
+  box-shadow: var(--eemp-shadow-raised);
+  font-size: 2rem;
+  font-weight: 800;
+}
+.eemp-login-app {
+  margin: 0.75rem 0 0;
+  font-size: 2.125rem;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+}
+.eemp-login-tagline {
+  margin: 0;
+  font-size: 1.125rem;
+  line-height: 1.8;
+  color: var(--eemp-color-fg-muted);
+}

@@ -1,9 +1,10 @@
 'use client';
 
-import type { Branch, CurrentUser } from '@eemp/api-client';
+import type { Branch, CurrentUser, Endpoints } from '@eemp/api-client';
 import { useApiQuery, useSession } from '@eemp/app';
 import { Link } from '@eemp/i18n/navigation';
-import { Badge, Card, PageHeader } from '@eemp/ui';
+import { useLocaleFormat } from '@eemp/i18n/react';
+import { Badge, Card, IconChevron, PageHeader, StatCard, StatGrid } from '@eemp/ui';
 import { useTranslations } from 'next-intl';
 
 import { adminNavigation } from '../navigation';
@@ -26,6 +27,48 @@ export function ScopeList({ user, branches }: { user: CurrentUser; branches: Bra
   );
 }
 
+interface Kpi {
+  key: string;
+  href: string;
+  labelKey: string;
+  count: (api: Endpoints) => Promise<number>;
+}
+
+/** Headline counts for what the user can read (each a cheap pageSize=1 query). */
+function kpisFor(user: CurrentUser, can: (p: string) => boolean): Kpi[] {
+  if (user.isPlatformAdmin) {
+    return [{ key: 'tenants', href: '/tenants', labelKey: 'tenants', count: async (api) => (await api.platform.tenants.list({ pageSize: 1 })).totalCount }];
+  }
+  const list: Kpi[] = [];
+  if (can('students.read')) list.push({ key: 'students', href: '/people/students', labelKey: 'students', count: async (api) => (await api.people('students').list({ pageSize: 1 })).totalCount });
+  if (can('teachers.read')) list.push({ key: 'teachers', href: '/people/teachers', labelKey: 'teachers', count: async (api) => (await api.people('teachers').list({ pageSize: 1 })).totalCount });
+  if (can('branches.read')) list.push({ key: 'branches', href: '/branches', labelKey: 'branches', count: async (api) => (await api.branches.list({ pageSize: 1 })).totalCount });
+  if (can('users.read')) list.push({ key: 'users', href: '/users', labelKey: 'users', count: async (api) => (await api.users.list({ pageSize: 1 })).totalCount });
+  return list;
+}
+
+function KpiCard({ kpi }: { kpi: Kpi }) {
+  const t = useTranslations('dashboard');
+  const nav = useTranslations('nav');
+  const format = useLocaleFormat();
+  const query = useApiQuery(`dashboard-kpi-${kpi.key}`, kpi.count);
+  return (
+    <StatCard
+      data-testid={`kpi-${kpi.key}`}
+      label={nav(kpi.labelKey)}
+      loading={query.loading && query.data === undefined}
+      value={query.data === undefined ? '—' : format.number(query.data)}
+      footer={
+        <Link href={kpi.href} style={{ display: 'inline-flex', alignItems: 'center', gap: 4, fontWeight: 600 }}>
+          {t('kpiViewAll')}
+          <span className="eemp-visually-hidden">{nav(kpi.labelKey)}</span>
+          <IconChevron size={16} className="eemp-flip" />
+        </Link>
+      }
+    />
+  );
+}
+
 export function DashboardScreen() {
   const t = useTranslations('dashboard');
   const nav = useTranslations('nav');
@@ -33,11 +76,24 @@ export function DashboardScreen() {
   const branches = useApiQuery('dashboard-branches', async (api) =>
     can('branches.read') ? (await api.branches.list({ pageSize: 100 })).items : ([] as Branch[]),
   );
+  const format = useLocaleFormat();
   const links = adminNavigation(user).flatMap((s) => s.items).filter((i) => i.href !== '/');
+  const kpis = kpisFor(user, can);
   return (
     <>
       <PageHeader title={t('welcome', { name: user.displayName })} description={user.isPlatformAdmin ? t('platformIntro') : t('tenantIntro')} />
-      <div style={{ display: 'grid', gap: 16, gridTemplateColumns: 'repeat(auto-fit, minmax(18rem, 1fr))' }}>
+      <section aria-labelledby="kpi-heading">
+        <h2 id="kpi-heading" className="eemp-visually-hidden">{t('kpiTitle')}</h2>
+        <StatGrid>
+          {kpis.map((k) => (
+            <KpiCard key={k.key} kpi={k} />
+          ))}
+          {!user.isPlatformAdmin && (
+            <StatCard data-testid="kpi-permissions" label={t('kpiPermissions')} value={format.number(user.permissions.length)} />
+          )}
+        </StatGrid>
+      </section>
+      <div style={{ display: 'grid', gap: 20, gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 18rem), 1fr))' }}>
         {!user.isPlatformAdmin && (
           <Card aria-labelledby="access-heading">
             <h2 id="access-heading" style={{ fontSize: '1.0625rem', marginBlockStart: 0 }}>{t('yourAccess')}</h2>
@@ -49,10 +105,13 @@ export function DashboardScreen() {
         )}
         <Card aria-labelledby="links-heading">
           <h2 id="links-heading" style={{ fontSize: '1.0625rem', marginBlockStart: 0 }}>{t('quickLinks')}</h2>
-          <ul style={{ margin: 0, paddingInlineStart: 20, display: 'grid', gap: 4 }}>
+          <ul style={{ margin: 0, padding: 0, listStyle: 'none', display: 'grid', gap: 12, gridTemplateColumns: 'repeat(auto-fill, minmax(min(100%, 12rem), 1fr))' }}>
             {links.map((l) => (
               <li key={l.href}>
-                <Link href={l.href}>{nav(l.labelKey)}</Link>
+                <Link href={l.href} className="eemp-tile" style={{ minBlockSize: '3.25rem', padding: '0.625rem 1rem' }}>
+                  <span>{nav(l.labelKey)}</span>
+                  <IconChevron size={16} className="eemp-flip" />
+                </Link>
               </li>
             ))}
           </ul>

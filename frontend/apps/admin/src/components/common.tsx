@@ -4,9 +4,9 @@ import type { Endpoints, PageQuery, Paged } from '@eemp/api-client';
 import { ButtonLink, LoadError, toApiErrorLike, useApiQuery } from '@eemp/app';
 import { useErrorTranslator, useLocaleFormat } from '@eemp/i18n/react';
 import { Link } from '@eemp/i18n/navigation';
-import { Alert, Badge, Button, DataTable, Pagination, SearchBox, StatePanel, type Column } from '@eemp/ui';
+import { Badge, Button, DataTable, IconChevron, Pagination, SearchBox, StatePanel, useToast, type Column } from '@eemp/ui';
 import { useTranslations } from 'next-intl';
-import { useState, type ReactNode } from 'react';
+import { useEffect, useRef, useState, type ReactNode } from 'react';
 
 export const PAGE_SIZE = 20;
 
@@ -22,22 +22,30 @@ export function ActiveBadge({ active }: { active: boolean }) {
   return <Badge tone={active ? 'success' : 'neutral'}>{active ? t('active') : t('inactive')}</Badge>;
 }
 
-/** One-shot confirmation after a redirect (e.g. `?notice=created`). */
+/** One-shot confirmation after a redirect (e.g. `?notice=created`), shown as a toast. */
 export function Notice({ notice }: { notice?: string }) {
   const t = useTranslations('common');
-  if (notice !== 'created' && notice !== 'saved' && notice !== 'deleted') return null;
-  return (
-    <Alert tone="success" role="status" style={{ marginBlockEnd: 16 }}>
-      {t(notice)}
-    </Alert>
-  );
+  const toast = useToast();
+  const shown = useRef<string | undefined>(undefined);
+  const known = notice === 'created' || notice === 'saved' || notice === 'deleted';
+  useEffect(() => {
+    if (!known || shown.current === notice) return;
+    shown.current = notice;
+    toast.show(t(notice));
+  }, [known, notice, t, toast]);
+  return null;
 }
 
 export function BackLink({ href }: { href: string }) {
   const t = useTranslations('common');
   return (
     <Link href={href} style={{ fontSize: '0.875rem' }}>
-      <span aria-hidden="true" className="eemp-flip">{'←'}</span> {t('backToList')}
+      <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+        <span style={{ display: 'inline-flex', transform: 'scaleX(-1)' }}>
+          <IconChevron size={16} className="eemp-flip" />
+        </span>
+        {t('backToList')}
+      </span>
     </Link>
   );
 }
