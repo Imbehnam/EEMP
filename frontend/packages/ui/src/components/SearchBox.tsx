@@ -4,10 +4,24 @@ import styled from '@emotion/styled';
 import { useEffect, useId, useRef, useState } from 'react';
 
 import { Input } from './Field';
+import { IconSearch } from './icons';
 
 const Form = styled.form`
+  position: relative;
   flex: 1 1 18rem;
   max-inline-size: 28rem;
+  & > svg {
+    position: absolute;
+    inset-inline-start: 0.875rem;
+    inset-block-start: 50%;
+    transform: translateY(-50%);
+    color: var(--eemp-color-fg-muted);
+    pointer-events: none;
+  }
+  input {
+    padding-inline-start: 2.625rem;
+    border-radius: 9999px;
+  }
 `;
 
 export interface SearchBoxProps {
@@ -46,6 +60,7 @@ export function SearchBox({ label, placeholder, defaultValue = '', onSearch, deb
       <label htmlFor={id} className="eemp-visually-hidden">
         {label}
       </label>
+      <IconSearch size={18} />
       <Input id={id} type="search" value={value} placeholder={placeholder} onChange={(e) => setValue(e.target.value)} />
     </Form>
   );
