@@ -201,5 +201,19 @@
   "finance.pdf.method.pos": "کارتخوان",
   "finance.pdf.method.transfer": "انتقال بانکی",
   "finance.pdf.method.cheque": "چک",
-  "finance.pdf.method.online": "پرداخت اینترنتی"
+  "finance.pdf.method.online": "پرداخت اینترنتی",
+  "workflow.definition_key_taken": "گردش کاری با این شناسه از قبل وجود دارد.",
+  "workflow.definition_inactive": "این گردش کار غیرفعال است.",
+  "workflow.definition_not_published": "این گردش کار نسخه منتشرشده‌ای ندارد.",
+  "workflow.version_not_draft": "فقط نسخه‌های پیش‌نویس قابل ویرایش یا انتشار هستند.",
+  "workflow.draft_exists": "یک نسخه پیش‌نویس از قبل وجود دارد.",
+  "workflow.invalid_transition": "این اقدام در وضعیت فعلی درخواست مجاز نیست.",
+  "workflow.self_approval_forbidden": "شما نمی‌توانید درباره درخواست خودتان تصمیم بگیرید یا آن را تأیید کنید.",
+  "workflow.approver_already_acted": "شما مرحله قبلی این درخواست را تأیید کرده‌اید؛ تأییدکننده دیگری باید تصمیم بگیرد.",
+  "workflow.not_eligible": "شما تأییدکننده مرحله فعلی این درخواست نیستید.",
+  "workflow.return_not_allowed": "در این مرحله امکان بازگرداندن درخواست به درخواست‌دهنده وجود ندارد.",
+  "workflow.active_instance_exists": "یک درخواست تأیید برای این مورد در جریان است.",
+  "workflow.subject_mismatch": "این گردش کار با این نوع مورد مطابقت ندارد.",
+  "workflow.unknown_assignee": "تأییدکننده انتخاب‌شده وجود ندارد.",
+  "workflow.branch_not_found": "شعبه وجود ندارد."
 }

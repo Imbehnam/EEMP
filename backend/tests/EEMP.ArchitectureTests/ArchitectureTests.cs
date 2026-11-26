@@ -6,6 +6,7 @@ using EEMP.Modules.Identity.Infrastructure;
 using EEMP.Modules.Organization.Infrastructure;
 using EEMP.Modules.People.Infrastructure;
 using EEMP.Modules.Tenancy.Infrastructure;
+using EEMP.Modules.Workflow.Infrastructure;
 using EEMP.SharedKernel.Domain;
 using Microsoft.EntityFrameworkCore;
 
@@ -13,7 +14,7 @@ namespace EEMP.ArchitectureTests;
 
 public class ModuleBoundaryTests
 {
-    private static readonly string[] Modules = ["Tenancy", "Identity", "Organization", "People", "Academic", "Finance"];
+    private static readonly string[] Modules = ["Tenancy", "Identity", "Organization", "People", "Academic", "Finance", "Workflow"];
     private static readonly string[] Layers = ["Domain", "Application", "Infrastructure", "Contracts"];
 
     private static Assembly Load(string module, string layer) => Assembly.Load($"EEMP.Modules.{module}.{layer}");
@@ -64,7 +65,7 @@ public class AcademicArchitectureTests
     [Fact]
     public void Contracts_projects_do_not_reference_other_modules()
     {
-        foreach (var m in new[] { "Tenancy", "Identity", "Organization", "People", "Academic", "Finance" })
+        foreach (var m in new[] { "Tenancy", "Identity", "Organization", "People", "Academic", "Finance", "Workflow" })
         {
             var refs = Assembly.Load($"EEMP.Modules.{m}.Contracts").GetReferencedAssemblies().Select(r => r.Name!).ToList();
             Assert.DoesNotContain(refs, r => r.StartsWith("EEMP.Modules.", StringComparison.Ordinal));
@@ -91,6 +92,42 @@ public class AcademicArchitectureTests
     }
 }
 
+public class WorkflowArchitectureTests
+{
+    [Fact]
+    public void Workflow_permissions_on_instances_are_sensitive_and_branch_scoped()
+    {
+        var workflow = EEMP.SharedKernel.Authorization.Permissions.All.Where(p => p.Module == "workflow").ToList();
+        Assert.Equal(5, workflow.Count);
+        Assert.All(workflow.Where(p => p.Code.StartsWith("workflow.instances.", StringComparison.Ordinal) || p.Code.StartsWith("workflow.tasks.", StringComparison.Ordinal)),
+            p => Assert.True(p.IsSensitive && p.BranchScoped, p.Code));
+        Assert.All(workflow.Where(p => p.Code.StartsWith("workflow.definitions.", StringComparison.Ordinal)), p => Assert.False(p.IsSensitive || p.BranchScoped, p.Code));
+    }
+
+    [Fact]
+    public void Tenant_admin_gets_no_workflow_instance_access()
+    {
+        var admin = EEMP.Modules.Identity.Application.TenantAccessProvisioner.SystemRoleDefinitions[EEMP.Modules.Identity.Domain.SystemRoles.TenantAdmin].Permissions;
+        Assert.DoesNotContain(admin, p => p.StartsWith("workflow.instances.", StringComparison.Ordinal) || p.StartsWith("workflow.tasks.", StringComparison.Ordinal));
+    }
+
+    [Fact]
+    public void Workflow_tables_use_tenant_composite_foreign_keys()
+    {
+        using var ctx = new WorkflowDbContext(DesignTime.Options<WorkflowDbContext>(WorkflowDbContext.SchemaName), DesignTime.NoTenant());
+        foreach (var fk in ctx.Model.GetEntityTypes().SelectMany(e => e.GetForeignKeys()))
+            Assert.True(fk.Properties[0].Name == "TenantId", $"{fk.DeclaringEntityType.GetTableName()} FK is not tenant-composite");
+    }
+
+    [Fact]
+    public void Workflow_application_references_other_modules_only_through_contracts()
+    {
+        var refs = System.Reflection.Assembly.Load("EEMP.Modules.Workflow.Application").GetReferencedAssemblies().Select(r => r.Name!).ToList();
+        Assert.DoesNotContain(refs, r => r.StartsWith("EEMP.Modules.", StringComparison.Ordinal) && !r.EndsWith(".Contracts", StringComparison.Ordinal)
+                                         && !r.StartsWith("EEMP.Modules.Workflow.", StringComparison.Ordinal));
+    }
+}
+
 public class DataClassificationTests
 {
     /// <summary>
@@ -109,6 +146,7 @@ public class DataClassificationTests
         yield return [new PeopleDbContext(DesignTime.Options<PeopleDbContext>(PeopleDbContext.SchemaName), t)];
         yield return [new AcademicDbContext(DesignTime.Options<AcademicDbContext>(AcademicDbContext.SchemaName), t)];
         yield return [new EEMP.Modules.Finance.Infrastructure.FinanceDbContext(DesignTime.Options<EEMP.Modules.Finance.Infrastructure.FinanceDbContext>(EEMP.Modules.Finance.Infrastructure.FinanceDbContext.SchemaName), t)];
+        yield return [new WorkflowDbContext(DesignTime.Options<WorkflowDbContext>(WorkflowDbContext.SchemaName), t)];
     }
 
     [Theory]

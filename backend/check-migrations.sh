@@ -13,3 +13,4 @@ check src/Modules/Organization/EEMP.Modules.Organization.Infrastructure Organiza
 check src/Modules/People/EEMP.Modules.People.Infrastructure PeopleDbContext
 check src/Modules/Academic/EEMP.Modules.Academic.Infrastructure AcademicDbContext
 check src/Modules/Finance/EEMP.Modules.Finance.Infrastructure FinanceDbContext
+check src/Modules/Workflow/EEMP.Modules.Workflow.Infrastructure WorkflowDbContext

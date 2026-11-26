@@ -20,6 +20,23 @@ All notable changes to this project are documented here. Dates are UTC.
   (People), `IFinanceStanding`/`IFinanceUsage` (Finance). Academic portal grades/report cards honour `blockResultsOnOverdue` (DL-065).
 - 20 new error codes `finance.*` and `finance.pdf.*` labels in fa/en/tr/ar; dev seed adds `finance.officer` and sample finance data.
 
+### Added — Workflow engine backend (EEMP-011), 2026-11-26
+- New `Workflow` module (schema `workflow`, own migrations history, 6 tables): tenant-scoped versioned definitions (draft → published →
+  retired) of sequential approval steps (permission, optional named assignee, SLA hours, return allowed), instances pinned to a
+  version and bound to a subject (`subjectModule/subjectType/subjectId`, optional branch), append-only history, outbox (DL-070..DL-074).
+- Endpoints: `/api/v1/workflow/definitions` (list/create/get/update, `POST …/versions`, `PUT …/versions/{n}`, `POST …/versions/{n}/publish`),
+  `GET /workflow/inbox`, `GET /workflow/instances?scope=mine|all`, `GET /workflow/instances/{id}` (history + allowed actions),
+  `POST /workflow/instances/{id}/approve|reject|return|resubmit|cancel` (`rowVersion`, `comment`, idempotent `requestId`).
+- Rules: approver = holds the step permission in the instance branch (tenant-wide for tenant-level instances) and is the named assignee
+  when set; maker-checker (requester never decides), distinct approvers per round, rowversion concurrency, SLA due/overdue.
+- In-process API for modules: `IWorkflowService` (idempotent start, find, system cancel) and `IWorkflowEventHandler` completion/return
+  callbacks delivered at-least-once through the outbox (inline after commit + background retry worker, `Workflow:Outbox:*`).
+- Permissions `workflow.definitions.read|manage`, `workflow.instances.read|manage`, `workflow.tasks.approve`; TenantAdmin gets the
+  definition permissions only, BranchManager the rest. 14 new error codes translated fa/en/tr/ar. Dev seed: `discount-approval`.
+- Tests: unit (state machine, approver policy, backoff), architecture (module boundaries, data classification, tenant-composite FKs,
+  permission flags), integration (versioning, maker-checker, distinct approvers, branch/tenant isolation, concurrency, idempotent
+  start/retry, outbox retry and exactly-once application by the handler).
+
 ### Added — Report-card PDF export (EEMP-010 follow-up), 2026-11-26
 - Backend: server-side PDF rendering of report-card versions from the stored snapshot (DL-057, DL-058) — SkiaSharp + HarfBuzzSharp
   (MIT) with an embedded Vazirmatn font (OFL 1.1), HarfBuzz shaping, minimal Unicode bidi, mirrored RTL layout, Persian digits and
