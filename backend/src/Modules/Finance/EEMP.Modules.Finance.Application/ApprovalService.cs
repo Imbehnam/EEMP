@@ -13,12 +13,25 @@ namespace EEMP.Modules.Finance.Application;
 /// </summary>
 public interface IFinanceApprovals
 {
+    /// <summary>
+    /// Called in the maker's unit of work right after a pending discount/refund is created. Local: nothing (the request waits for a
+    /// checker on /finance/approvals). Workflow (EEMP-011, later): IWorkflowService.StartAsync with idempotency key
+    /// <c>finance:{kind}:{id}</c>; its IWorkflowEventHandler (SubjectModule "finance") then calls
+    /// <see cref="ApprovalService.DecideDiscountAsync"/> / <see cref="ApprovalService.DecideRefundAsync"/> — both are idempotent on replay.
+    /// </summary>
+    Task SubmitAsync(ApprovalSubject subject, CancellationToken ct);
+
     /// <summary>Throws unless the current user may decide a request made by <paramref name="requestedBy"/> in <paramref name="branchId"/>.</summary>
     Task EnsureCanDecideAsync(Guid branchId, Guid? requestedBy, CancellationToken ct);
 }
 
+/// <summary>What is being approved: kind "discount" or "refund", the record id and its branch/amount for routing.</summary>
+public sealed record ApprovalSubject(string Kind, Guid Id, Guid BranchId, Guid StudentId, decimal Amount, string Currency, Guid? RequestedBy);
+
 public sealed class LocalMakerChecker(FinanceAccess access, FinanceActor actor) : IFinanceApprovals
 {
+    public Task SubmitAsync(ApprovalSubject subject, CancellationToken ct) => Task.CompletedTask;
+
     public async Task EnsureCanDecideAsync(Guid branchId, Guid? requestedBy, CancellationToken ct)
     {
         await access.EnsureAsync(branchId, Permissions.FinanceApprove, ct);
@@ -62,6 +75,7 @@ public sealed class ApprovalService(IFinanceDbContext db, FinanceActor actor, Fi
         var d = await db.Discounts.FirstOrDefaultAsync(x => x.Id == id, ct) ?? throw new NotFoundException();
         var inv = await InvoiceMapper.WithDetails(db.Invoices).FirstAsync(i => i.Id == d.InvoiceId, ct);
         await approvals.EnsureCanDecideAsync(inv.BranchId, d.RequestedBy, ct);
+        if (d.Status == (approve ? ApprovalStatus.Approved : ApprovalStatus.Rejected)) return InvoiceMapper.ToDto(d); // replayed decision
         CheckRowVersion(d, req.RowVersion);
         if (d.Status != ApprovalStatus.Pending) throw new ConflictException(FinanceErrors.InvalidState, P(("status", Camel(d.Status))));
         if (inv.Status != InvoiceStatus.Draft) throw new ConflictException(FinanceErrors.InvalidState, P(("status", Camel(inv.Status))));
@@ -95,6 +109,7 @@ public sealed class ApprovalService(IFinanceDbContext db, FinanceActor actor, Fi
         new Validator().OptionalText("note", req.Note, 500).ThrowIfInvalid();
         var r = await db.Refunds.FirstOrDefaultAsync(x => x.Id == id, ct) ?? throw new NotFoundException();
         await approvals.EnsureCanDecideAsync(r.BranchId, r.RequestedBy, ct);
+        if (r.Status == (approve ? ApprovalStatus.Approved : ApprovalStatus.Rejected)) return ToDto(r); // replayed decision
         CheckRowVersion(r, req.RowVersion);
         if (r.Status != ApprovalStatus.Pending) throw new ConflictException(FinanceErrors.InvalidState, P(("status", Camel(r.Status))));
         var p = await db.Payments.FirstAsync(x => x.Id == r.PaymentId, ct);

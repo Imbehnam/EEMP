@@ -75,7 +75,7 @@ public sealed class PaymentMapper(IFinanceDbContext db, StudentNames names)
 }
 
 public sealed class PaymentService(IFinanceDbContext db, FinanceActor actor, FinanceAccess access, FinanceAuditor audit, FinanceUnitOfWork uow,
-    PaymentPosting posting, PaymentMapper mapper, IPeopleDirectory people)
+    PaymentPosting posting, PaymentMapper mapper, IPeopleDirectory people, IFinanceApprovals approvals)
 {
     public async Task<PagedResult<PaymentDto>> ListAsync(PageRequest page, PaymentListQuery query, CancellationToken ct)
     {
@@ -202,7 +202,7 @@ public sealed class PaymentService(IFinanceDbContext db, FinanceActor actor, Fin
             foreach (var p in payments)
             {
                 await posting.AllocateAsync(p, inv.Id, null, ct);
-                audit.Write("credit.applied", "payment", p.Id, inv.Id, p.Id, studentId, p.Allocated, p.Currency);
+                audit.Write("credit.applied", "payment", p.Id, inv.Id, p.Id, studentId, details: "see payment.allocated");
             }
             await db.SaveChangesAsync(ct);
             var fresh = await InvoiceMapper.WithDetails(db.Invoices.AsNoTracking()).FirstAsync(i => i.Id == inv.Id, ct);
@@ -253,6 +253,7 @@ public sealed class PaymentService(IFinanceDbContext db, FinanceActor actor, Fin
         db.Refunds.Add(r);
         p.UpdatedAt = actor.UtcNow; // serializes concurrent refund requests against the same credit
         audit.Write("refund.requested", "refund", r.Id, null, p.Id, p.StudentId, r.Amount, r.Currency);
+        await approvals.SubmitAsync(new ApprovalSubject("refund", r.Id, r.BranchId, r.StudentId, r.Amount, r.Currency, r.RequestedBy), ct);
         await db.SaveChangesAsync(ct);
         return ApprovalService.ToDto(r);
     }, ct);

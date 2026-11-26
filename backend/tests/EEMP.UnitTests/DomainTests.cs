@@ -49,7 +49,9 @@ public class DomainTests
     public void Permission_codes_follow_module_action_convention()
     {
         // M2 (DL-055): approve/publish verbs separate grade approval and publication from entry (segregation of duties).
-        Assert.All(Permissions.All, p => Assert.Matches("^[a-z]+\\.(read|manage|approve|publish)$", p.Code));
+        // M3 (DL-064): finance codes may carry one sub-resource segment (finance.invoices.manage, finance.reports.read).
+        Assert.All(Permissions.All, p => Assert.Matches("^[a-z]+(\\.[a-z]+)?\\.(read|manage|approve|publish)$", p.Code));
+        Assert.All(Permissions.All.Where(p => p.Code.Count(c => c == '.') == 2), p => Assert.Equal("finance", p.Module));
         Assert.Equal(Permissions.All.Count, Permissions.All.Select(p => p.Code).Distinct().Count());
     }
 

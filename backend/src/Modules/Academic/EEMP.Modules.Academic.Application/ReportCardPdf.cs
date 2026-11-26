@@ -23,7 +23,7 @@ public interface IReportCardPdfRenderer
 
 /// <summary>Loads report-card versions for PDF output with the same authorization as the JSON reads.</summary>
 public sealed class ReportCardDocuments(IAcademicDbContext db, IAccessControl access, ClassAccess classAccess, AcademicActor actor,
-    IOrganizationSettings settings, IBranchDirectory branches)
+    IOrganizationSettings settings, IBranchDirectory branches, EEMP.Modules.Finance.Contracts.IFinanceStanding finance)
 {
     /// <summary>Maximum cards in one class archive (keeps one request bounded).</summary>
     public const int MaxArchiveCards = 200;
@@ -43,6 +43,8 @@ public sealed class ReportCardDocuments(IAcademicDbContext db, IAccessControl ac
         var card = await db.ReportCards.AsNoTracking().FirstOrDefaultAsync(r => r.Id == id, ct) ?? throw new NotFoundException();
         if (!(await actor.PortalStudentIdsAsync(ct)).Contains(card.StudentId)) throw new NotFoundException();
         if (card.PublishedVersion is not { } published) throw new NotFoundException();
+        if (await finance.AreResultsBlockedAsync(card.StudentId, ct))
+            throw new ForbiddenException(EEMP.Modules.Finance.Contracts.FinanceStandingErrors.ResultsBlocked);
         var version = await db.ReportCardVersions.AsNoTracking().FirstAsync(v => v.ReportCardId == id && v.VersionNo == published, ct);
         return await DocumentAsync(card, version, ct);
     }

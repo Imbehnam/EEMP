@@ -13,3 +13,9 @@ public interface IFinanceUsage
     Task<bool> IsStudentReferencedAsync(Guid studentId, CancellationToken ct = default);
     Task<bool> IsBranchReferencedAsync(Guid branchId, CancellationToken ct = default);
 }
+
+public static class FinanceStandingErrors
+{
+    /// <summary>Same value as FinanceErrors.ResultsBlocked (Finance.Domain); exposed here for other modules.</summary>
+    public const string ResultsBlocked = "finance.results_blocked";
+}

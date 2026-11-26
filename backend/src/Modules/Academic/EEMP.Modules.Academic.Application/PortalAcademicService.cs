@@ -11,11 +11,18 @@ namespace EEMP.Modules.Academic.Application;
 /// Student/guardian portal. The relationship is the authorization: a student sees themselves, a guardian their linked students.
 /// Grades come only from published snapshots; report cards only from published versions. Anything else is "not found".
 /// </summary>
-public sealed class PortalAcademicService(IAcademicDbContext db, AcademicActor actor, IPeopleDirectory people)
+public sealed class PortalAcademicService(IAcademicDbContext db, AcademicActor actor, IPeopleDirectory people, EEMP.Modules.Finance.Contracts.IFinanceStanding finance)
 {
     private async Task EnsureStudentAsync(Guid studentId, CancellationToken ct)
     {
         if (!(await actor.PortalStudentIdsAsync(ct)).Contains(studentId)) throw new NotFoundException();
+    }
+
+    /// <summary>DL-065: when the tenant enables it, portal results are withheld while the student has an overdue balance.</summary>
+    private async Task EnsureResultsVisibleAsync(Guid studentId, CancellationToken ct)
+    {
+        if (await finance.AreResultsBlockedAsync(studentId, ct))
+            throw new ForbiddenException(EEMP.Modules.Finance.Contracts.FinanceStandingErrors.ResultsBlocked);
     }
 
     /// <summary>The requested term, else the term containing today, else null (= every term).</summary>
@@ -93,6 +100,7 @@ public sealed class PortalAcademicService(IAcademicDbContext db, AcademicActor a
     public async Task<IReadOnlyList<PortalClassGradesDto>> GradesAsync(Guid studentId, Guid? termId, CancellationToken ct)
     {
         await EnsureStudentAsync(studentId, ct);
+        await EnsureResultsVisibleAsync(studentId, ct);
         var classes = await StudentClassesAsync(studentId, activeOnly: false, ct);
         var term = await TermFilterAsync(termId, classes.Select(c => c.TermId).Distinct().ToList(), ct);
         if (term is { } tf) classes = classes.Where(c => c.TermId == tf).ToList();
@@ -124,6 +132,7 @@ public sealed class PortalAcademicService(IAcademicDbContext db, AcademicActor a
     public async Task<IReadOnlyList<PortalReportCardSummaryDto>> ReportCardsAsync(Guid studentId, CancellationToken ct)
     {
         await EnsureStudentAsync(studentId, ct);
+        await EnsureResultsVisibleAsync(studentId, ct);
         var cards = await db.ReportCards.AsNoTracking().Where(r => r.StudentId == studentId && r.PublishedVersion != null).ToListAsync(ct);
         var termIds = cards.Select(c => c.TermId).ToList();
         var terms = await db.Terms.AsNoTracking().Where(t => termIds.Contains(t.Id)).ToDictionaryAsync(t => t.Id, ct);
@@ -135,6 +144,7 @@ public sealed class PortalAcademicService(IAcademicDbContext db, AcademicActor a
     {
         var card = await db.ReportCards.AsNoTracking().FirstOrDefaultAsync(r => r.Id == id, ct) ?? throw new NotFoundException();
         await EnsureStudentAsync(card.StudentId, ct);
+        await EnsureResultsVisibleAsync(card.StudentId, ct);
         if (card.PublishedVersion is not { } published) throw new NotFoundException();
         var version = await db.ReportCardVersions.AsNoTracking().FirstAsync(v => v.ReportCardId == id && v.VersionNo == published, ct);
         return new PortalReportCardDto(card.Id, card.StudentId, card.TermId, version.VersionNo, version.PublishedAt, ReportCardService.Content(version));

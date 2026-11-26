@@ -54,7 +54,7 @@ public sealed class InvoiceMapper(StudentNames names)
 
 public sealed class InvoiceService(IFinanceDbContext db, FinanceActor actor, FinanceAccess access, FinanceAuditor audit, FinanceUnitOfWork uow,
     DocumentNumberer numbers, InvoiceMapper mapper, StudentNames names, IPeopleDirectory people, IEnrollmentDirectory academic,
-    FinanceSetupService setup)
+    FinanceSetupService setup, IFinanceApprovals approvals)
 {
     public const int MaxBulkEnrollments = 500;
 
@@ -358,6 +358,8 @@ public sealed class InvoiceService(IFinanceDbContext db, FinanceActor actor, Fin
                         Value = settings.SiblingDiscountPercent, Reason = "sibling", RequestedBy = actor.UserId, RequestedAt = actor.UtcNow });
                 InvoiceCalculator.Recalculate(inv);
                 db.Invoices.Add(inv);
+                foreach (var d in inv.Discounts)
+                    await approvals.SubmitAsync(new ApprovalSubject("discount", d.Id, inv.BranchId, inv.StudentId, d.Value, inv.Currency, d.RequestedBy), ct);
                 audit.Write("invoice.generated", "invoice", inv.Id, inv.Id, studentId: inv.StudentId, amount: inv.Total, currency: inv.Currency,
                     details: $"enrollment={e.Id};fees={missing.Count}");
                 await db.SaveChangesAsync(ct);
@@ -396,6 +398,7 @@ public sealed class InvoiceService(IFinanceDbContext db, FinanceActor actor, Fin
         inv.UpdatedAt = actor.UtcNow; // bump the invoice rowversion: its pending state changed
         audit.Write("discount.requested", "discount", d.Id, inv.Id, studentId: inv.StudentId, amount: d.Value, currency: inv.Currency,
             details: $"{Camel(d.Kind)}:{Camel(d.Type)}");
+        await approvals.SubmitAsync(new ApprovalSubject("discount", d.Id, inv.BranchId, inv.StudentId, d.Value, inv.Currency, d.RequestedBy), ct);
         await db.SaveChangesAsync(ct);
         return InvoiceMapper.ToDto(d);
     }

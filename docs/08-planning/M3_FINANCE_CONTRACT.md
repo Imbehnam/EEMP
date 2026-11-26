@@ -28,19 +28,19 @@ Everything in the M1 and M2 contracts still holds; this document only adds to it
 ## 2. Permissions (new; `GET /permissions` lists them)
 | code | isSensitive | branchScoped | meaning |
 |---|---|---|---|
-| `finance.setup` | false | false | finance settings, fee types, fee items |
+| `finance.setup.manage` | false | false | finance settings, fee types, fee items |
 | `finance.read` | true | true | invoices, installments, payments, receipts, refunds, student accounts, PDFs |
 | `finance.invoices.manage` | true | true | create/edit draft invoices, generate, issue, void, credit notes, installments, request discounts, apply late fees, apply credit |
 | `finance.payments.manage` | true | true | record manual payments, cheque status, request refunds |
 | `finance.approve` | true | true | approve/reject discounts and refunds (checker; never the maker) |
-| `finance.reports` | true | true | outstanding, aging, collections, CSV export |
+| `finance.reports.read` | true | true | outstanding, aging, collections, CSV export |
 
 Built-in role **FinanceOfficer** (new, created for every tenant by an idempotent startup sync, DL-064): all `finance.*` codes +
 `organization.read`, `branches.read`, `catalog.read`, `classes.read`, `students.read`, `guardians.read`, `enrollments.read`.
 **TenantAdmin gets no `finance.*` code** (security baseline #1); BranchManager unchanged. Maker-checker needs two officers
 (or an officer + a custom role holding `finance.approve`).
 
-## 3. Settings — `GET/PUT /finance/settings` (`finance.setup`)
+## 3. Settings — `GET/PUT /finance/settings` (`finance.setup.manage`)
 ```json
 { "currency": "IRR", "vatEnabled": false, "vatRatePercent": 0, "lateFeeEnabled": false, "lateFeeType": "fixed|percent",
   "lateFeeValue": 0, "lateFeeGraceDays": 0, "siblingDiscountPercent": 0, "blockResultsOnOverdue": false,
@@ -50,7 +50,7 @@ Built-in role **FinanceOfficer** (new, created for every tenant by an idempotent
 **issued** (stored on the invoice). `blockResultsOnOverdue` (DL-065, default false): when on, portal grade/report-card reads for a
 student with an overdue issued balance return `403 finance.results_blocked` (staff views unaffected).
 
-## 4. Fee setup (`finance.setup` to write, `finance.read` or `finance.setup` to read)
+## 4. Fee setup (`finance.setup.manage` to write, `finance.read` or `finance.setup.manage` to read)
 - `GET /finance/fee-types` (array) · `POST` · `PUT /{id}` · `DELETE /{id}` (`409 finance.fee_type_in_use`)
   `{ id, code, name, taxable, isActive, rowVersion }`
 - `GET /finance/fee-items?termId=&feeTypeId=&activeOnly=` (array) · `POST` · `PUT /{id}` · `DELETE /{id}` (`409 finance.fee_item_in_use`)
@@ -140,7 +140,7 @@ student with an overdue issued balance return `403 finance.results_blocked` (sta
   `GET /portal/me/finance/invoices/{id}/pdf` · `GET /portal/me/finance/payments/{id}` · `GET /portal/me/finance/payments/{id}/receipt/pdf`.
   Not linked/own → 404.
 
-## 12. Reports (`finance.reports`, branch-scoped; `?format=csv` → `text/csv; charset=utf-8` with BOM)
+## 12. Reports (`finance.reports.read`, branch-scoped; `?format=csv` → `text/csv; charset=utf-8` with BOM)
 - `GET /finance/reports/outstanding?branchId=&termId=` → rows `{ invoiceId, number, studentId, studentName, branchId, dueDate, total, paid, balance }`
 - `GET /finance/reports/aging?asOf=&branchId=` → `{ asOf, buckets: { current, d1_30, d31_60, d61_90, d90plus }, rows[] }` (by student)
 - `GET /finance/reports/collections?from=&to=&branchId=` → rows `{ date, branchId, method, count, amount }` (succeeded payments by `receivedOn`)

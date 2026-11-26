@@ -33,6 +33,7 @@ public class EempFactory : WebApplicationFactory<Program>
         builder.UseSetting("RateLimiting:AuthPermitLimit", AuthPermitLimit.ToString(System.Globalization.CultureInfo.InvariantCulture));
         builder.UseSetting("RateLimiting:AuthWindowSeconds", "60");
         builder.UseSetting("Serilog:MinimumLevel:Default", "Warning");
+        builder.UseSetting("Finance:Gateways:Fake:Enabled", "true");
     }
 
     protected override void Dispose(bool disposing)

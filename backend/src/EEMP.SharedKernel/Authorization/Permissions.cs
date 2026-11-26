@@ -37,12 +37,12 @@ public static class Permissions
     public const string ReportCardsRead = "reportcards.read";
     public const string ReportCardsManage = "reportcards.manage";
     public const string ReportCardsPublish = "reportcards.publish";
-    public const string FinanceSetup = "finance.setup";
+    public const string FinanceSetup = "finance.setup.manage";
     public const string FinanceRead = "finance.read";
     public const string FinanceInvoicesManage = "finance.invoices.manage";
     public const string FinancePaymentsManage = "finance.payments.manage";
     public const string FinanceApprove = "finance.approve";
-    public const string FinanceReports = "finance.reports";
+    public const string FinanceReports = "finance.reports.read";
 
     public static readonly IReadOnlyList<PermissionDefinition> All =
     [
