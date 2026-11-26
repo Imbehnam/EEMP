@@ -11,6 +11,12 @@
     <Project Path="src/Modules/Academic/EEMP.Modules.Academic.Domain/EEMP.Modules.Academic.Domain.csproj" />
     <Project Path="src/Modules/Academic/EEMP.Modules.Academic.Infrastructure/EEMP.Modules.Academic.Infrastructure.csproj" />
   </Folder>
+  <Folder Name="/src/Modules/Finance/">
+    <Project Path="src/Modules/Finance/EEMP.Modules.Finance.Application/EEMP.Modules.Finance.Application.csproj" />
+    <Project Path="src/Modules/Finance/EEMP.Modules.Finance.Contracts/EEMP.Modules.Finance.Contracts.csproj" />
+    <Project Path="src/Modules/Finance/EEMP.Modules.Finance.Domain/EEMP.Modules.Finance.Domain.csproj" />
+    <Project Path="src/Modules/Finance/EEMP.Modules.Finance.Infrastructure/EEMP.Modules.Finance.Infrastructure.csproj" />
+  </Folder>
   <Folder Name="/src/Modules/Identity/">
     <Project Path="src/Modules/Identity/EEMP.Modules.Identity.Application/EEMP.Modules.Identity.Application.csproj" />
     <Project Path="src/Modules/Identity/EEMP.Modules.Identity.Contracts/EEMP.Modules.Identity.Contracts.csproj" />

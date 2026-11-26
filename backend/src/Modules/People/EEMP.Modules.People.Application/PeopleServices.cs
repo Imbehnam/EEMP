@@ -325,4 +325,11 @@ public sealed class PeopleDirectory(IPeopleDbContext db) : IPeopleDirectory
                join link in db.StudentGuardians on g.Id equals link.GuardianId
                where g.UserId == userId && g.Status == PersonStatus.Active
                select link.StudentId).Distinct().ToListAsync(ct);
+
+    public async Task<IReadOnlyList<Guid>> GetSiblingIdsAsync(Guid studentId, CancellationToken ct = default)
+    {
+        var guardians = db.StudentGuardians.Where(l => l.StudentId == studentId).Select(l => l.GuardianId);
+        return await db.StudentGuardians.AsNoTracking().Where(l => guardians.Contains(l.GuardianId) && l.StudentId != studentId)
+            .Select(l => l.StudentId).Distinct().ToListAsync(ct);
+    }
 }

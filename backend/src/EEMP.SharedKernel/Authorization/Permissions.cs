@@ -37,6 +37,12 @@ public static class Permissions
     public const string ReportCardsRead = "reportcards.read";
     public const string ReportCardsManage = "reportcards.manage";
     public const string ReportCardsPublish = "reportcards.publish";
+    public const string FinanceSetup = "finance.setup";
+    public const string FinanceRead = "finance.read";
+    public const string FinanceInvoicesManage = "finance.invoices.manage";
+    public const string FinancePaymentsManage = "finance.payments.manage";
+    public const string FinanceApprove = "finance.approve";
+    public const string FinanceReports = "finance.reports";
 
     public static readonly IReadOnlyList<PermissionDefinition> All =
     [
@@ -72,6 +78,12 @@ public static class Permissions
         new(ReportCardsRead, "academic", true, true),
         new(ReportCardsManage, "academic", true, true),
         new(ReportCardsPublish, "academic", true, true),
+        new(FinanceSetup, "finance", false, false),
+        new(FinanceRead, "finance", true, true),
+        new(FinanceInvoicesManage, "finance", true, true),
+        new(FinancePaymentsManage, "finance", true, true),
+        new(FinanceApprove, "finance", true, true),
+        new(FinanceReports, "finance", true, true),
     ];
 
     private static readonly HashSet<string> Codes = All.Select(p => p.Code).ToHashSet(StringComparer.Ordinal);

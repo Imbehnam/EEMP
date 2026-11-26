@@ -15,3 +15,13 @@ internal sealed class TenantDirectory(TenancyDbContext db) : ITenantDirectory
     private static readonly System.Linq.Expressions.Expression<Func<Tenant, TenantInfo?>> Map =
         t => new TenantInfo(t.Id, t.Slug, t.Name, t.Status == TenantStatus.Active, t.DefaultLocale, t.TimeZone);
 }
+
+internal sealed class TenantFinanceSettings(TenancyDbContext db, EEMP.SharedKernel.Tenancy.ITenantContext tenant) : ITenantFinanceSettings
+{
+    public async Task<string> GetCurrencyAsync(CancellationToken ct = default)
+    {
+        var id = tenant.RequireTenantId();
+        var currency = await db.Tenants.AsNoTracking().Where(t => t.Id == id).Select(t => t.Currency).FirstOrDefaultAsync(ct);
+        return string.IsNullOrWhiteSpace(currency) ? "IRR" : currency.Trim().ToUpperInvariant();
+    }
+}

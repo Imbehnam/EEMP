@@ -350,6 +350,9 @@ public sealed class EnrollmentRuleTests : IAsyncLifetime
             Task.FromResult<IReadOnlyDictionary<Guid, TeacherSummary>>(new Dictionary<Guid, TeacherSummary>());
         public Task<Guid?> FindTeacherIdForUserAsync(Guid userId, CancellationToken ct = default) => Task.FromResult<Guid?>(null);
         public Task<Guid?> FindStudentIdForUserAsync(Guid userId, CancellationToken ct = default) => Task.FromResult<Guid?>(null);
+        public Task<IReadOnlyList<Guid>> GetSiblingIdsAsync(Guid studentId, CancellationToken ct = default) =>
+            Task.FromResult<IReadOnlyList<Guid>>([]);
+
         public Task<IReadOnlyList<Guid>> GetGuardianStudentIdsForUserAsync(Guid userId, CancellationToken ct = default) =>
             Task.FromResult<IReadOnlyList<Guid>>([]);
     }

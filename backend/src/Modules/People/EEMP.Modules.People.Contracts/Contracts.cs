@@ -22,4 +22,6 @@ public interface IPeopleDirectory
     Task<Guid?> FindStudentIdForUserAsync(Guid userId, CancellationToken ct = default);
     /// <summary>Students linked to the guardian profile of this user (empty when the user is not a guardian).</summary>
     Task<IReadOnlyList<Guid>> GetGuardianStudentIdsForUserAsync(Guid userId, CancellationToken ct = default);
+    /// <summary>Other students sharing at least one guardian with this student (finance sibling rule).</summary>
+    Task<IReadOnlyList<Guid>> GetSiblingIdsAsync(Guid studentId, CancellationToken ct = default);
 }

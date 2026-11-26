@@ -165,3 +165,26 @@ public sealed class AcademicUsage(IAcademicDbContext db) : IAcademicUsage
     public Task<bool> IsTeacherReferencedAsync(Guid teacherId, CancellationToken ct = default) =>
         db.TeacherAssignments.AnyAsync(a => a.TeacherId == teacherId, ct);
 }
+
+public sealed class EnrollmentDirectory(IAcademicDbContext db) : IEnrollmentDirectory
+{
+    private IQueryable<EnrollmentInfo> Query() =>
+        from e in db.Enrollments.AsNoTracking()
+        join c in db.Classes.AsNoTracking() on e.ClassId equals c.Id
+        select new EnrollmentInfo(e.Id, e.StudentId, e.ClassId, c.BranchId, c.TermId, c.CourseId, e.Status != EnrollmentStatus.Withdrawn);
+
+    public Task<EnrollmentInfo?> GetAsync(Guid enrollmentId, CancellationToken ct = default) =>
+        Query().FirstOrDefaultAsync(e => e.Id == enrollmentId, ct);
+
+    public Task<ClassInfo?> GetClassAsync(Guid classId, CancellationToken ct = default) =>
+        db.Classes.AsNoTracking().Where(c => c.Id == classId)
+            .Select(c => new ClassInfo(c.Id, c.BranchId, c.TermId, c.CourseId, c.Code, c.Name)).FirstOrDefaultAsync(ct);
+
+    public async Task<IReadOnlyList<EnrollmentInfo>> ListForClassAsync(Guid classId, CancellationToken ct = default) =>
+        await Query().Where(e => e.ClassId == classId).ToListAsync(ct);
+
+    public async Task<IReadOnlyList<EnrollmentInfo>> ListForTermAsync(Guid termId, CancellationToken ct = default) =>
+        await Query().Where(e => e.TermId == termId).ToListAsync(ct);
+
+    public Task<bool> TermExistsAsync(Guid termId, CancellationToken ct = default) => db.Terms.AnyAsync(t => t.Id == termId, ct);
+}

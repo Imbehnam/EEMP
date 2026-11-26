@@ -12,3 +12,4 @@ check src/Modules/Identity/EEMP.Modules.Identity.Infrastructure IdentityModuleDb
 check src/Modules/Organization/EEMP.Modules.Organization.Infrastructure OrganizationDbContext
 check src/Modules/People/EEMP.Modules.People.Infrastructure PeopleDbContext
 check src/Modules/Academic/EEMP.Modules.Academic.Infrastructure AcademicDbContext
+check src/Modules/Finance/EEMP.Modules.Finance.Infrastructure FinanceDbContext

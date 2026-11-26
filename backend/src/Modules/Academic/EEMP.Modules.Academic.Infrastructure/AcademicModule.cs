@@ -34,6 +34,7 @@ public static class AcademicModule
         services.AddScoped<ReportCardDocuments>();
         services.AddSingleton<IReportCardPdfRenderer, ReportCardPdfRenderer>();
         services.AddScoped<IAcademicUsage, AcademicUsage>();
+        services.AddScoped<IEnrollmentDirectory, EnrollmentDirectory>();
         return services;
     }
 
