@@ -20,6 +20,7 @@ export function PortalHomeScreen({ kind }: { kind: PortalKind | null }) {
       ? [
           { href: '/timetable', label: t('cardTimetable') },
           { href: '/grades', label: t('cardGrades') },
+          { href: '/invoices', label: t('cardInvoices') },
         ]
       : []),
     { href: '/settings', label: t('cardSettings') },

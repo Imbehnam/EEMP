@@ -433,7 +433,7 @@ export function financeRoutes(ctx: FinanceContext, seg: string[], method: string
   /* ----- settings and fee setup ----- */
   if (seg[1] === 'settings' && seg.length === 2) {
     if (method === 'GET') {
-      demand('finance.setup.manage');
+      if (ctx.scope('finance.setup.manage')?.size === 0) demand('finance.read');
       return json(200, settingsDto());
     }
     if (method === 'PUT') {

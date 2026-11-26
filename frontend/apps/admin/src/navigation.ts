@@ -45,6 +45,31 @@ export function adminNavigation(user: CurrentUser): FrameNavSection[] {
       ],
     },
     {
+      labelKey: 'financeSection',
+      items: [
+        ...(can('finance.read')
+          ? [
+              { href: '/finance/invoices', labelKey: 'financeInvoices' },
+              { href: '/finance/payments', labelKey: 'financePayments' },
+              { href: '/finance/approvals', labelKey: 'financeApprovals' },
+              { href: '/finance/accounts', labelKey: 'financeAccounts' },
+            ]
+          : []),
+        ...(can('finance.reports.read') ? [{ href: '/finance/reports', labelKey: 'financeReports' }] : []),
+        ...(can('finance.read') || can('finance.setup.manage') ? [{ href: '/finance/fees', labelKey: 'financeFees' }] : []),
+        ...(can('finance.setup.manage') ? [{ href: '/finance/settings', labelKey: 'financeSettings' }] : []),
+      ],
+    },
+    {
+      // Any tenant user can be the approver of a step (permission-based), so the inbox and "my requests" are always offered.
+      labelKey: 'workflowSection',
+      items: [
+        { href: '/workflow/inbox', labelKey: 'workflowInbox' },
+        { href: '/workflow/requests', labelKey: 'workflowRequests' },
+        ...(can('workflow.definitions.read') ? [{ href: '/workflow/definitions', labelKey: 'workflowDefinitions' }] : []),
+      ],
+    },
+    {
       labelKey: 'peopleSection',
       items: PERSON_KINDS.filter((kind) => can(`${kind}.read`)).map((kind) => ({ href: `/people/${kind}`, labelKey: kind })),
     },

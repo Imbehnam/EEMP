@@ -28,6 +28,7 @@ export function portalNavigation(kind: PortalKind | null): FrameNavSection[] {
           : []),
       ],
     },
+    ...(kind === 'student' || kind === 'guardian' ? [{ labelKey: 'financeSection', items: [{ href: '/invoices', labelKey: 'invoices' }] }] : []),
     { labelKey: 'accountSection', items: [{ href: '/settings', labelKey: 'settings' }] },
   ];
 }
