@@ -33,6 +33,8 @@ public class EempFactory : WebApplicationFactory<Program>
         builder.UseSetting("RateLimiting:AuthPermitLimit", AuthPermitLimit.ToString(System.Globalization.CultureInfo.InvariantCulture));
         builder.UseSetting("RateLimiting:AuthWindowSeconds", "60");
         builder.UseSetting("Serilog:MinimumLevel:Default", "Warning");
+        // Tests drive outbox delivery explicitly (inline after each transition, or by calling the dispatcher).
+        builder.UseSetting("Workflow:Outbox:WorkerEnabled", "false");
     }
 
     protected override void Dispose(bool disposing)
