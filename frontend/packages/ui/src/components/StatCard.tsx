@@ -60,6 +60,6 @@ export function StatCard({ label, value, loading, footer, ...rest }: StatCardPro
 export const StatGrid = styled.div`
   display: grid;
   gap: ${({ theme }) => theme.space[5]};
-  grid-template-columns: repeat(auto-fit, minmax(min(100%, 13rem), 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 11rem), 1fr));
   margin-block-end: ${({ theme }) => theme.space[6]};
 `;

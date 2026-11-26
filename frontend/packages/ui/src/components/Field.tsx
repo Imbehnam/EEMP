@@ -50,6 +50,8 @@ const ErrorText = styled.p`
  * Text-entry wells: inset (pressed-in) surface + a 3:1 hairline so the boundary never depends on
  * shadow alone. Invalid = danger border + thicker ring + icon/text message below.
  */
+// Note: placeholder colour lives in styles.css — a ::placeholder rule here makes the stylis 4.3
+// prefixer (createEmotionCache) crash inside Emotion's bundled stylis during SSR.
 const controlCss = ({ theme }: { theme: Theme }) => `
   box-sizing: border-box;
   inline-size: 100%;
@@ -64,10 +66,6 @@ const controlCss = ({ theme }: { theme: Theme }) => `
   line-height: 1.5;
   text-align: start;
   transition: border-color ${theme.motion.fast} ease, background-color ${theme.motion.fast} ease;
-  &::placeholder {
-    color: ${theme.colors.fgMuted};
-    opacity: 1;
-  }
   &:hover:not(:disabled):not([readonly]) {
     border-color: ${theme.colors.fg};
   }

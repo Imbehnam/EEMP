@@ -41,9 +41,7 @@ export function BackLink({ href }: { href: string }) {
   return (
     <Link href={href} style={{ fontSize: '0.875rem' }}>
       <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
-        <span style={{ display: 'inline-flex', transform: 'scaleX(-1)' }}>
-          <IconChevron size={16} className="eemp-flip" />
-        </span>
+        <IconChevron size={16} towards="start" />
         {t('backToList')}
       </span>
     </Link>

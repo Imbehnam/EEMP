@@ -85,8 +85,35 @@ const Header = styled.header`
   }
 `;
 
+/* Below md the header keeps only menu + brand; language/theme/sign-out move into the drawer. */
+const HeaderActions = styled.div`
+  display: none;
+  ${mq('md')} {
+    display: flex;
+    flex: none;
+    align-items: center;
+    gap: ${({ theme }) => theme.space[2]};
+  }
+`;
+
+const DrawerActions = styled.div`
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: ${({ theme }) => theme.space[3]};
+  padding: ${({ theme }) => `${theme.space[3]} ${theme.space[3]} ${theme.space[4]}`};
+  margin-block-end: ${({ theme }) => theme.space[2]};
+  border-block-end: 1px solid ${({ theme }) => theme.colors.border};
+  ${mq('md')} {
+    display: none;
+  }
+`;
+
 const BrandMark = styled.span`
-  display: inline-grid;
+  display: none;
+  ${mq('sm')} {
+    display: inline-grid;
+  }
   place-items: center;
   flex: none;
   inline-size: 2.5rem;
@@ -270,7 +297,7 @@ function Breadcrumbs({ items, label, Link }: { items: Crumb[]; label?: string; L
       <CrumbList>
         {items.map((c, i) => (
           <li key={`${c.label}-${i}`}>
-            {i > 0 && <IconChevron size={14} className="eemp-flip" />}
+            {i > 0 && <IconChevron size={14} />}
             {c.href && !c.current ? (
               <Link href={c.href}>{c.label}</Link>
             ) : (
@@ -314,7 +341,7 @@ export function AppShell({ brand, context, sections, headerActions, breadcrumbs,
       <SkipLink href="#main-content">{labels.skipToContent}</SkipLink>
       <Layout>
         <Header>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 12, minWidth: 0 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 12, minWidth: 0, flex: '1 1 auto' }}>
             <MenuButton
               ref={menuButton}
               type="button"
@@ -335,9 +362,7 @@ export function AppShell({ brand, context, sections, headerActions, breadcrumbs,
               )}
             </div>
           </div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'nowrap', justifyContent: 'flex-end' }}>
-            {headerActions}
-          </div>
+          {headerActions && <HeaderActions>{headerActions}</HeaderActions>}
         </Header>
         {open && <Backdrop aria-hidden="true" onClick={() => setOpen(false)} />}
         <Sidebar open={open} id={navId} ref={drawer}>
@@ -346,6 +371,7 @@ export function AppShell({ brand, context, sections, headerActions, breadcrumbs,
               <IconClose />
             </IconButton>
           </DrawerHead>
+          {open && headerActions && <DrawerActions>{headerActions}</DrawerActions>}
           <nav aria-label={labels.primaryNav}>
             {sections.map((section, i) => (
               <div key={section.label ?? i}>

@@ -75,11 +75,16 @@ export const IconSearch = (p: IconProps) => (
     <path d="m20 20-4.2-4.2" />
   </Svg>
 );
-/** Points to the inline end; add className="eemp-flip" so it mirrors in RTL. */
-export const IconChevron = (p: IconProps) => (
-  <Svg {...p}>
-    <path d="m9 6 6 6-6 6" />
-  </Svg>
+/**
+ * Points to the inline end (right in LTR, left in RTL), or the start with towards="start". The wrapper mirrors in RTL — transforms on
+ * an outer <svg> are not reliably painted, so the flip lives on an inline-flex span.
+ */
+export const IconChevron = ({ className, towards = 'end', ...p }: IconProps & { towards?: 'end' | 'start' }) => (
+  <span className={['eemp-icon-dir', className].filter(Boolean).join(' ')} aria-hidden="true">
+    <Svg {...p}>
+      <path d={towards === 'end' ? 'm9 6 6 6-6 6' : 'm15 6-6 6 6 6'} />
+    </Svg>
+  </span>
 );
 
 export const toneIcons = {

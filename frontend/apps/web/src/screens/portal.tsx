@@ -32,7 +32,7 @@ export function PortalHomeScreen({ kind }: { kind: PortalKind | null }) {
         description={user.tenantName ? t('intro', { tenant: user.tenantName }) : t('introNoTenant')}
       />
       <div style={{ display: 'grid', gap: 20, gridTemplateColumns: 'repeat(auto-fill, minmax(min(100%, 17rem), 1fr))', alignItems: 'stretch' }}>
-        <Card aria-labelledby="roles-heading" style={{ gridRow: 'span 2' }}>
+        <Card aria-labelledby="roles-heading">
           <h2 id="roles-heading" style={{ fontSize: '1.0625rem', marginBlockStart: 0 }}>{t('yourRoles')}</h2>
           {kind && <p><Badge tone="info">{t('kind', { kind })}</Badge></p>}
           {user.scopes.length === 0 ? (
@@ -52,7 +52,7 @@ export function PortalHomeScreen({ kind }: { kind: PortalKind | null }) {
           <Link key={c.href} href={c.href} className="eemp-tile">
             <span>{c.label}</span>
             <span className="eemp-tile-icon">
-              <IconChevron size={18} className="eemp-flip" />
+              <IconChevron size={18} />
             </span>
           </Link>
         ))}

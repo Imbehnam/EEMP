@@ -299,6 +299,15 @@ table,
   transform: scaleX(-1);
 }
 
+/* Inline-end chevrons (IconChevron) mirror in RTL. */
+.eemp-icon-dir {
+  display: inline-flex;
+  flex: none;
+}
+[dir='rtl'] .eemp-icon-dir {
+  transform: scaleX(-1);
+}
+
 /* Compact header selects (language, theme): pill-shaped inset wells. */
 .eemp-compact-select {
   min-block-size: 2.25rem;

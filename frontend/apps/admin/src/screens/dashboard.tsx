@@ -62,7 +62,7 @@ function KpiCard({ kpi }: { kpi: Kpi }) {
         <Link href={kpi.href} style={{ display: 'inline-flex', alignItems: 'center', gap: 4, fontWeight: 600 }}>
           {t('kpiViewAll')}
           <span className="eemp-visually-hidden">{nav(kpi.labelKey)}</span>
-          <IconChevron size={16} className="eemp-flip" />
+          <IconChevron size={16} />
         </Link>
       }
     />
@@ -93,7 +93,7 @@ export function DashboardScreen() {
           )}
         </StatGrid>
       </section>
-      <div style={{ display: 'grid', gap: 20, gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 18rem), 1fr))' }}>
+      <div style={{ display: 'grid', gap: 20, gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 18rem), 1fr))', alignItems: 'start' }}>
         {!user.isPlatformAdmin && (
           <Card aria-labelledby="access-heading">
             <h2 id="access-heading" style={{ fontSize: '1.0625rem', marginBlockStart: 0 }}>{t('yourAccess')}</h2>
@@ -110,7 +110,7 @@ export function DashboardScreen() {
               <li key={l.href}>
                 <Link href={l.href} className="eemp-tile" style={{ minBlockSize: '3.25rem', padding: '0.625rem 1rem' }}>
                   <span>{nav(l.labelKey)}</span>
-                  <IconChevron size={16} className="eemp-flip" />
+                  <IconChevron size={16} />
                 </Link>
               </li>
             ))}
