@@ -222,6 +222,10 @@ public sealed class FinanceDbContext(DbContextOptions<FinanceDbContext> options,
             b.HasIndex(x => new { x.TenantId, x.InvoiceId });
             b.HasIndex(x => new { x.TenantId, x.PaymentId });
         });
+
+        // Ids are client-generated (Guid.NewGuid): new children added to a tracked invoice/payment must be inserted, not updated.
+        foreach (var e in modelBuilder.Model.GetEntityTypes())
+            if (e.FindProperty("Id") is { } id && id.ClrType == typeof(Guid)) id.ValueGenerated = Microsoft.EntityFrameworkCore.Metadata.ValueGenerated.Never;
     }
 
     private static void Money(PropertyBuilder<decimal> p) => p.HasColumnType(MoneyType);

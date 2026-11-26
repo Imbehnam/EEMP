@@ -168,23 +168,25 @@ public sealed class AcademicUsage(IAcademicDbContext db) : IAcademicUsage
 
 public sealed class EnrollmentDirectory(IAcademicDbContext db) : IEnrollmentDirectory
 {
-    private IQueryable<EnrollmentInfo> Query() =>
-        from e in db.Enrollments.AsNoTracking()
-        join c in db.Classes.AsNoTracking() on e.ClassId equals c.Id
+    // Filters are applied to the entities before projecting (a projected record cannot be filtered in SQL).
+    private IQueryable<EnrollmentInfo> Query(System.Linq.Expressions.Expression<Func<Enrollment, bool>> enrollment,
+        System.Linq.Expressions.Expression<Func<ClassSection, bool>> cls) =>
+        from e in db.Enrollments.AsNoTracking().Where(enrollment)
+        join c in db.Classes.AsNoTracking().Where(cls) on e.ClassId equals c.Id
         select new EnrollmentInfo(e.Id, e.StudentId, e.ClassId, c.BranchId, c.TermId, c.CourseId, e.Status != EnrollmentStatus.Withdrawn);
 
     public Task<EnrollmentInfo?> GetAsync(Guid enrollmentId, CancellationToken ct = default) =>
-        Query().FirstOrDefaultAsync(e => e.Id == enrollmentId, ct);
+        Query(e => e.Id == enrollmentId, _ => true).FirstOrDefaultAsync(ct);
 
     public Task<ClassInfo?> GetClassAsync(Guid classId, CancellationToken ct = default) =>
         db.Classes.AsNoTracking().Where(c => c.Id == classId)
             .Select(c => new ClassInfo(c.Id, c.BranchId, c.TermId, c.CourseId, c.Code, c.Name)).FirstOrDefaultAsync(ct);
 
     public async Task<IReadOnlyList<EnrollmentInfo>> ListForClassAsync(Guid classId, CancellationToken ct = default) =>
-        await Query().Where(e => e.ClassId == classId).ToListAsync(ct);
+        await Query(e => e.ClassId == classId, _ => true).ToListAsync(ct);
 
     public async Task<IReadOnlyList<EnrollmentInfo>> ListForTermAsync(Guid termId, CancellationToken ct = default) =>
-        await Query().Where(e => e.TermId == termId).ToListAsync(ct);
+        await Query(_ => true, c => c.TermId == termId).ToListAsync(ct);
 
     public Task<bool> TermExistsAsync(Guid termId, CancellationToken ct = default) => db.Terms.AnyAsync(t => t.Id == termId, ct);
 }
