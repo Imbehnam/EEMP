@@ -79,6 +79,7 @@ export function TenantsListScreen({ notice }: { notice?: string }) {
         caption={t('title')}
         searchLabel={t('searchLabel')}
         emptyText={t('empty')}
+        emptyAction={<CreateButton href="/tenants/new" label={t('new')} />}
         getRowKey={(row) => row.id}
         columns={[
           { key: 'name', header: t('name'), isRowHeader: true, cell: (row) => <Link href={`/tenants/${row.id}`}>{row.name}</Link> },

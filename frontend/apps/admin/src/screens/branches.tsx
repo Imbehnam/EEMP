@@ -33,6 +33,7 @@ export function BranchesListScreen({ notice }: { notice?: string }) {
         caption={t('title')}
         searchLabel={t('searchLabel')}
         emptyText={t('empty')}
+        emptyAction={can('branches.manage') && <CreateButton href="/branches/new" label={t('new')} />}
         getRowKey={(b) => b.id}
         columns={[
           { key: 'name', header: t('name'), isRowHeader: true, cell: (b) => <Link href={`/branches/${b.id}`}>{b.name}</Link> },

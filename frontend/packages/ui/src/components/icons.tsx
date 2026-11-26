@@ -75,16 +75,19 @@ export const IconSearch = (p: IconProps) => (
     <path d="m20 20-4.2-4.2" />
   </Svg>
 );
+const RIGHT = 'm9 6 6 6-6 6';
+const LEFT = 'm15 6-6 6 6 6';
+
 /**
- * Points to the inline end (right in LTR, left in RTL), or the start with towards="start". The wrapper mirrors in RTL — transforms on
- * an outer <svg> are not reliably painted, so the flip lives on an inline-flex span.
+ * Points to the inline end (right in LTR, left in RTL), or the start with towards="start".
+ * Both directions are drawn and styles.css shows the one matching the document direction — no CSS
+ * transform, which proved unreliable on flex-item SVGs in Chromium's compositor.
  */
-export const IconChevron = ({ className, towards = 'end', ...p }: IconProps & { towards?: 'end' | 'start' }) => (
-  <span className={['eemp-icon-dir', className].filter(Boolean).join(' ')} aria-hidden="true">
-    <Svg {...p}>
-      <path d={towards === 'end' ? 'm9 6 6 6-6 6' : 'm15 6-6 6 6 6'} />
-    </Svg>
-  </span>
+export const IconChevron = ({ towards = 'end', ...p }: IconProps & { towards?: 'end' | 'start' }) => (
+  <Svg {...p}>
+    <path className="eemp-ltr-only" d={towards === 'end' ? RIGHT : LEFT} />
+    <path className="eemp-rtl-only" d={towards === 'end' ? LEFT : RIGHT} />
+  </Svg>
 );
 
 export const toneIcons = {

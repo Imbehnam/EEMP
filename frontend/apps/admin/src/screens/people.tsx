@@ -52,6 +52,7 @@ export function PeopleListScreen({ kind, notice }: { kind: PersonKind; notice?: 
         caption={t('title', { kind })}
         searchLabel={t('searchLabel')}
         emptyText={t('empty')}
+        emptyAction={can(`${kind}.manage`) && <CreateButton href={`/people/${kind}/new`} label={t('new', { kind })} />}
         getRowKey={(p) => p.id}
         columns={[
           {

@@ -61,10 +61,12 @@ export interface PagedListProps<T> {
   caption: string;
   searchLabel: string;
   emptyText: string;
+  /** Next step offered when the list is empty and not filtered (e.g. the create button). */
+  emptyAction?: ReactNode;
 }
 
 /** Server-paged, searchable table with loading, empty, error and forbidden states. */
-export function PagedList<T>({ queryKey, load, columns, getRowKey, caption, searchLabel, emptyText }: PagedListProps<T>) {
+export function PagedList<T>({ queryKey, load, columns, getRowKey, caption, searchLabel, emptyText, emptyAction }: PagedListProps<T>) {
   const t = useTranslations('common');
   const format = useLocaleFormat();
   const [page, setPage] = useState(1);
@@ -94,7 +96,7 @@ export function PagedList<T>({ queryKey, load, columns, getRowKey, caption, sear
         getRowKey={getRowKey}
         loading={query.loading}
         loadingLabel={t('loading')}
-        empty={<StatePanel title={search ? t('noResults', { query: search }) : emptyText} />}
+        empty={<StatePanel title={search ? t('noResults', { query: search }) : emptyText} action={search ? undefined : emptyAction} />}
       />
       {data && data.totalCount > 0 && (
         <Pagination

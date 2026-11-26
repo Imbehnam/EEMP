@@ -10,7 +10,7 @@ const Box = styled.div`
   flex-direction: column;
   gap: ${({ theme }) => theme.space[1]};
   min-inline-size: 0;
-  padding: ${({ theme }) => `${theme.space[5]} ${theme.space[6]}`};
+  padding: ${({ theme }) => `${theme.space[4]} ${theme.space[5]}`};
   border-radius: ${({ theme }) => theme.radii.lg};
   border: 1px solid var(--eemp-card-edge, transparent);
   background: ${({ theme }) => theme.colors.surface};
@@ -60,6 +60,6 @@ export function StatCard({ label, value, loading, footer, ...rest }: StatCardPro
 export const StatGrid = styled.div`
   display: grid;
   gap: ${({ theme }) => theme.space[5]};
-  grid-template-columns: repeat(auto-fit, minmax(min(100%, 11rem), 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 9.5rem), 1fr));
   margin-block-end: ${({ theme }) => theme.space[6]};
 `;

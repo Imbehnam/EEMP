@@ -24,6 +24,7 @@ export function UsersListScreen({ notice }: { notice?: string }) {
         caption={t('title')}
         searchLabel={t('searchLabel')}
         emptyText={t('empty')}
+        emptyAction={can('users.manage') && <CreateButton href="/users/new" label={t('new')} />}
         getRowKey={(u) => u.id}
         columns={[
           { key: 'name', header: t('displayName'), isRowHeader: true, cell: (u) => <Link href={`/users/${u.id}`}>{u.displayName}</Link> },
