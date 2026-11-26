@@ -121,7 +121,7 @@ export function createApiClient(options: ApiClientOptions): ApiClient {
   }
 
   async function download(path: string, opts: Omit<RequestOptions, 'body'> = {}): Promise<DownloadedFile> {
-    const accept = 'application/pdf, application/zip, application/octet-stream, application/problem+json';
+    const accept = 'application/pdf, application/zip, text/csv, application/octet-stream, application/problem+json';
     let response = await send('GET', path, opts, accept);
     if (response.status === 401 && options.onUnauthorized) {
       const refreshed = await options.onUnauthorized();

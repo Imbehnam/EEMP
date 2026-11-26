@@ -1,4 +1,6 @@
 import { createAcademicEndpoints } from './academic-endpoints';
+import { createFinanceEndpoints } from './finance-endpoints';
+import { createWorkflowEndpoints } from './workflow-endpoints';
 import type { ApiClient } from './client';
 import type {
   Branch,
@@ -121,6 +123,10 @@ export function createEndpoints(client: ApiClient) {
     },
     /** Milestone 2 academic core (EEMP-008..010). */
     academic: createAcademicEndpoints(client),
+    /** Milestone 3 institute finance (EEMP-014). */
+    finance: createFinanceEndpoints(client),
+    /** Workflow engine (EEMP-011). */
+    workflow: createWorkflowEndpoints(client),
   };
 }
 

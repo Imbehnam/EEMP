@@ -20,6 +20,8 @@ import type {
 } from '../types';
 import { GENDERS, PERSON_KINDS, PERSON_STATUSES, type Gender, type PersonStatus } from '../types';
 import { academicRoutes, emptyAcademic } from './academic';
+import { emptyFinance, financeRoutes, gatewayCallback, resultsBlocked } from './finance';
+import { emptyWorkflow, workflowRoutes } from './workflow';
 import { assertValid, emailCheck, HttpError, json, paginate, problem, randomToken, required, uuid } from './http';
 import { createSeed, PERMISSIONS, TENANT_ADMIN_PERMISSIONS, type MockState, type MockTenantData, type MockUser } from './seed';
 
@@ -54,6 +56,11 @@ export function createMockBackend(options: MockBackendOptions = {}): MockBackend
   let refresh = new Map<string, string>();
 
   const nextVersion = () => btoa(`v${++state.version}`);
+  const tenantToday = (timeZone: string) => {
+    const parts = new Intl.DateTimeFormat('en-CA', { timeZone, year: 'numeric', month: '2-digit', day: '2-digit' }).formatToParts(new Date(now()));
+    const get = (t: string) => parts.find((p) => p.type === t)?.value ?? '';
+    return `${get('year')}-${get('month')}-${get('day')}`;
+  };
 
   function tenantData(user: MockUser): MockTenantData {
     if (!user.tenantId) throw new HttpError(403, 'tenant.forbidden');
@@ -190,6 +197,11 @@ export function createMockBackend(options: MockBackendOptions = {}): MockBackend
       return json(204, null);
     }
 
+    // ---- payment gateway callback (anonymous, bound to the stored authority) ----
+    if (segments[0] === 'finance' && segments[1] === 'gateway' && segments[3] === 'callback' && segments[4] && (method === 'GET' || method === 'POST')) {
+      return gatewayCallback(Object.values(state.data), segments[2]!, segments[4], url, { nextVersion, today: () => tenantToday('Asia/Tehran') });
+    }
+
     const user = authenticate(request);
 
     if (path === '/auth/me' && method === 'GET') return json(200, me(user));
@@ -212,6 +224,22 @@ export function createMockBackend(options: MockBackendOptions = {}): MockBackend
     if (user.isPlatformAdmin) throw new HttpError(403, 'tenant.forbidden'); // platform ops ≠ tenant data
 
     const data = tenantData(user);
+    const today = () => tenantToday(data.organization.timeZone || 'Asia/Tehran');
+    // DL-065: portal grades / report cards of a student with an overdue balance are withheld when the tenant says so.
+    if (segments[0] === 'portal' && segments[1] === 'me' && method === 'GET') {
+      const blockedStudent =
+        segments[2] === 'students' && (segments[4] === 'grades' || segments[4] === 'report-cards')
+          ? segments[3]
+          : segments[2] === 'report-cards'
+            ? data.academic.reportCards.find((c) => c.id === segments[3])?.studentId
+            : undefined;
+      if (blockedStudent && resultsBlocked(data, blockedStudent, today())) throw new HttpError(403, 'finance.results_blocked');
+    }
+    const scoped = (permission: string) => branchesWith(user, permission);
+    const finance = financeRoutes({ user, data, scope: scoped, now, nextVersion, today }, segments, method, url, body);
+    if (finance) return finance;
+    const workflow = workflowRoutes({ user, data, scope: scoped, now, nextVersion, permissionCodes: PERMISSIONS.map((p) => p.code) }, segments, method, url, body);
+    if (workflow) return workflow;
     const academic = academicRoutes(
       { user, data, scope: (permission) => branchesWith(user, permission), now, nextVersion },
       segments, method, url, body,
@@ -278,6 +306,7 @@ export function createMockBackend(options: MockBackendOptions = {}): MockBackend
       state.data[tenant.id] = {
         organization: { name: tenant.name, legalName: null, phone: null, email: null, address: null, defaultLocale: tenant.defaultLocale, timeZone: tenant.timeZone, rowVersion: nextVersion() },
         branches: [], roles: [adminRole], students: [], guardians: [], teachers: [], staff: [], academic: emptyAcademic(),
+        finance: emptyFinance(nextVersion), workflow: emptyWorkflow(),
       };
       state.users.push({
         id: uuid(), tenantId: tenant.id, userName: String(admin.userName), displayName: String(admin.displayName),
