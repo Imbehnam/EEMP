@@ -126,5 +126,19 @@
   "reportCard.pdf.assessmentType.other": "Other",
   "reportCard.pdf.mark.absent": "Absent",
   "reportCard.pdf.mark.exempt": "Exempt",
-  "reportCard.pdf.mark.missing": "Missing"
+  "reportCard.pdf.mark.missing": "Missing",
+  "workflow.definition_key_taken": "A workflow with this key already exists.",
+  "workflow.definition_inactive": "This workflow is inactive.",
+  "workflow.definition_not_published": "This workflow has no published version.",
+  "workflow.version_not_draft": "Only draft versions can be changed or published.",
+  "workflow.draft_exists": "A draft version already exists.",
+  "workflow.invalid_transition": "This action is not allowed in the request's current state.",
+  "workflow.self_approval_forbidden": "You cannot approve or decide on your own request.",
+  "workflow.approver_already_acted": "You already approved an earlier step of this request; another approver must decide.",
+  "workflow.not_eligible": "You are not an approver for the current step of this request.",
+  "workflow.return_not_allowed": "This step does not allow returning the request to the requester.",
+  "workflow.active_instance_exists": "An approval request for this item is already in progress.",
+  "workflow.subject_mismatch": "The workflow does not match this kind of item.",
+  "workflow.unknown_assignee": "The selected approver does not exist.",
+  "workflow.branch_not_found": "The branch does not exist."
 }

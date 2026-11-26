@@ -126,5 +126,19 @@
   "reportCard.pdf.assessmentType.other": "أخرى",
   "reportCard.pdf.mark.absent": "غائب",
   "reportCard.pdf.mark.exempt": "معفى",
-  "reportCard.pdf.mark.missing": "غير مسجل"
+  "reportCard.pdf.mark.missing": "غير مسجل",
+  "workflow.definition_key_taken": "يوجد بالفعل سير عمل بهذا المعرّف.",
+  "workflow.definition_inactive": "سير العمل هذا غير نشط.",
+  "workflow.definition_not_published": "لا يوجد إصدار منشور لسير العمل هذا.",
+  "workflow.version_not_draft": "يمكن تعديل أو نشر الإصدارات المسودة فقط.",
+  "workflow.draft_exists": "يوجد إصدار مسودة بالفعل.",
+  "workflow.invalid_transition": "هذا الإجراء غير مسموح في الحالة الحالية للطلب.",
+  "workflow.self_approval_forbidden": "لا يمكنك الموافقة على طلبك أو البت فيه بنفسك.",
+  "workflow.approver_already_acted": "لقد وافقت بالفعل على خطوة سابقة من هذا الطلب؛ يجب أن يقرر موافق آخر.",
+  "workflow.not_eligible": "لست من الموافقين على الخطوة الحالية لهذا الطلب.",
+  "workflow.return_not_allowed": "لا تسمح هذه الخطوة بإعادة الطلب إلى مقدّمه.",
+  "workflow.active_instance_exists": "يوجد طلب موافقة قيد التنفيذ لهذا العنصر بالفعل.",
+  "workflow.subject_mismatch": "سير العمل لا يطابق هذا النوع من العناصر.",
+  "workflow.unknown_assignee": "الموافق المحدد غير موجود.",
+  "workflow.branch_not_found": "الفرع غير موجود."
 }

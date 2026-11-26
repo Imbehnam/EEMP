@@ -37,6 +37,11 @@ public static class Permissions
     public const string ReportCardsRead = "reportcards.read";
     public const string ReportCardsManage = "reportcards.manage";
     public const string ReportCardsPublish = "reportcards.publish";
+    public const string WorkflowDefinitionsRead = "workflow.definitions.read";
+    public const string WorkflowDefinitionsManage = "workflow.definitions.manage";
+    public const string WorkflowInstancesRead = "workflow.instances.read";
+    public const string WorkflowInstancesManage = "workflow.instances.manage";
+    public const string WorkflowTasksApprove = "workflow.tasks.approve";
 
     public static readonly IReadOnlyList<PermissionDefinition> All =
     [
@@ -72,6 +77,11 @@ public static class Permissions
         new(ReportCardsRead, "academic", true, true),
         new(ReportCardsManage, "academic", true, true),
         new(ReportCardsPublish, "academic", true, true),
+        new(WorkflowDefinitionsRead, "workflow", false, false),
+        new(WorkflowDefinitionsManage, "workflow", false, false),
+        new(WorkflowInstancesRead, "workflow", true, true),
+        new(WorkflowInstancesManage, "workflow", true, true),
+        new(WorkflowTasksApprove, "workflow", true, true),
     ];
 
     private static readonly HashSet<string> Codes = All.Select(p => p.Code).ToHashSet(StringComparer.Ordinal);

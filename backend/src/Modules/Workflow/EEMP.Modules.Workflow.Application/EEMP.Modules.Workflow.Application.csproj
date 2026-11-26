@@ -1,0 +1,12 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <ItemGroup>
+    <ProjectReference Include="../EEMP.Modules.Workflow.Domain/EEMP.Modules.Workflow.Domain.csproj" />
+    <ProjectReference Include="../EEMP.Modules.Workflow.Contracts/EEMP.Modules.Workflow.Contracts.csproj" />
+    <ProjectReference Include="../../../EEMP.SharedKernel/EEMP.SharedKernel.csproj" />
+    <ProjectReference Include="../../Organization/EEMP.Modules.Organization.Contracts/EEMP.Modules.Organization.Contracts.csproj" />
+    <ProjectReference Include="../../Identity/EEMP.Modules.Identity.Contracts/EEMP.Modules.Identity.Contracts.csproj" />
+  </ItemGroup>
+  <ItemGroup>
+    <PackageReference Include="Microsoft.EntityFrameworkCore" />
+  </ItemGroup>
+</Project>
