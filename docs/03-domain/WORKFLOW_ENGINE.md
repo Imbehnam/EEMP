@@ -30,3 +30,11 @@ Submit, assign, claim, comment, request information, return, approve, reject, ca
 - Enforce idempotency for retried commands.
 - Attachments use private storage and malware scanning.
 - Audit administrative edits to workflow definitions.
+
+## Implementation status (EEMP-011 backend, 2026-11-26)
+Implemented per OD-027's first stage — see `docs/08-planning/WORKFLOW_ENGINE_CONTRACT.md` and DL-070..DL-074:
+versioned definitions with sequential permission-based steps, pinned instances, submit (module-initiated start), approve, reject,
+return, resubmit, cancel, maker-checker and distinct approvers, rowversion concurrency, idempotent retries (`requestId`), SLA due
+dates, append-only history, audited definition edits, outbox-based completion callbacks. Not yet: assign/claim/reassign, request
+information, escalate, reopen, withdraw (cancel covers it), conditions/guards, parallel approval, form schemas, attachments,
+notification templates, escalation/reminders.

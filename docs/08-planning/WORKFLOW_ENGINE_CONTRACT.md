@@ -1,6 +1,6 @@
 # EEMP-011 — Workflow engine contract (backend)
 
-Status: implemented on branch `feature/workflow-engine-backend` (stacked on `feature/report-card-pdf`, draft PR #6).
+Status: implemented (tests green) on branch `feature/workflow-engine-backend` (stacked on `feature/report-card-pdf`, draft PR #6).
 Decisions: **DL-070..DL-074** (numbering deliberately starts at DL-070: the parallel Finance work, EEMP-014 on
 `feature/m3-finance-backend`, uses DL-059..DL-066+). Everything in the M1/M2 contracts still holds; this document only adds to it.
 Scope follows OD-027 (accepted assumption, pending confirmation): states / transitions / permission-based approvers / SLA now;
@@ -146,7 +146,8 @@ public sealed record WorkflowEvent(Guid EventId, Guid TenantId, Guid InstanceId,
 Rules:
 - `StartAsync` validates: definition exists, is active and published (`422 workflow.definition_not_published`), its
   `subjectModule/subjectType` equal the command's (`422 workflow.subject_mismatch`), branch exists, no other active instance of the
-  same definition for the subject (`409 workflow.active_instance_exists`), title 1..200 chars. Same idempotency key for another
+  same definition for the subject (`409 workflow.active_instance_exists`), title 1..200 chars. The title is shown to approvers in
+  the inbox: keep personal data in it to what the approver needs (e.g. an invoice number rather than a student's full name). Same idempotency key for another
   subject → `409 workflow.subject_mismatch`.
 - **Outbox**: terminal transitions and `return` write a `WorkflowEvent` into `workflow.OutboxMessages` in the same transaction.
   A dispatcher delivers it after the request commits (inline, best-effort) and a background worker retries leftovers

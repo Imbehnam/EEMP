@@ -245,6 +245,84 @@
   are published for linux-x64/arm64 and musl.
 - Owner: Implementing agent.
 
+### DL-070 — EEMP-011 workflow engine: scope, model and numbering
+- Date: 2026-11-26
+- Status: Recorded (implementing agent) — scope follows OD-027 (accepted assumption, pending business confirmation)
+- Numbering: DL-059..DL-069 are reserved for the parallel Finance work (EEMP-014, `feature/m3-finance-backend`); workflow
+  decisions start at DL-070 so the two branches do not collide.
+- Decision: new `Workflow` module (Domain/Application/Contracts/Infrastructure, schema `workflow`, own migrations history) with
+  tenant-scoped, versioned definitions (`draft` → `published` → `retired`; only drafts editable; publishing retires the previous
+  version) bound to a subject kind (`subjectModule` + `subjectType`). A definition is a sequential chain of 1..10 approval steps
+  (name, permission, optional assignee, optional SLA hours, allowReturn). Instances pin the version they started on and are bound to
+  `subjectModule/subjectType/subjectId` plus an optional branch. Fixed state machine: `pending`(step n) → approve → next step or
+  `approved`; reject → `rejected`; return (comment required, step must allow it) → `returned`; requester resubmits → step 1 (new round);
+  cancel (requester, `workflow.instances.manage` in the branch, or the owning module) → `cancelled`. Every transition writes an
+  append-only history row (actor, step, comment, round) and the generic audit trail. Contract: `docs/08-planning/WORKFLOW_ENGINE_CONTRACT.md`.
+- Alternatives: generic BPMN/expression engine (rejected: arbitrary expressions are a safety risk and premature, WORKFLOW_ENGINE.md
+  "Safety"); per-module local approval steps only (rejected: duplicates maker-checker/inbox/audit logic in every module).
+- Consequences: conditions/guards, parallel/quorum approval, delegation, claim/round-robin, escalation and SLA reminders are not built
+  (OD-027 "later"; reminders depend on EEMP-017). No HTTP start endpoint: only the module owning a subject starts instances in-process.
+- Owner: Implementing agent; business confirmation of OD-027 pending.
+
+### DL-071 — Approver resolution and maker-checker
+- Date: 2026-11-26
+- Status: Recorded (implementing agent) — needs product confirmation
+- Decision: approvers are resolved at action/inbox time from current grants (no stored task assignment): the caller must hold the
+  step `permission` in the instance branch (tenant-level instances, `branchId = null`, need a tenant-wide grant); when the step names
+  `assigneeUserId` the caller must be that user **and** still hold the permission (naming a user never grants access, so a definition
+  editor cannot escalate anyone). Maker-checker is always on: the requester can never approve/reject/return their own instance
+  (`403 workflow.self_approval_forbidden`). `requireDistinctApprovers` (default true) stops one user approving two steps of the same
+  round (`403 workflow.approver_already_acted`). Users who are neither requester, eligible approver, past actor nor holders of
+  `workflow.instances.read` in scope get `404`.
+- Not available: role-based steps (roles are tenant-defined bundles — give the role the permission instead) and "requester's manager"
+  (EEMP has no reporting-line data; needs People/Organization hierarchy first).
+- Owner: Implementing agent.
+
+### DL-072 — Workflow permissions and built-in role grants
+- Date: 2026-11-26
+- Status: Recorded (implementing agent) — needs product confirmation
+- Decision: `workflow.definitions.read`, `workflow.definitions.manage` (non-sensitive, tenant-level configuration);
+  `workflow.instances.read`, `workflow.instances.manage`, `workflow.tasks.approve` (sensitive, branch-scoped). TenantAdmin gets the two
+  definition permissions only (no instance data: instances reference student/financial subjects — security baseline #1); BranchManager
+  gets definitions.read, instances.read/manage and tasks.approve. The permission-code convention test now allows one optional
+  sub-resource (`^[a-z]+(\.[a-z]+)?\.(read|manage|approve|publish)$`) so module codes stay namespaced under `workflow.*`.
+- Consequences: existing tenants' system roles are only updated by the Identity startup system-role sync that the Finance branch adds;
+  this branch only adds codes to `SystemRoleDefinitions` (kept minimal to avoid merge conflicts in `Provisioning.cs`). Until both are
+  merged, tenants provisioned earlier lack the new grants (dev: recreate the database). The admin role editor shows the new
+  `workflow.definitions/instances/tasks` resources without translated labels until the frontend adds them.
+- Owner: Implementing agent.
+
+### DL-073 — In-process integration: IWorkflowService and the workflow outbox
+- Date: 2026-11-26
+- Status: Recorded (implementing agent)
+- Decision: other modules reference `EEMP.Modules.Workflow.Contracts` only. `IWorkflowService.StartAsync` validates the definition
+  (active, published, matching subject kind), the branch and "one active instance per definition+subject", and is idempotent on
+  (subjectModule, idempotencyKey) — a unique index resolves concurrent starts. Completion (`approved/rejected/cancelled`) and `returned`
+  write a `WorkflowEvent` to `workflow.OutboxMessages` in the same SaveChanges as the transition. A dispatcher delivers it inline after
+  the commit (best-effort; failures never fail the user's request) and a background worker (`Workflow:Outbox:WorkerEnabled`, default
+  true, `PollSeconds` 15) retries with exponential backoff (5·n² s, capped at 1 h; `failed` after 10 attempts). Messages are claimed
+  with rowversion + a 2-minute lease so concurrent dispatchers never deliver the same message at the same time; delivery is
+  at-least-once, so `IWorkflowEventHandler`s must be idempotent (dedupe on `EventId` or a guarded state change). Only exception type
+  names are stored/logged. Retried user commands are idempotent through an optional `requestId` (unique per instance); concurrent
+  commands are serialised by the instance rowversion (`409 concurrency.conflict`).
+- Alternatives: synchronous callback inside the transition transaction (rejected: couples modules' transactions and fails the
+  approval when the subject module is down); message broker (rejected: premature, modular monolith).
+- Consequences: starting an instance is not atomic with the subject module's own write — the module saves its subject as pending and
+  retries `StartAsync` with the same idempotency key (documented in the contract §4/§7).
+- Owner: Implementing agent.
+
+### DL-074 — Workflow dev seed and known gaps
+- Date: 2026-11-26
+- Status: Recorded (implementing agent)
+- Decision: the demo tenant gets `discount-approval` (subject `finance/discount`), version 1 published, one step "Branch manager
+  approval" (`workflow.tasks.approve`, 48 h SLA, return allowed). Finance should publish a version 2 using `finance.approve` once it
+  integrates.
+- Known gaps: no frontend yet (inbox/definition editor); no SLA escalation/reminders; no attachments, comments-only threads, delegation
+  or reassignment; instance titles are module-supplied free text (modules must keep personal data in them minimal); history is not
+  exported to the generic audit trail as values (field names only, as everywhere); workflow reads (inbox/detail) are not audited;
+  verified on SQLite only (SQL Server migration generated and checked with `has-pending-model-changes`, not executed here).
+- Owner: Implementing agent.
+
 ## Proposed, not yet approved
 - SQL Server RLS defense-in-depth (engine approved in DL-045; shared database with TenantId adopted as an M1 assumption in DL-049; RLS not implemented, see DL-052).
 - Provider adapters for payments, SMS, video, storage.
