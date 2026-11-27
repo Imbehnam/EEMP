@@ -309,30 +309,6 @@ public static class DevelopmentSeed
         fin.Audit.Add(new FinanceAuditEntry { At = now, Action = "seed.payment", EntityType = "payment", EntityId = payment.Id, InvoiceId = inv.Id, PaymentId = payment.Id, StudentId = sara.Id, Amount = payment.Amount, Currency = "IRR" });
         await fin.SaveChangesAsync(ct);
         logger.LogInformation("Seeded demo finance data");
-    public const string DiscountApprovalKey = "discount-approval";
-
-    /// <summary>
-    /// EEMP-011 sample definition (demo tenant; skipped when it exists): "discount-approval" for finance discounts, version 1
-    /// published, one step approved by a holder of workflow.tasks.approve in the instance branch within 48 hours.
-    /// </summary>
-    private static async Task SeedWorkflowAsync(IServiceProvider sp, ILogger logger, CancellationToken ct)
-    {
-        var db = sp.GetRequiredService<IWorkflowDbContext>();
-        if (await db.Definitions.AnyAsync(d => d.Key == DiscountApprovalKey, ct)) return;
-        var def = new WorkflowDefinition { Key = DiscountApprovalKey, Name = "Discount approval", SubjectModule = "finance", SubjectType = "discount", PublishedVersion = 1 };
-        var version = new WorkflowDefinitionVersion
-        {
-            DefinitionId = def.Id, VersionNo = 1, Status = DefinitionVersionStatus.Published, RequireDistinctApprovers = true,
-            PublishedAt = DateTime.UtcNow,
-        };
-        version.Steps.Add(new WorkflowStepDefinition
-        {
-            VersionId = version.Id, Order = 1, Name = "Branch manager approval", Permission = Permissions.WorkflowTasksApprove, SlaHours = 48, AllowReturn = true,
-        });
-        def.Versions.Add(version);
-        db.Definitions.Add(def);
-        await db.SaveChangesAsync(ct);
-        logger.LogInformation("Seeded workflow definition {Key}", DiscountApprovalKey);
     }
 
     public const string DiscountApprovalKey = "discount-approval";
