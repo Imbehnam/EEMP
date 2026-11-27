@@ -1,6 +1,6 @@
 'use client';
 
-import { authorityFromRedirect, newIdempotencyKey, type Invoice, type PaymentStatusResult, type StudentAccount } from '@eemp/api-client';
+import { authorityFromRedirect, isApiError, newIdempotencyKey, type Invoice, type PaymentStatusResult, type StudentAccount } from '@eemp/api-client';
 import { ErrorAlert, LoadError, useApiMutation, useApiQuery } from '@eemp/app';
 import {
   FileDownloadButton, InvoiceNumber, InvoiceStatusBadge, InvoiceView, Money, MoneyUnitToggle, PaymentStatusBadge, useFinanceLabels, useMoney, usePdfLanguage,
@@ -184,7 +184,9 @@ export function FakeGatewayScreen({ paymentId, authority, invoiceId }: { payment
   if (!paymentId || !authority) return <StatePanel role="alert" title={t('gatewayTitle')} description={t('gatewayMissing')} />;
   const go = async (status: 'OK' | 'NOK') => {
     const r = await callback.run(status);
-    if (r.ok) router.replace(`/pay/result?paymentId=${encodeURIComponent(paymentId)}&status=${r.value.status}${invoiceId ? `&invoiceId=${encodeURIComponent(invoiceId)}` : ''}`);
+    // With Finance:Payments:ReturnUrl configured the callback answers with a redirect to the return page instead of JSON;
+    // either way the result page asks the API for the payment's real status.
+    if (r.ok || !isApiError(r.error)) router.replace(`/pay/result?paymentId=${encodeURIComponent(paymentId)}${invoiceId ? `&invoiceId=${encodeURIComponent(invoiceId)}` : ''}`);
   };
   return (
     <>
