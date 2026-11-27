@@ -243,7 +243,8 @@
       "fee_item_in_use": "This fee item is used on invoices.",
       "fee_item_inactive": "This fee item is inactive.",
       "results_blocked": "Results are withheld because of an overdue balance. Please contact the finance office.",
-      "no_credit": "There is no credit to apply."
+      "no_credit": "There is no credit to apply.",
+      "records_exist": "Invoices or payments reference this record, so it can’t be deleted."
     },
     "workflow": {
       "definition_key_taken": "A workflow with this key already exists.",
@@ -259,7 +260,8 @@
       "active_instance_exists": "An approval request for this item is already in progress.",
       "subject_mismatch": "The workflow does not match this kind of item.",
       "unknown_assignee": "The selected approver does not exist.",
-      "branch_not_found": "The branch does not exist."
+      "branch_not_found": "The branch does not exist.",
+      "step_permission_not_allowed": "Approval steps for this kind of request must require: {allowed}."
     }
   },
   "nav": {
@@ -966,7 +968,13 @@
       "apply": "Apply",
       "filter": "Filter",
       "from": "From",
-      "to": "To"
+      "to": "To",
+      "approvalStatus": "{value, select, pending {Pending} approved {Approved} rejected {Rejected} returned {Returned} other {{value}}}",
+      "rejectNote": "Reason for rejecting (required)",
+      "viewApproval": "Approval request",
+      "returnedNote": "Returned to the requester for changes.",
+      "resubmit": "Edit and resubmit",
+      "resubmitted": "Resubmitted for approval."
     },
     "settings": {
       "title": "Finance settings",
@@ -1103,7 +1111,9 @@
       "payments": "Payments on this invoice",
       "dueDateHint": "Optional. Defaults to the last installment.",
       "noteLabel": "Note",
-      "created": "Draft created."
+      "created": "Draft created.",
+      "resubmitTitle": "Edit and resubmit the discount",
+      "resubmitBody": "The approver returned this request. Adjust it and send it back for approval."
     },
     "generate": {
       "title": "Generate invoices",
@@ -1162,7 +1172,9 @@
       "refundTitle": "Request a refund",
       "refundBody": "Only unapplied credit can be refunded. Another officer must approve it; the money is paid out outside EEMP.",
       "refundRequested": "Refund requested; it is waiting for approval.",
-      "refunds": "Refunds"
+      "refunds": "Refunds",
+      "resubmitTitle": "Edit and resubmit the refund",
+      "resubmitBody": "The approver returned this refund request. Adjust it and send it back for approval."
     },
     "approvals": {
       "title": "Finance approvals",

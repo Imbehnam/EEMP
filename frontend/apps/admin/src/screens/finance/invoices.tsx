@@ -189,7 +189,8 @@ type Dialog =
   | { kind: 'issue' | 'delete' }
   | { kind: 'void' | 'credit' | 'discount' | 'plan' }
   | { kind: 'decide'; discount: InvoiceDiscount; approve: boolean }
-  | { kind: 'withdraw'; discount: InvoiceDiscount };
+  | { kind: 'withdraw'; discount: InvoiceDiscount }
+  | { kind: 'resubmit'; discount: InvoiceDiscount };
 
 export function InvoiceDetailScreen({ id, notice }: { id: string; notice?: string }) {
   const t = useTranslations('finance.invoices');
@@ -225,6 +226,11 @@ export function InvoiceDetailScreen({ id, notice }: { id: string; notice?: strin
       case 'withdraw':
         await api.finance.discounts.remove(d.discount.id);
         return api.finance.invoices.get(inv.id);
+      case 'resubmit':
+        await api.finance.discounts.resubmit(d.discount.id, {
+          kind: discount.kind, type: discount.type, value: Number(toAsciiDigits(discount.value).replace('٫', '.')), reason: reason.trim(), rowVersion: d.discount.rowVersion,
+        });
+        return api.finance.invoices.get(inv.id);
     }
   });
   const errors = useFieldErrors(action.error);
@@ -238,6 +244,10 @@ export function InvoiceDetailScreen({ id, notice }: { id: string; notice?: strin
     setReason('');
     setAmount(null);
     if (d.kind === 'plan') setPlan({ count: 2, firstDueDate: inv.dueDate ?? today, intervalDays: 30 });
+    if (d.kind === 'resubmit') {
+      setDiscount({ kind: d.discount.kind, type: d.discount.type, value: String(d.discount.value) });
+      setReason(d.discount.reason);
+    }
     setDialog(d);
   };
   const doneMessage = (d: Dialog, result: Invoice | null) => {
@@ -248,14 +258,38 @@ export function InvoiceDetailScreen({ id, notice }: { id: string; notice?: strin
       case 'plan': return t('planSaved');
       case 'discount': return t('discountRequested');
       case 'decide': return d.approve ? fc('approved') : fc('rejected');
+      case 'resubmit': return fc('resubmitted');
       default: return null;
     }
   };
-  const needsReason = dialog?.kind === 'void' || dialog?.kind === 'credit' || dialog?.kind === 'discount';
+  // Rejecting needs a reason: the workflow engine records it as the decision comment (DL-082).
+  const needsReason = dialog?.kind === 'void' || dialog?.kind === 'credit' || dialog?.kind === 'discount' || dialog?.kind === 'resubmit'
+    || (dialog?.kind === 'decide' && !dialog.approve);
+  const approvalLink = (d: InvoiceDiscount) => d.workflowInstanceId
+    ? <Link href={`/workflow/instances/${d.workflowInstanceId}`} style={{ fontSize: '0.8125rem' }} data-testid="discount-workflow">{fc('viewApproval')}</Link>
+    : null;
   const discountAction = (discountId: string) => {
     const d = inv.discounts.find((x) => x.id === discountId);
-    if (!d || d.status !== 'pending') return d?.decidedBy ? <span style={{ fontSize: '0.8125rem' }}>{userName(d.decidedBy)}</span> : null;
+    if (!d) return null;
     const own = d.requestedBy === user.id;
+    if (d.status === 'returned') {
+      return (
+        <span style={{ display: 'flex', gap: 4, flexWrap: 'wrap', alignItems: 'center' }}>
+          <span style={{ fontSize: '0.8125rem' }} data-testid="discount-returned">{fc('returnedNote')}</span>
+          {own && manage && <Button size="sm" onClick={() => start({ kind: 'resubmit', discount: d })} data-testid="discount-resubmit">{fc('resubmit')}</Button>}
+          {(own ? manage : can('finance.approve')) && <Button size="sm" variant="ghost" onClick={() => start({ kind: 'withdraw', discount: d })}>{t('withdrawDiscount')}</Button>}
+          {approvalLink(d)}
+        </span>
+      );
+    }
+    if (d.status !== 'pending') {
+      return (
+        <span style={{ display: 'flex', gap: 4, flexWrap: 'wrap', alignItems: 'center', fontSize: '0.8125rem' }}>
+          {d.decidedBy && <span>{userName(d.decidedBy)}</span>}
+          {approvalLink(d)}
+        </span>
+      );
+    }
     return (
       <span style={{ display: 'flex', gap: 4, flexWrap: 'wrap', alignItems: 'center' }}>
         {/* UX only: the API enforces maker ≠ checker (403 finance.maker_checker). */}
@@ -267,6 +301,7 @@ export function InvoiceDetailScreen({ id, notice }: { id: string; notice?: strin
         )}
         {own && <span style={{ fontSize: '0.8125rem' }} data-testid="own-request">{fc('ownRequest')}</span>}
         {(own ? manage : can('finance.approve')) && <Button size="sm" variant="ghost" onClick={() => start({ kind: 'withdraw', discount: d })}>{t('withdrawDiscount')}</Button>}
+        {approvalLink(d)}
       </span>
     );
   };
@@ -320,7 +355,8 @@ export function InvoiceDetailScreen({ id, notice }: { id: string; notice?: strin
                   : dialog?.kind === 'discount' ? t('discountTitle')
                     : dialog?.kind === 'plan' ? t('planTitle')
                       : dialog?.kind === 'decide' ? (dialog.approve ? fc('approve') : fc('reject'))
-                        : t('withdrawDiscount')
+                        : dialog?.kind === 'resubmit' ? t('resubmitTitle')
+                          : t('withdrawDiscount')
         }
         description={
           dialog?.kind === 'issue' ? t('issueBody')
@@ -328,14 +364,16 @@ export function InvoiceDetailScreen({ id, notice }: { id: string; notice?: strin
               : dialog?.kind === 'void' ? t('voidBody')
                 : dialog?.kind === 'credit' ? t('creditNoteBody')
                   : dialog?.kind === 'discount' ? t('discountBody')
-                    : dialog?.kind === 'plan' ? t('planBody') : undefined
+                    : dialog?.kind === 'plan' ? t('planBody')
+                      : dialog?.kind === 'resubmit' ? t('resubmitBody') : undefined
         }
         confirmLabel={
           dialog?.kind === 'issue' ? t('issue')
             : dialog?.kind === 'delete' ? common('delete')
               : dialog?.kind === 'void' ? t('void')
                 : dialog?.kind === 'decide' ? (dialog.approve ? fc('approve') : fc('reject'))
-                  : dialog?.kind === 'withdraw' ? t('withdrawDiscount') : common('save')
+                  : dialog?.kind === 'withdraw' ? t('withdrawDiscount')
+                    : dialog?.kind === 'resubmit' ? fc('resubmit') : common('save')
         }
         cancelLabel={common('cancel')}
         busy={action.busy}
@@ -355,7 +393,7 @@ export function InvoiceDetailScreen({ id, notice }: { id: string; notice?: strin
         }}
       >
         <ErrorAlert error={action.error} onReload={() => { action.reset(); setDialog(null); query.reload(); }} />
-        {dialog?.kind === 'discount' && (
+        {(dialog?.kind === 'discount' || dialog?.kind === 'resubmit') && (
           <FormGrid style={{ marginBlockEnd: 12 }}>
             <SelectField label={t('discountKind')} name="discountKind" value={discount.kind} onChange={(e) => setDiscount({ ...discount, kind: e.target.value as DiscountKind })}
               options={(['discount', 'scholarship', 'sibling'] as const).map((k) => ({ value: k, label: labels.discountKind(k) }))} />
@@ -379,7 +417,7 @@ export function InvoiceDetailScreen({ id, notice }: { id: string; notice?: strin
         )}
         {(needsReason || dialog?.kind === 'decide') && (
           <TextAreaField
-            label={dialog?.kind === 'void' ? t('voidReason') : dialog?.kind === 'decide' ? fc('decide') : fc('reason')}
+            label={dialog?.kind === 'void' ? t('voidReason') : dialog?.kind === 'decide' ? (dialog.approve ? fc('decide') : fc('rejectNote')) : fc('reason')}
             name="reason"
             required={needsReason}
             value={reason}

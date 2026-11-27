@@ -19,7 +19,8 @@ export type PaymentStatus = (typeof PAYMENT_STATUSES)[number];
 export type ChequeStatus = 'received' | 'cleared' | 'bounced';
 export type DiscountKind = 'discount' | 'scholarship' | 'sibling';
 export type DiscountType = 'percent' | 'fixed';
-export type ApprovalStatus = 'pending' | 'approved' | 'rejected';
+/** returned: the workflow approver sent it back; the maker edits and resubmits it, or withdraws it (DL-081). */
+export type ApprovalStatus = 'pending' | 'approved' | 'rejected' | 'returned';
 export type InstallmentStatus = 'open' | 'paid' | 'overdue';
 export type LateFeeType = 'fixed' | 'percent';
 
@@ -105,6 +106,8 @@ export interface InvoiceDiscount {
   decidedAt: UtcInstant | null;
   decisionNote: string | null;
   rowVersion: RowVersion;
+  /** EEMP-011 workflow instance deciding this request (null for requests decided by the local M3 checker). */
+  workflowInstanceId?: Guid | null;
 }
 export interface Installment {
   id: Guid;
@@ -290,6 +293,7 @@ export interface Refund {
   decidedAt: UtcInstant | null;
   decisionNote: string | null;
   rowVersion: RowVersion;
+  workflowInstanceId?: Guid | null;
 }
 export interface ApprovalItem {
   type: 'discount' | 'refund';
@@ -307,6 +311,7 @@ export interface ApprovalItem {
   requestedBy: Guid | null;
   requestedAt: UtcInstant;
   rowVersion: RowVersion;
+  workflowInstanceId?: Guid | null;
 }
 export interface DecisionRequest {
   rowVersion: RowVersion;

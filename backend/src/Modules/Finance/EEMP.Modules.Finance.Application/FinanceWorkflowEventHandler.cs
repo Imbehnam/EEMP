@@ -89,7 +89,7 @@ public sealed class FinanceWorkflowEventHandler(IFinanceDbContext db, FinanceAud
     }
 
     /// <summary>The status an event moves an open request to, or null when it does not apply (already decided, replay, unknown event).</summary>
-    internal static ApprovalStatus? Next(ApprovalStatus current, WorkflowEvent e)
+    public static ApprovalStatus? Next(ApprovalStatus current, WorkflowEvent e)
     {
         if (current is not (ApprovalStatus.Pending or ApprovalStatus.Returned)) return null;
         return (e.EventType, e.Outcome) switch

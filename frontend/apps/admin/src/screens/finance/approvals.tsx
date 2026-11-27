@@ -40,7 +40,7 @@ export function FinanceApprovalsScreen() {
       {message && <Alert tone="success" role="status" style={{ marginBlockEnd: 12 }}>{message}</Alert>}
       <div style={{ maxInlineSize: '16rem', marginBlockEnd: 12 }}>
         <SelectField label={common('status')} name="status" value={status} onChange={(e) => setStatus(e.target.value)}
-          options={['pending', 'approved', 'rejected'].map((s) => ({ value: s, label: labels.approvalStatus(s) }))} />
+          options={['pending', 'returned', 'approved', 'rejected'].map((s) => ({ value: s, label: labels.approvalStatus(s) }))} />
       </div>
       <DataTable
         caption={t('title')}
@@ -58,7 +58,12 @@ export function FinanceApprovalsScreen() {
           { key: 'by', header: fc('requestedBy'), cell: (r) => <>{userName(r.requestedBy)} · {format.dateTime(r.requestedAt)}</> },
           {
             key: 'open', header: '',
-            cell: (r) => (r.invoiceId ? <Link href={`/finance/invoices/${r.invoiceId}`}>{t('openInvoice')}</Link> : r.paymentId ? <Link href={`/finance/payments/${r.paymentId}`}>{t('openPayment')}</Link> : null),
+            cell: (r) => (
+              <span style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+                {r.invoiceId ? <Link href={`/finance/invoices/${r.invoiceId}`}>{t('openInvoice')}</Link> : r.paymentId ? <Link href={`/finance/payments/${r.paymentId}`}>{t('openPayment')}</Link> : null}
+                {r.workflowInstanceId && <Link href={`/workflow/instances/${r.workflowInstanceId}`}>{fc('viewApproval')}</Link>}
+              </span>
+            ),
           },
           ...(status === 'pending'
             ? [{
@@ -86,6 +91,7 @@ export function FinanceApprovalsScreen() {
         onCancel={() => setDecision(null)}
         onConfirm={async () => {
           if (!decision) return;
+          if (!decision.approve && !note.trim()) return;
           const r = await decide.run(decision);
           if (r.ok) {
             setMessage(decision.approve ? fc('approved') : fc('rejected'));
@@ -95,7 +101,9 @@ export function FinanceApprovalsScreen() {
         }}
       >
         <ErrorAlert error={decide.error} onReload={() => { decide.reset(); setDecision(null); query.reload(); }} />
-        <TextAreaField label={fc('decide')} name="note" value={note} onChange={(e) => setNote(e.target.value)} />
+        {/* Rejecting needs a reason: the workflow engine records it as the decision comment (DL-082). */}
+        <TextAreaField label={decision?.approve === false ? fc('rejectNote') : fc('decide')} name="note" required={decision?.approve === false} value={note}
+          onChange={(e) => setNote(e.target.value)} />
       </ConfirmDialog>
     </>
   );

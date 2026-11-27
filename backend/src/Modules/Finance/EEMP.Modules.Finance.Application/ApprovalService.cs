@@ -80,8 +80,20 @@ public sealed class WorkflowFinanceApprovals(IWorkflowService workflow, FinanceA
         if (requestedBy is not null && requestedBy == actor.UserId) throw new ForbiddenException(FinanceErrors.MakerChecker);
     }
 
-    public Task DecideAsync(Guid workflowInstanceId, bool approve, string? note, CancellationToken ct) =>
-        workflow.ActAsync(workflowInstanceId, FinanceApprovalDefinitions.SubjectModule, approve ? "approve" : "reject", note, ct);
+    public async Task DecideAsync(Guid workflowInstanceId, bool approve, string? note, CancellationToken ct)
+    {
+        try
+        {
+            await workflow.ActAsync(workflowInstanceId, FinanceApprovalDefinitions.SubjectModule, approve ? "approve" : "reject", note, ct);
+        }
+        catch (ForbiddenException ex) when (ex.Code == SelfApprovalForbidden)
+        {
+            // The /finance wrappers keep their M3 error contract: the maker cannot decide their own request.
+            throw new ForbiddenException(FinanceErrors.MakerChecker);
+        }
+    }
+
+    private const string SelfApprovalForbidden = "workflow.self_approval_forbidden";
 
     public Task ResubmitAsync(Guid workflowInstanceId, CancellationToken ct) =>
         workflow.ActAsync(workflowInstanceId, FinanceApprovalDefinitions.SubjectModule, "resubmit", null, ct);
