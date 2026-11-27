@@ -22,6 +22,7 @@ import { GENDERS, PERSON_KINDS, PERSON_STATUSES, type Gender, type PersonStatus 
 import { academicRoutes, emptyAcademic } from './academic';
 import { emptyFinance, financeRoutes, gatewayCallback, resultsBlocked } from './finance';
 import { emptyWorkflow, workflowRoutes } from './workflow';
+import { consultationRoutes, emptyConsultation } from './consultation';
 import { assertValid, emailCheck, HttpError, json, paginate, problem, randomToken, required, uuid } from './http';
 import { createSeed, PERMISSIONS, TENANT_ADMIN_PERMISSIONS, type MockState, type MockTenantData, type MockUser } from './seed';
 
@@ -238,6 +239,12 @@ export function createMockBackend(options: MockBackendOptions = {}): MockBackend
     const scoped = (permission: string) => branchesWith(user, permission);
     const finance = financeRoutes({ user, data, scope: scoped, now, nextVersion, today }, segments, method, url, body);
     if (finance) return finance;
+    const consultation = consultationRoutes({
+      user, data, scope: scoped, now, nextVersion,
+      userName: (id) => state.users.find((u) => u.id === id && u.tenantId === user.tenantId)?.displayName ?? '',
+      userExists: (id) => state.users.some((u) => u.id === id && u.tenantId === user.tenantId),
+    }, segments, method, url, body);
+    if (consultation) return consultation;
     const workflow = workflowRoutes({ user, data, scope: scoped, now, nextVersion, permissionCodes: PERMISSIONS.map((p) => p.code) }, segments, method, url, body);
     if (workflow) return workflow;
     const academic = academicRoutes(
@@ -306,7 +313,7 @@ export function createMockBackend(options: MockBackendOptions = {}): MockBackend
       state.data[tenant.id] = {
         organization: { name: tenant.name, legalName: null, phone: null, email: null, address: null, defaultLocale: tenant.defaultLocale, timeZone: tenant.timeZone, rowVersion: nextVersion() },
         branches: [], roles: [adminRole], students: [], guardians: [], teachers: [], staff: [], academic: emptyAcademic(),
-        finance: emptyFinance(nextVersion), workflow: emptyWorkflow(),
+        finance: emptyFinance(nextVersion), workflow: emptyWorkflow(), consultation: emptyConsultation(),
       };
       state.users.push({
         id: uuid(), tenantId: tenant.id, userName: String(admin.userName), displayName: String(admin.displayName),

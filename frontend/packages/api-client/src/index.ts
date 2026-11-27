@@ -5,6 +5,8 @@ export * from './finance-types';
 export * from './finance-endpoints';
 export * from './workflow-types';
 export * from './workflow-endpoints';
+export * from './consultation-types';
+export * from './consultation-endpoints';
 export * from './money';
 export * from './problem';
 export * from './client';

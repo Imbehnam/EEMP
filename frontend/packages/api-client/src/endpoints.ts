@@ -1,6 +1,7 @@
 import { createAcademicEndpoints } from './academic-endpoints';
 import { createFinanceEndpoints } from './finance-endpoints';
 import { createWorkflowEndpoints } from './workflow-endpoints';
+import { createConsultationEndpoints, createSupportEndpoints } from './consultation-endpoints';
 import type { ApiClient } from './client';
 import type {
   Branch,
@@ -127,6 +128,10 @@ export function createEndpoints(client: ApiClient) {
     finance: createFinanceEndpoints(client),
     /** Workflow engine (EEMP-011). */
     workflow: createWorkflowEndpoints(client),
+    /** Consultation booking (EEMP-012). */
+    consultation: createConsultationEndpoints(client),
+    /** Support tickets (EEMP-012). */
+    support: createSupportEndpoints(client),
   };
 }
 
