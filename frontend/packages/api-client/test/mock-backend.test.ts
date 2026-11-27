@@ -71,7 +71,7 @@ describe('mock backend: contract clarifications (2026-11-24)', () => {
     const permissions = (await call('GET', '/permissions', { token })).body as Permission[];
     expect(permissions.find((p) => p.code === 'students.read')).toEqual({ code: 'students.read', module: 'people', isSensitive: true, branchScoped: true });
     expect(permissions.find((p) => p.code === 'organization.read')).toMatchObject({ isSensitive: false, branchScoped: false });
-    expect(permissions.every((p) => /^[a-z]+\.(read|manage)$/.test(p.code))).toBe(true);
+    expect(permissions.every((p) => /^[a-z]+\.(read|manage|approve|publish)$/.test(p.code))).toBe(true);
   });
 
   it('roles and portal students are plain arrays; users are paged with roleCode assignments', async () => {

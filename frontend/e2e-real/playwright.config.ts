@@ -11,6 +11,10 @@ import { defineConfig, devices } from '@playwright/test';
 const api = process.env.EEMP_E2E_API ?? 'http://127.0.0.1:5080';
 const realEnv = `EEMP_API_MOCK=false EEMP_API_BASE_URL=${api}/api/v1 EEMP_COOKIE_SECURE=false NEXT_TELEMETRY_DISABLED=1`;
 
+/** Ports are overridable so several checkouts can run side by side (EEMP_E2E_ADMIN_PORT / EEMP_E2E_WEB_PORT). */
+const adminPort = Number(process.env.EEMP_E2E_ADMIN_PORT ?? 3001);
+const webPort = Number(process.env.EEMP_E2E_WEB_PORT ?? 3000);
+
 export default defineConfig({
   testDir: '.',
   testMatch: /.*\.real\.spec\.ts$/,
@@ -26,14 +30,14 @@ export default defineConfig({
   projects: [{ name: 'real-api' }],
   webServer: [
     {
-      command: `${realEnv} pnpm --filter @eemp/admin exec next start --port 3001`,
-      port: 3001,
+      command: `${realEnv} pnpm --filter @eemp/admin exec next start --port ${adminPort}`,
+      port: adminPort,
       reuseExistingServer: true,
       timeout: 60_000,
     },
     {
-      command: `${realEnv} pnpm --filter @eemp/web exec next start --port 3000`,
-      port: 3000,
+      command: `${realEnv} pnpm --filter @eemp/web exec next start --port ${webPort}`,
+      port: webPort,
       reuseExistingServer: true,
       timeout: 60_000,
     },

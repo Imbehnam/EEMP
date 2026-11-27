@@ -122,6 +122,9 @@ test('cross-branch access is denied (no existence leak) and people screens need 
   await expect(page.getByText('Southern')).toHaveCount(0);
 
   // A tenant admin without people permissions gets the forbidden state, not a crash.
+  // Leave the app first: a request still in flight would hit 401 after the cookies go and redirect to login,
+  // aborting the next navigation (seen as a flaky net::ERR_ABORTED in the M2 run).
+  await page.goto('about:blank');
   await page.context().clearCookies();
   await signInDemoAdmin(page);
   await page.goto(`${ADMIN}/en/people/students`);

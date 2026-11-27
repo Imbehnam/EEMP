@@ -5,6 +5,7 @@
  * A second tenant ("alborz") exists only to exercise tenant isolation.
  */
 import type { Branch, Guardian, Organization, Permission, Role, Staff, Student, Teacher, Tenant } from '../types';
+import { createAcademicSeed, emptyAcademic, type MockAcademic } from './academic';
 
 export interface MockUser {
   id: string;
@@ -29,6 +30,8 @@ export interface MockTenantData {
   guardians: Guardian[];
   teachers: Teacher[];
   staff: Staff[];
+  /** Milestone 2 academic data (catalog, classes, enrollments, attendance, grades, report cards). */
+  academic: MockAcademic;
 }
 
 export interface MockState {
@@ -50,7 +53,7 @@ const MODULE_GROUP: Record<(typeof MODULES)[number], string> = {
   students: 'people', guardians: 'people', teachers: 'people', staff: 'people',
 };
 
-export const PERMISSIONS: Permission[] = MODULES.flatMap((module) =>
+const M1_PERMISSIONS: Permission[] = MODULES.flatMap((module) =>
   (['read', 'manage'] as const).map((action) => ({
     code: `${module}.${action}`,
     module: MODULE_GROUP[module],
@@ -60,9 +63,26 @@ export const PERMISSIONS: Permission[] = MODULES.flatMap((module) =>
   })),
 );
 
+/** Milestone 2 academic permissions (contract §1): module `academic`; catalog is organization-wide and not sensitive. */
+const academic = (code: string, isSensitive: boolean, branchScoped: boolean): Permission => ({ code, module: 'academic', isSensitive, branchScoped });
+export const ACADEMIC_PERMISSIONS: Permission[] = [
+  academic('catalog.read', false, false),
+  academic('catalog.manage', false, false),
+  academic('classes.read', false, true),
+  academic('classes.manage', false, true),
+  ...['enrollments', 'attendance'].flatMap((r) => [academic(`${r}.read`, true, true), academic(`${r}.manage`, true, true)]),
+  ...['read', 'manage', 'approve', 'publish'].map((a) => academic(`grades.${a}`, true, true)),
+  ...['read', 'manage', 'publish'].map((a) => academic(`reportcards.${a}`, true, true)),
+];
+
+export const PERMISSIONS: Permission[] = [...M1_PERMISSIONS, ...ACADEMIC_PERMISSIONS];
+
 const ALL = PERMISSIONS.map((p) => p.code);
 const PEOPLE = ALL.filter((c) => /^(students|guardians|teachers|staff)\./.test(c));
-const TENANT_CONFIG = ALL.filter((c) => !PEOPLE.includes(c));
+const ACADEMIC = ACADEMIC_PERMISSIONS.map((p) => p.code);
+/** No sensitive academic data for tenant admins (security baseline #1): catalog.* and classes.* only. */
+export const TENANT_ADMIN_PERMISSIONS = ALL.filter((c) => !PEOPLE.includes(c) && (!ACADEMIC.includes(c) || /^(catalog|classes)\./.test(c)));
+const TENANT_CONFIG = TENANT_ADMIN_PERMISSIONS;
 
 export const IDS = {
   tenantDemo: '6f1c2a10-0000-4000-8000-000000000001',
@@ -88,6 +108,7 @@ export const IDS = {
   student3: 'd0000000-0000-4000-8000-000000000003',
   guardian1: 'd0000000-0000-4000-8000-000000000011',
   teacher1: 'd0000000-0000-4000-8000-000000000021',
+  teacher2: 'd0000000-0000-4000-8000-000000000022',
   staff1: 'd0000000-0000-4000-8000-000000000031',
 } as const;
 
@@ -152,7 +173,7 @@ export function createSeed(): MockState {
     roles: [
       // Tenant admins manage configuration only — no implicit access to people records (security baseline #1).
       role(IDS.roleTenantAdmin, 'TenantAdmin', 'Tenant administrator', TENANT_CONFIG),
-      role(IDS.roleBranchManager, 'BranchManager', 'Branch manager', ['branches.read', ...PEOPLE]),
+      role(IDS.roleBranchManager, 'BranchManager', 'Branch manager', ['branches.read', ...PEOPLE, ...ACADEMIC]),
       role(IDS.roleTeacher, 'Teacher', 'Teacher', ['students.read']),
       role(IDS.roleGuardian, 'Guardian', 'Guardian', []),
       role(IDS.roleStudent, 'Student', 'Student', []),
@@ -185,6 +206,10 @@ export function createSeed(): MockState {
         birthDate: null, gender: 'female', phone: null, email: 'teacher@demo.example', employeeNumber: 'T-01',
         subjects: 'Mathematics, Physics', userId: IDS.userTeacher,
       }) as Teacher,
+      person({
+        id: IDS.teacher2, branchId: IDS.branchSouth, firstName: 'Hamid', lastName: 'Moradi', nationalId: null,
+        birthDate: null, gender: 'male', phone: null, email: null, employeeNumber: 'T-02', subjects: 'Physics',
+      }) as Teacher,
     ],
     staff: [
       person({
@@ -192,6 +217,7 @@ export function createSeed(): MockState {
         birthDate: null, gender: 'female', phone: null, email: null, employeeNumber: 'S-01', position: 'Registrar',
       }) as Staff,
     ],
+    academic: createAcademicSeed(rv, IDS),
   };
 
   const alborz: MockTenantData = {
@@ -201,7 +227,7 @@ export function createSeed(): MockState {
     },
     branches: [{ id: IDS.branchAlborz, code: 'A01', name: 'Karaj', address: null, phone: null, isActive: true, rowVersion: rv() }],
     roles: [role(IDS.roleAlborzAdmin, 'TenantAdmin', 'Tenant administrator', TENANT_CONFIG)],
-    students: [], guardians: [], teachers: [], staff: [],
+    students: [], guardians: [], teachers: [], staff: [], academic: emptyAcademic(),
   };
 
   const user = (u: Omit<MockUser, 'rowVersion' | 'email' | 'phone' | 'isActive'> & Partial<MockUser>): MockUser => ({

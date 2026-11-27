@@ -1,4 +1,6 @@
 export * from './types';
+export * from './academic-types';
+export * from './academic-endpoints';
 export * from './problem';
 export * from './client';
 export * from './endpoints';

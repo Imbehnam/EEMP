@@ -12,3 +12,4 @@ export * from './LoginForm';
 export * from './PreferencesForm';
 export * from './AppFrame';
 export * from './Providers';
+export * from './DateField';

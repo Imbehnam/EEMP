@@ -119,3 +119,54 @@ The E2E suite covers:
 - No automated axe accessibility scan yet. Components follow WCAG 2.2 AA patterns: labels, `aria-describedby`, focus-visible, 40px targets, and announced errors.
 - Inline `style` attributes should become classes so `'unsafe-inline'` can leave `style-src`.
 - Arabic could later use the Hijri calendar (OD-020); this only changes `localeMetadata.ar.intlLocale`.
+
+---
+
+# Milestone 2 — Academic core (EEMP-008..010)
+
+Status: implemented on branch `feature/m2-academic-frontend` (2026-11-25), verified in mock mode and against `main`'s real API
+(see `docs/09-quality/M2_FRONTEND_INTEGRATION_REPORT.md`). Contract: the shared M2 academic contract plus the M1 clarifications.
+
+## Screens
+
+**Admin console** (navigation section "Academics", each entry hidden unless the permission is held — UX only):
+
+| Route | Permission (UI hint) | What it does |
+| --- | --- | --- |
+| `/academic/years`, `/new`, `/[id]` | `catalog.read` / `catalog.manage` | Years (status, dates) and, on the year page, its **terms** (add/edit/delete; overlap and outside-year errors) |
+| `/academic/subjects`, `/courses`, `/grading-schemes` (+ `/new`, `/[id]`) | `catalog.*` | Catalog CRUD; courses pick a subject and optional scheme; schemes edit kind, range, pass mark, decimals, missing-as-zero, default, bands |
+| `/academic/classes`, `/new` | `classes.read` / `classes.manage` | Paged list filtered by term, branch, status; create (term/course/branch immutable afterwards) |
+| `/academic/classes/[id]?tab=overview` | `classes.*` | Details (capacity errors), **weekly schedule editor** (Saturday-first, field errors per slot, room/teacher/student conflicts with the conflicting class named), **teacher assignments** (role, dated) |
+| `…?tab=roster` | `enrollments.*` | Roster, enroll (class full / not open / branch mismatch / timetable conflict errors), withdraw, show withdrawn |
+| `…?tab=attendance` | `attendance.*` | Attendance sheet: date (Jalali for fa), period of that weekday or whole day, per-student status + note, **mark everyone present/absent**, idempotent save, summary |
+| `…?tab=assessments`, `…?tab=gradebook` | `grades.*` | Assessments with weights (share of total), create; gradebook with live totals (scheme, band, pass) |
+| `/academic/assessments/[id]` | `grades.manage/approve/publish` | Score entry (result, score, comment, optional reason), edit/delete draft, workflow buttons per permission and status (submit, approve, return/reopen with reason, publish), grade history |
+| `/academic/report-cards`, `/[id]` | `reportcards.*` | Term/class/status filters, **generate**, **publish all drafts**, list with average/version; card view with versions, publish, print |
+
+**Client portal**: teachers get "My classes" (`/classes`, `/classes/[id]?tab=attendance|assessments|gradebook|roster`,
+`/classes/[id]/assessments/[aid]` — submit only, never approve/publish); students and guardians get `/timetable`, `/attendance`,
+`/grades` (published only), `/report-cards`, `/report-cards/[id]`. Guardians with several linked students choose one
+(`?student=`); the API returns 404 for anyone else.
+
+## Building blocks
+
+- `@eemp/i18n/calendar`: Jalali ⇄ Gregorian (Borkowski 33-year algorithm, cross-checked with Intl for 2000–2040), `parseDateInput` /
+  `formatDateInput`, Saturday-first `WEEKDAYS`, `monthGrid`, `todayIso(zone)`.
+- `@eemp/app` `DateField`: value is always ISO Gregorian; `fa` types/reads `1405/09/03` (Persian or Latin digits), other locales
+  `2026-11-24`; invalid dates are flagged client-side; month picker in the locale calendar, weeks start on Saturday.
+- `@eemp/app/academic`: shared panels used by both apps (attendance sheet, score entry/workflow/history, assessments, gradebook,
+  timetable, report-card view, enum labels via ICU selects).
+- `@eemp/api-client`: `api.academic.*` endpoints and DTOs; the mock backend implements the M2 contract for dev and tests.
+
+## Deviations and assumptions (please confirm)
+
+1. **Saturday-first week in every locale** (en/tr/ar too) for timetables, weekday selects and the date picker, as the tenant is Iranian.
+2. **Arabic dates are Gregorian** (ISO input, Arabic-Indic digits accepted), per OD-020; Hijri can be added later.
+3. **Times** (`HH:mm`) are wall-clock tenant times; they are shown with locale digits and never converted between zones.
+4. **Permission gating in the UI** uses "any assignment holds the code", not the class's branch; the API decides (403/404 are rendered).
+5. **Teacher actions** in the portal assume the active assignment (the API checks it); approve/return/reopen/publish are never offered there.
+6. **Score range** is also enforced by the browser (`max = maxScore`); the server error `academic.score_out_of_range` is mapped to the row.
+7. **Band labels**: the IR20 keys (`excellent`, `good`, `fair`, `pass`, `fail`) are translated; other labels (e.g. `A`–`F`) are shown as stored.
+8. **Report cards**: printable HTML view (no PDF, per contract); the list has no branch filter; the default term is the one containing today in the user's zone.
+9. **Lookups** (terms, courses, schemes, teachers, students for enrollment) load the first 100 records, like M1.
+10. **Mock mode**: admin and web run separate in-process mocks, so cross-app flows (teacher submits → manager publishes → guardian sees) are only covered by the real-API suite.

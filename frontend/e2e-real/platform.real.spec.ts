@@ -23,6 +23,8 @@ test('platform admin: list, create, suspend and activate a tenant; suspended ten
   // Suspend from the detail page.
   await page.getByRole('button', { name: 'Suspend' }).click();
   await page.getByRole('dialog').getByRole('button', { name: 'Suspend' }).click();
+  // The dialog's label follows the new status for a moment before it closes: wait for it to go away first.
+  await expect(page.getByRole('dialog')).toBeHidden();
   await expect(page.getByRole('button', { name: 'Activate' })).toBeVisible();
   await expect(page.getByText('Suspended').first()).toBeVisible();
 
@@ -33,6 +35,7 @@ test('platform admin: list, create, suspend and activate a tenant; suspended ten
 
   await page.getByRole('button', { name: 'Activate' }).click();
   await page.getByRole('dialog').getByRole('button', { name: 'Activate' }).click();
+  await expect(page.getByRole('dialog')).toBeHidden();
   await expect(page.getByRole('button', { name: 'Suspend' })).toBeVisible();
 
   await signIn(other, ADMIN, 'en', slug, 'first.admin', 'FirstAdmin123');

@@ -18,8 +18,10 @@ import type {
   Tenant,
   TokenResponse,
 } from '../types';
-import { GENDERS, MAX_PAGE_SIZE, PERSON_KINDS, PERSON_STATUSES, type Gender, type PersonStatus } from '../types';
-import { createSeed, PERMISSIONS, type MockState, type MockTenantData, type MockUser } from './seed';
+import { GENDERS, PERSON_KINDS, PERSON_STATUSES, type Gender, type PersonStatus } from '../types';
+import { academicRoutes, emptyAcademic } from './academic';
+import { assertValid, emailCheck, HttpError, json, paginate, problem, randomToken, required, uuid } from './http';
+import { createSeed, PERMISSIONS, TENANT_ADMIN_PERMISSIONS, type MockState, type MockTenantData, type MockUser } from './seed';
 
 export const MOCK_API_BASE_URL = 'http://mock.eemp.invalid/api/v1';
 export const DEFAULT_MOCK_PASSWORD = 'eemp-mock';
@@ -42,79 +44,6 @@ export interface MockBackend {
 interface Session {
   userId: string;
   expiresAt: number;
-}
-
-class HttpError extends Error {
-  constructor(
-    readonly status: number,
-    readonly code: string,
-    readonly extra: { errors?: Record<string, string[]>; params?: Record<string, unknown> } = {},
-  ) {
-    super(code);
-  }
-}
-
-const json = (status: number, body: unknown, headers: Record<string, string> = {}) =>
-  new Response(status === 204 ? null : JSON.stringify(body), {
-    status,
-    headers: { 'Content-Type': 'application/json; charset=utf-8', ...headers },
-  });
-
-function problem(error: HttpError, traceId: string) {
-  return new Response(
-    JSON.stringify({
-      type: `https://eemp.dev/problems/${error.code}`,
-      title: 'Mock error',
-      status: error.status,
-      code: error.code,
-      params: error.extra.params ?? {},
-      errors: error.extra.errors,
-      traceId,
-    }),
-    { status: error.status, headers: { 'Content-Type': 'application/problem+json; charset=utf-8' } },
-  );
-}
-
-const randomToken = () =>
-  Array.from(globalThis.crypto.getRandomValues(new Uint8Array(24)), (b) => b.toString(16).padStart(2, '0')).join('');
-
-const uuid = () => globalThis.crypto.randomUUID();
-
-function required(body: Record<string, unknown>, fields: string[]) {
-  const errors: Record<string, string[]> = {};
-  for (const field of fields) {
-    const value = body[field];
-    if (value === undefined || value === null || (typeof value === 'string' && value.trim() === '')) {
-      errors[field] = ['validation.required'];
-    }
-  }
-  return errors;
-}
-
-function assertValid(errors: Record<string, string[]>) {
-  if (Object.keys(errors).length > 0) throw new HttpError(400, 'validation.failed', { errors });
-}
-
-function emailCheck(errors: Record<string, string[]>, body: Record<string, unknown>, field = 'email') {
-  const value = body[field];
-  if (typeof value === 'string' && value !== '' && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value)) {
-    errors[field] = ['validation.invalid_email'];
-  }
-}
-
-function paginate<T>(items: T[], url: URL, searchFields: (item: T) => (string | null | undefined)[]) {
-  const page = Math.max(1, Number(url.searchParams.get('page') ?? '1') || 1);
-  const pageSize = Math.min(MAX_PAGE_SIZE, Math.max(1, Number(url.searchParams.get('pageSize') ?? '20') || 20));
-  const search = (url.searchParams.get('search') ?? '').trim().toLocaleLowerCase();
-  const filtered = search
-    ? items.filter((item) => searchFields(item).some((v) => (v ?? '').toLocaleLowerCase().includes(search)))
-    : items;
-  return {
-    items: filtered.slice((page - 1) * pageSize, page * pageSize),
-    page,
-    pageSize,
-    totalCount: filtered.length,
-  };
 }
 
 export function createMockBackend(options: MockBackendOptions = {}): MockBackend {
@@ -283,6 +212,11 @@ export function createMockBackend(options: MockBackendOptions = {}): MockBackend
     if (user.isPlatformAdmin) throw new HttpError(403, 'tenant.forbidden'); // platform ops ≠ tenant data
 
     const data = tenantData(user);
+    const academic = academicRoutes(
+      { user, data, scope: (permission) => branchesWith(user, permission), now, nextVersion },
+      segments, method, url, body,
+    );
+    if (academic) return academic;
     switch (segments[0]) {
       case 'organization':
         return organizationRoutes(user, data, method, body);
@@ -338,12 +272,12 @@ export function createMockBackend(options: MockBackendOptions = {}): MockBackend
       state.tenants.push(tenant);
       const adminRole: Role = {
         id: uuid(), code: 'TenantAdmin', name: 'Tenant administrator', isSystem: true,
-        permissions: PERMISSIONS.map((p) => p.code).filter((c) => !/^(students|guardians|teachers|staff)\./.test(c)),
+        permissions: [...TENANT_ADMIN_PERMISSIONS],
         rowVersion: nextVersion(),
       };
       state.data[tenant.id] = {
         organization: { name: tenant.name, legalName: null, phone: null, email: null, address: null, defaultLocale: tenant.defaultLocale, timeZone: tenant.timeZone, rowVersion: nextVersion() },
-        branches: [], roles: [adminRole], students: [], guardians: [], teachers: [], staff: [],
+        branches: [], roles: [adminRole], students: [], guardians: [], teachers: [], staff: [], academic: emptyAcademic(),
       };
       state.users.push({
         id: uuid(), tenantId: tenant.id, userName: String(admin.userName), displayName: String(admin.displayName),
@@ -432,7 +366,8 @@ export function createMockBackend(options: MockBackendOptions = {}): MockBackend
     }
     if (method === 'DELETE') {
       demand(user, 'branches.manage', null);
-      const inUse = PERSON_KINDS.some((k) => (data[k] as PersonBase[]).some((p) => p.branchId === branch.id));
+      const inUse = PERSON_KINDS.some((k) => (data[k] as PersonBase[]).some((p) => p.branchId === branch.id)) ||
+        data.academic.classes.some((c) => c.branchId === branch.id);
       if (inUse) throw new HttpError(409, 'branch.in_use');
       data.branches = data.branches.filter((b) => b !== branch);
       return json(204, null);
@@ -669,6 +604,11 @@ export function createMockBackend(options: MockBackendOptions = {}): MockBackend
     }
     if (seg.length === 2 && method === 'DELETE') {
       demand(user, `${kind}.manage`, person.branchId);
+      // Referenced by enrollments, report cards or teacher assignments (M2 contract §6).
+      const referenced = kind === 'students'
+        ? data.academic.enrollments.some((e) => e.studentId === person.id) || data.academic.reportCards.some((c) => c.studentId === person.id)
+        : kind === 'teachers' && data.academic.classes.some((c) => c.teachers.some((a) => a.teacherId === person.id));
+      if (referenced) throw new HttpError(409, 'people.in_use');
       (data as unknown as Record<PersonKind, PersonBase[]>)[kind] = list.filter((p) => p !== person);
       return json(204, null);
     }
