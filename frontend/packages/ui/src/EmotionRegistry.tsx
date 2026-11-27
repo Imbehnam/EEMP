@@ -4,6 +4,7 @@ import { CacheProvider, ThemeProvider } from '@emotion/react';
 import { useServerInsertedHTML } from 'next/navigation';
 import { useState, type ReactNode } from 'react';
 
+import { DirectionProvider } from './components/direction';
 import { createEmotionCache, type Dir } from './createEmotionCache';
 import { tokens } from './tokens';
 
@@ -74,7 +75,9 @@ export function EmotionRegistry({ dir, nonce, children }: EmotionRegistryProps) 
 
   return (
     <CacheProvider value={registry.cache}>
-      <ThemeProvider theme={tokens}>{children}</ThemeProvider>
+      <ThemeProvider theme={tokens}>
+        <DirectionProvider dir={dir}>{children}</DirectionProvider>
+      </ThemeProvider>
     </CacheProvider>
   );
 }

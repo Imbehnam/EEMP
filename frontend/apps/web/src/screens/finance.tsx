@@ -7,14 +7,14 @@ import {
 } from '@eemp/app/finance';
 import { useLocaleFormat } from '@eemp/i18n/react';
 import { Link, useRouter } from '@eemp/i18n/navigation';
-import { Alert, Button, Card, ConfirmDialog, DataTable, PageHeader, Spinner, StatePanel } from '@eemp/ui';
+import { Alert, Button, Card, ConfirmDialog, DataTable, DirectionalGlyph, PageHeader, Spinner, StatePanel } from '@eemp/ui';
 import { useTranslations } from 'next-intl';
 import { useEffect, useRef, useState } from 'react';
 
 import { StudentPage } from './academic';
 
 const backLink = (href: string, label: string) => (
-  <Link href={href} style={{ fontSize: '0.875rem' }}><span aria-hidden="true" className="eemp-flip">{'←'}</span> {label}</Link>
+  <Link href={href} style={{ fontSize: '0.875rem' }}><DirectionalGlyph towards="start" /> {label}</Link>
 );
 
 /* ======================= account: invoices, installments, balance, receipts ======================= */

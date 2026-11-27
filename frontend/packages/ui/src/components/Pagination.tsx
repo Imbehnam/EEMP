@@ -3,7 +3,7 @@
 import styled from '@emotion/styled';
 
 import { Button } from './Button';
-import { IconChevron } from './icons';
+import { IconChevron } from './direction';
 
 const Nav = styled.nav`
   display: flex;
