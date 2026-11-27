@@ -26,7 +26,6 @@ namespace EEMP.Modules.Finance.Infrastructure.Migrations
             modelBuilder.Entity("EEMP.Modules.Finance.Domain.FeeItem", b =>
                 {
                     b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
                         .HasColumnType("uniqueidentifier");
 
                     b.Property<decimal>("Amount")
@@ -87,7 +86,6 @@ namespace EEMP.Modules.Finance.Infrastructure.Migrations
             modelBuilder.Entity("EEMP.Modules.Finance.Domain.FeeType", b =>
                 {
                     b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
                         .HasColumnType("uniqueidentifier");
 
                     b.Property<string>("Code")
@@ -134,7 +132,6 @@ namespace EEMP.Modules.Finance.Infrastructure.Migrations
             modelBuilder.Entity("EEMP.Modules.Finance.Domain.FinanceAuditEntry", b =>
                 {
                     b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
                         .HasColumnType("uniqueidentifier");
 
                     b.Property<string>("Action")
@@ -195,7 +192,6 @@ namespace EEMP.Modules.Finance.Infrastructure.Migrations
             modelBuilder.Entity("EEMP.Modules.Finance.Domain.FinanceSettings", b =>
                 {
                     b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
                         .HasColumnType("uniqueidentifier");
 
                     b.Property<bool>("BlockResultsOnOverdue")
@@ -281,7 +277,6 @@ namespace EEMP.Modules.Finance.Infrastructure.Migrations
             modelBuilder.Entity("EEMP.Modules.Finance.Domain.Installment", b =>
                 {
                     b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
                         .HasColumnType("uniqueidentifier");
 
                     b.Property<decimal>("Amount")
@@ -318,7 +313,6 @@ namespace EEMP.Modules.Finance.Infrastructure.Migrations
             modelBuilder.Entity("EEMP.Modules.Finance.Domain.Invoice", b =>
                 {
                     b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
                         .HasColumnType("uniqueidentifier");
 
                     b.Property<Guid>("BranchId")
@@ -425,7 +419,6 @@ namespace EEMP.Modules.Finance.Infrastructure.Migrations
             modelBuilder.Entity("EEMP.Modules.Finance.Domain.InvoiceAdjustment", b =>
                 {
                     b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
                         .HasColumnType("uniqueidentifier");
 
                     b.Property<decimal>("Amount")
@@ -476,7 +469,6 @@ namespace EEMP.Modules.Finance.Infrastructure.Migrations
             modelBuilder.Entity("EEMP.Modules.Finance.Domain.InvoiceDiscount", b =>
                 {
                     b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
                         .HasColumnType("uniqueidentifier");
 
                     b.Property<decimal>("Amount")
@@ -539,6 +531,9 @@ namespace EEMP.Modules.Finance.Infrastructure.Migrations
                     b.Property<decimal>("Value")
                         .HasColumnType("decimal(19,4)");
 
+                    b.Property<Guid?>("WorkflowInstanceId")
+                        .HasColumnType("uniqueidentifier");
+
                     b.HasKey("Id");
 
                     b.HasAlternateKey("TenantId", "Id");
@@ -555,7 +550,6 @@ namespace EEMP.Modules.Finance.Infrastructure.Migrations
             modelBuilder.Entity("EEMP.Modules.Finance.Domain.InvoiceLine", b =>
                 {
                     b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
                         .HasColumnType("uniqueidentifier");
 
                     b.Property<decimal>("Amount")
@@ -627,7 +621,6 @@ namespace EEMP.Modules.Finance.Infrastructure.Migrations
             modelBuilder.Entity("EEMP.Modules.Finance.Domain.Payment", b =>
                 {
                     b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
                         .HasColumnType("uniqueidentifier");
 
                     b.Property<decimal>("Allocated")
@@ -760,7 +753,6 @@ namespace EEMP.Modules.Finance.Infrastructure.Migrations
             modelBuilder.Entity("EEMP.Modules.Finance.Domain.PaymentAllocation", b =>
                 {
                     b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
                         .HasColumnType("uniqueidentifier");
 
                     b.Property<decimal>("Amount")
@@ -795,7 +787,6 @@ namespace EEMP.Modules.Finance.Infrastructure.Migrations
             modelBuilder.Entity("EEMP.Modules.Finance.Domain.Refund", b =>
                 {
                     b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
                         .HasColumnType("uniqueidentifier");
 
                     b.Property<decimal>("Amount")
@@ -856,6 +847,9 @@ namespace EEMP.Modules.Finance.Infrastructure.Migrations
 
                     b.Property<DateTime?>("UpdatedAt")
                         .HasColumnType("datetime2");
+
+                    b.Property<Guid?>("WorkflowInstanceId")
+                        .HasColumnType("uniqueidentifier");
 
                     b.HasKey("Id");
 

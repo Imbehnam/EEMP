@@ -6,6 +6,7 @@
     <ProjectReference Include="../../People/EEMP.Modules.People.Contracts/EEMP.Modules.People.Contracts.csproj" />
     <ProjectReference Include="../../Identity/EEMP.Modules.Identity.Contracts/EEMP.Modules.Identity.Contracts.csproj" />
     <ProjectReference Include="../../Academic/EEMP.Modules.Academic.Contracts/EEMP.Modules.Academic.Contracts.csproj" />
+    <ProjectReference Include="../../Finance/EEMP.Modules.Finance.Contracts/EEMP.Modules.Finance.Contracts.csproj" />
   </ItemGroup>
   <ItemGroup>
     <PackageReference Include="Microsoft.EntityFrameworkCore" />

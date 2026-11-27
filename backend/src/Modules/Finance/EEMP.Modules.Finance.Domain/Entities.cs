@@ -5,7 +5,8 @@ namespace EEMP.Modules.Finance.Domain;
 public enum InvoiceStatus { Draft, Issued, PartiallyPaid, Paid, Void }
 public enum DiscountKind { Discount, Scholarship, Sibling }
 public enum DiscountType { Percent, Fixed }
-public enum ApprovalStatus { Pending, Approved, Rejected }
+/// <summary>Returned: the workflow approver sent the request back to the maker, who may edit and resubmit or cancel it (DL-081).</summary>
+public enum ApprovalStatus { Pending, Approved, Rejected, Returned }
 public enum PaymentMethod { Cash, Pos, Transfer, Cheque, Online }
 public enum PaymentStatus { Pending, Succeeded, Failed, Cancelled }
 public enum ChequeStatus { Received, Cleared, Bounced }
@@ -111,6 +112,9 @@ public sealed class InvoiceDiscount : TenantEntity
     public Guid? DecidedBy { get; set; }
     public DateTime? DecidedAt { get; set; }
     public string? DecisionNote { get; set; }
+    /// <summary>The EEMP-011 workflow instance deciding this request (DL-081); null for requests decided by the local M3 maker-checker.</summary>
+    public Guid? WorkflowInstanceId { get; set; }
+    public bool IsOpen => Status is ApprovalStatus.Pending or ApprovalStatus.Returned;
 }
 
 public sealed class Installment : ITenantOwned
@@ -207,6 +211,9 @@ public sealed class Refund : TenantEntity
     public Guid? DecidedBy { get; set; }
     public DateTime? DecidedAt { get; set; }
     public string? DecisionNote { get; set; }
+    /// <summary>The EEMP-011 workflow instance deciding this request (DL-081); null for requests decided by the local M3 maker-checker.</summary>
+    public Guid? WorkflowInstanceId { get; set; }
+    public bool IsOpen => Status is ApprovalStatus.Pending or ApprovalStatus.Returned;
 }
 
 /// <summary>Per-tenant gap-free counter (DL-060). Incremented in the same transaction as the numbered document.</summary>

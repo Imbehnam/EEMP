@@ -313,30 +313,46 @@ public static class DevelopmentSeed
         logger.LogInformation("Seeded demo finance data");
     }
 
-    public const string DiscountApprovalKey = "discount-approval";
+    public const string DiscountApprovalKey = FinanceApprovalDefinitions.DiscountKey;
 
     /// <summary>
-    /// EEMP-011 sample definition (demo tenant; skipped when it exists): "discount-approval" for finance discounts, version 1
-    /// published, one step approved by a holder of workflow.tasks.approve in the instance branch within 48 hours.
+    /// Finance approval definitions (DL-083, demo tenant): "discount-approval" and "refund-approval", one step requiring finance.approve in
+    /// the request's branch within 48 hours (the same templates Finance provisions on first use in any tenant). Databases seeded before the
+    /// integration have discount-approval v1 approved by workflow.tasks.approve: a version requiring finance.approve is published over it.
     /// </summary>
     private static async Task SeedWorkflowAsync(IServiceProvider sp, ILogger logger, CancellationToken ct)
     {
-        var db = sp.GetRequiredService<IWorkflowDbContext>();
-        if (await db.Definitions.AnyAsync(d => d.Key == DiscountApprovalKey, ct)) return;
-        var def = new WorkflowDefinition { Key = DiscountApprovalKey, Name = "Discount approval", SubjectModule = "finance", SubjectType = "discount", PublishedVersion = 1 };
-        var version = new WorkflowDefinitionVersion
+        var workflow = sp.GetRequiredService<EEMP.Modules.Workflow.Contracts.IWorkflowService>();
+        foreach (var kind in new[] { "discount", "refund" })
         {
-            DefinitionId = def.Id, VersionNo = 1, Status = DefinitionVersionStatus.Published, RequireDistinctApprovers = true,
-            PublishedAt = DateTime.UtcNow,
-        };
-        version.Steps.Add(new WorkflowStepDefinition
-        {
-            VersionId = version.Id, Order = 1, Name = "Branch manager approval", Permission = Permissions.WorkflowTasksApprove, SlaHours = 48, AllowReturn = true,
-        });
-        def.Versions.Add(version);
-        db.Definitions.Add(def);
-        await db.SaveChangesAsync(ct);
-        logger.LogInformation("Seeded workflow definition {Key}", DiscountApprovalKey);
+            var template = FinanceApprovalDefinitions.For(kind);
+            if (await workflow.EnsureDefinitionAsync(template, ct))
+            {
+                logger.LogInformation("Seeded workflow definition {Key}", template.Key);
+                continue;
+            }
+            var db = sp.GetRequiredService<IWorkflowDbContext>();
+            var def = await db.Definitions.Include(d => d.Versions).ThenInclude(v => v.Steps).FirstAsync(d => d.Key == template.Key, ct);
+            var published = def.Versions.FirstOrDefault(v => v.VersionNo == def.PublishedVersion);
+            if (published is null || published.Steps.All(x => x.Permission == Permissions.FinanceApprove)) continue;
+            var now = DateTime.UtcNow;
+            published.Status = DefinitionVersionStatus.Retired;
+            var next = new WorkflowDefinitionVersion
+            {
+                DefinitionId = def.Id, VersionNo = def.Versions.Max(v => v.VersionNo) + 1, Status = DefinitionVersionStatus.Published,
+                RequireDistinctApprovers = true, PublishedAt = now,
+            };
+            var order = 1;
+            foreach (var step in template.Steps)
+                next.Steps.Add(new WorkflowStepDefinition
+                {
+                    VersionId = next.Id, Order = order++, Name = step.Name, Permission = step.Permission, SlaHours = step.SlaHours, AllowReturn = step.AllowReturn,
+                });
+            db.Versions.Add(next);
+            def.PublishedVersion = next.VersionNo;
+            await db.SaveChangesAsync(ct);
+            logger.LogInformation("Published workflow definition {Key} version {Version} (finance.approve)", template.Key, next.VersionNo);
+        }
     }
 
     public const string SampleReviewKey = "sample-review";

@@ -238,25 +238,76 @@ public sealed class PaymentService(IFinanceDbContext db, FinanceActor actor, Fin
 
     // Refunds (maker side) -------------------------------------------------------------------------------------------------
 
-    public Task<RefundDto> RequestRefundAsync(Guid paymentId, RefundRequest req, CancellationToken ct) => uow.RunAsync(async () =>
+    public async Task<RefundDto> RequestRefundAsync(Guid paymentId, RefundRequest req, CancellationToken ct)
     {
-        var p = await db.Payments.FirstOrDefaultAsync(x => x.Id == paymentId, ct) ?? throw new NotFoundException();
-        await access.EnsureAsync(p.BranchId, Permissions.FinancePaymentsManage, ct);
-        var v = new Validator().RequiredText("reason", req.Reason, 500);
-        var amount = Amount(req.Amount, "amount", p.Currency, v);
-        v.ThrowIfInvalid();
-        if (p.Status != PaymentStatus.Succeeded) throw new ConflictException(FinanceErrors.InvalidState, P(("status", Camel(p.Status))));
-        var pending = await db.Refunds.Where(r => r.PaymentId == p.Id && r.Status == ApprovalStatus.Pending).SumAsync(r => (decimal?)r.Amount, ct) ?? 0;
-        if (amount > p.Unallocated - pending) throw new BusinessRuleException(FinanceErrors.RefundExceedsCredit, P(("available", p.Unallocated - pending)));
-        var r = new Refund { PaymentId = p.Id, StudentId = p.StudentId, BranchId = p.BranchId, Amount = amount!.Value, Currency = p.Currency,
-            Reason = req.Reason!.Trim(), RequestedBy = actor.UserId, RequestedAt = actor.UtcNow };
-        db.Refunds.Add(r);
-        p.UpdatedAt = actor.UtcNow; // serializes concurrent refund requests against the same credit
-        audit.Write("refund.requested", "refund", r.Id, null, p.Id, p.StudentId, r.Amount, r.Currency);
-        await approvals.SubmitAsync(new ApprovalSubject("refund", r.Id, r.BranchId, r.StudentId, r.Amount, r.Currency, r.RequestedBy), ct);
-        await db.SaveChangesAsync(ct);
+        var (r, receipt) = await uow.RunAsync(async () =>
+        {
+            var p = await db.Payments.FirstOrDefaultAsync(x => x.Id == paymentId, ct) ?? throw new NotFoundException();
+            await access.EnsureAsync(p.BranchId, Permissions.FinancePaymentsManage, ct);
+            var v = new Validator().RequiredText("reason", req.Reason, 500);
+            var amount = Amount(req.Amount, "amount", p.Currency, v);
+            v.ThrowIfInvalid();
+            if (p.Status != PaymentStatus.Succeeded) throw new ConflictException(FinanceErrors.InvalidState, P(("status", Camel(p.Status))));
+            var open = await OpenRefundsAsync(p.Id, null, ct);
+            if (amount > p.Unallocated - open) throw new BusinessRuleException(FinanceErrors.RefundExceedsCredit, P(("available", p.Unallocated - open)));
+            var r = new Refund { PaymentId = p.Id, StudentId = p.StudentId, BranchId = p.BranchId, Amount = amount!.Value, Currency = p.Currency,
+                Reason = req.Reason!.Trim(), RequestedBy = actor.UserId, RequestedAt = actor.UtcNow };
+            db.Refunds.Add(r);
+            p.UpdatedAt = actor.UtcNow; // serializes concurrent refund requests against the same credit
+            audit.Write("refund.requested", "refund", r.Id, null, p.Id, p.StudentId, r.Amount, r.Currency);
+            await db.SaveChangesAsync(ct);
+            return (r, p.ReceiptNumber);
+        }, ct);
+
+        // DL-081: the workflow starts after the request committed; if the engine refuses, the request is withdrawn and the error surfaces.
+        var student = (await people.GetStudentsAsync([r.StudentId], ct)).GetValueOrDefault(r.StudentId);
+        try
+        {
+            r.WorkflowInstanceId = await approvals.SubmitAsync(new ApprovalSubject("refund", r.Id, r.BranchId, r.StudentId, r.Amount, r.Currency,
+                r.RequestedBy, InvoiceService.ApprovalTitle(student, receipt)), ct);
+            if (r.WorkflowInstanceId is not null) await db.SaveChangesAsync(ct);
+        }
+        catch (AppException)
+        {
+            db.Refunds.Remove(r);
+            audit.Write("refund.cancelled", "refund", r.Id, null, r.PaymentId, r.StudentId, r.Amount, r.Currency, "workflow_start_failed");
+            await db.SaveChangesAsync(CancellationToken.None);
+            throw;
+        }
         return ApprovalService.ToDto(r);
-    }, ct);
+    }
+
+    /// <summary>Credit reserved by open (pending or returned) refund requests of a payment.</summary>
+    private async Task<decimal> OpenRefundsAsync(Guid paymentId, Guid? exceptRefundId, CancellationToken ct) =>
+        await db.Refunds.Where(x => x.PaymentId == paymentId && x.Id != exceptRefundId &&
+                                    (x.Status == ApprovalStatus.Pending || x.Status == ApprovalStatus.Returned))
+            .SumAsync(x => (decimal?)x.Amount, ct) ?? 0;
+
+    /// <summary>The maker edits a refund the approver returned and resubmits it to the same workflow instance (DL-081).</summary>
+    public async Task<RefundDto> ResubmitRefundAsync(Guid id, RefundResubmitRequest req, CancellationToken ct)
+    {
+        var r = await db.Refunds.FirstOrDefaultAsync(x => x.Id == id, ct) ?? throw new NotFoundException();
+        await access.EnsureAsync(r.BranchId, Permissions.FinancePaymentsManage, ct);
+        var p = await db.Payments.FirstAsync(x => x.Id == r.PaymentId, ct);
+        var v = new Validator().RequiredText("reason", req.Reason, 500).RowVersion("rowVersion", req.RowVersion);
+        var amount = Amount(req.Amount, "amount", r.Currency, v);
+        v.ThrowIfInvalid();
+        if (r.RequestedBy != actor.UserId) throw new ForbiddenException();
+        if (r.Status != ApprovalStatus.Returned || r.WorkflowInstanceId is not { } wid)
+            throw new ConflictException(FinanceErrors.InvalidState, P(("status", Camel(r.Status))));
+        CheckRowVersion(r, req.RowVersion);
+        var open = await OpenRefundsAsync(p.Id, r.Id, ct);
+        if (amount > p.Unallocated - open) throw new BusinessRuleException(FinanceErrors.RefundExceedsCredit, P(("available", p.Unallocated - open)));
+        r.Amount = amount!.Value;
+        r.Reason = req.Reason!.Trim();
+        r.Status = ApprovalStatus.Pending;
+        r.RequestedAt = actor.UtcNow;
+        p.UpdatedAt = actor.UtcNow;
+        audit.Write("refund.resubmitted", "refund", r.Id, null, p.Id, r.StudentId, r.Amount, r.Currency, $"workflow={wid}");
+        await db.SaveChangesAsync(ct);
+        await approvals.ResubmitAsync(wid, ct);
+        return ApprovalService.ToDto(await db.Refunds.AsNoTracking().FirstAsync(x => x.Id == id, ct));
+    }
 
     public async Task<IReadOnlyList<RefundDto>> ListRefundsAsync(string? status, CancellationToken ct)
     {

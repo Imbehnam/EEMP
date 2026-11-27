@@ -16,6 +16,7 @@ public static class WorkflowErrors
     public const string ReturnNotAllowed = "workflow.return_not_allowed";
     public const string ActiveInstanceExists = "workflow.active_instance_exists";
     public const string SubjectMismatch = "workflow.subject_mismatch";
+    public const string StepPermissionNotAllowed = "workflow.step_permission_not_allowed";
 
     // Field-level codes (validation errors[field]).
     public const string UnknownAssignee = "workflow.unknown_assignee";

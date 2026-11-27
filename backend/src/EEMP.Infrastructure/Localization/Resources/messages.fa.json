@@ -215,5 +215,7 @@
   "workflow.active_instance_exists": "یک درخواست تأیید برای این مورد در جریان است.",
   "workflow.subject_mismatch": "این گردش کار با این نوع مورد مطابقت ندارد.",
   "workflow.unknown_assignee": "تأییدکننده انتخاب‌شده وجود ندارد.",
-  "workflow.branch_not_found": "شعبه وجود ندارد."
+  "workflow.branch_not_found": "شعبه وجود ندارد.",
+  "finance.records_exist": "سوابق مالی (صورتحساب یا پرداخت) به این مورد ارجاع دارند و قابل حذف نیست.",
+  "workflow.step_permission_not_allowed": "مراحل تأیید این نوع مورد باید یکی از این مجوزها را لازم داشته باشند: {allowed}."
 }

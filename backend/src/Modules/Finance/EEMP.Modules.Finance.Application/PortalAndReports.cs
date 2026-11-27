@@ -226,8 +226,8 @@ public sealed class FinanceStanding(IFinanceDbContext db, FinanceActor actor) : 
         return open.Any(i => InvoiceCalculator.IsOverdue(i, today));
     }
 
-    public Task<bool> IsStudentReferencedAsync(Guid studentId, CancellationToken ct = default) =>
-        db.Invoices.AnyAsync(i => i.StudentId == studentId, ct);
+    public async Task<bool> IsStudentReferencedAsync(Guid studentId, CancellationToken ct = default) =>
+        await db.Invoices.AnyAsync(i => i.StudentId == studentId, ct) || await db.Payments.AnyAsync(p => p.StudentId == studentId, ct);
 
     public async Task<bool> IsBranchReferencedAsync(Guid branchId, CancellationToken ct = default) =>
         await db.Invoices.AnyAsync(i => i.BranchId == branchId, ct) || await db.Payments.AnyAsync(p => p.BranchId == branchId, ct)
