@@ -15,7 +15,7 @@ Statuses: `NOT_STARTED`, `IN_PROGRESS`, `IN_REVIEW` (implemented, build and auto
 | EEMP-008 | Academic catalog and class operations | IN_REVIEW | EEMP-007 |
 | EEMP-009 | Enrollment and attendance | IN_REVIEW | EEMP-008 |
 | EEMP-010 | Assessment, grades, report cards | IN_REVIEW | EEMP-009 |
-| EEMP-011 | Workflow engine | NOT_STARTED | EEMP-005 |
+| EEMP-011 | Workflow engine | IN_REVIEW | EEMP-005 |
 | EEMP-012 | Consultation and support booking | NOT_STARTED | EEMP-011 |
 | EEMP-013 | Academic planning and paid service | NOT_STARTED | EEMP-011, EEMP-012 |
 | EEMP-014 | Institute finance and tuition payments | NOT_STARTED | EEMP-007, EEMP-011 |
@@ -98,3 +98,18 @@ Rendered samples were inspected visually (fa/en/ar first pages).
 | ID | Evidence | Open items |
 |---|---|---|
 | EEMP-010 (PDF) | `GET /report-cards/{id}/versions/{n}/pdf`, `GET /portal/me/report-cards/{id}/pdf`, `GET /report-cards/pdf-archive?classId=`; SkiaSharp + HarfBuzzSharp renderer with embedded Vazirmatn (OFL); fa/ar RTL shaping, Persian/Arabic-Indic digits, Jalali for fa; tests `ReportCardPdfTests` (unit: bidi, locale, culture-independent dates, fa/en/ar/tr text extraction, multi-page; integration: permissions, branch scope, draft → portal 404, unlinked guardian/student 404, teacher 404/403, tenant isolation, content type, safe file name, archive); frontend "Download PDF" (admin detail, portal detail) and "Download all PDFs (ZIP)" (admin list with a class selected) through the BFF, fa/en/tr/ar strings, Vitest `report-card-pdf.test.ts` + BFF streaming tests, Playwright mock + real-API download specs | Not audited; untagged PDF; no tenant logo/templates (EEMP-021); Docker image not built here (DL-058) |
+
+## EEMP-011 workflow engine backend evidence (2026-11-26, branch `feature/workflow-engine-backend`)
+
+Backend only. Stacked on `feature/report-card-pdf` (draft PR #6, merged in — no rebase). Decisions DL-070..DL-074 (numbering starts at
+DL-070 because the parallel Finance branch uses DL-059+). Contract: `docs/08-planning/WORKFLOW_ENGINE_CONTRACT.md`. Stays `IN_REVIEW`
+until user verification; OD-027 scope and DL-071/DL-072 need product confirmation.
+
+Commands (`backend/`, .NET SDK 10.0.404): `dotnet build EEMP.slnx` → 0 warnings / 0 errors (warnings as errors); `dotnet test` →
+UnitTests 83/83 (12 new: `WorkflowMachineTests`, `ApproverPolicyTests`), ArchitectureTests 77/77 (Workflow added to boundary,
+classification and schema checks + `WorkflowArchitectureTests`), IntegrationTests 57/57 (6 new `WorkflowTests`); `./check-migrations.sh`
+→ no pending model changes in all 7 contexts. Integration tests run on the SQLite fallback.
+
+| ID | Evidence | Open items |
+|---|---|---|
+| EEMP-011 | `workflow` schema (Definitions, DefinitionVersions, DefinitionSteps, Instances, InstanceHistory, OutboxMessages) + migration; `/workflow/definitions` CRUD/versions/publish, `/workflow/inbox`, `/workflow/instances` (mine/all), `/workflow/instances/{id}` + approve/reject/return/resubmit/cancel; `IWorkflowService` + `IWorkflowEventHandler` contracts; outbox dispatcher + retry worker; `workflow.*` permissions; fa/en/tr/ar error codes; dev seed `discount-approval`; tests `WorkflowTests.Definitions_are_versioned_and_published_versions_are_immutable`, `Two_step_approval_applies_maker_checker_and_distinct_approvers_and_completes_once`, `Instances_are_isolated_by_branch_and_tenant`, `Return_resubmit_and_cancel_notify_the_owning_module`, `Concurrent_and_retried_commands_do_not_corrupt_state`, `Starting_is_idempotent_and_completion_delivery_retries_until_the_handler_succeeds` | Frontend not built; conditions/parallel/delegation/escalation/reminders not built (OD-027); requester's-manager and role-based steps unavailable (DL-071); existing tenants need the Finance branch's system-role sync (DL-072); Finance still uses its local approval step until it integrates (contract §7) |

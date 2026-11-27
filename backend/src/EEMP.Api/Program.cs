@@ -9,6 +9,7 @@ using EEMP.Modules.Identity.Infrastructure;
 using EEMP.Modules.Organization.Infrastructure;
 using EEMP.Modules.People.Infrastructure;
 using EEMP.Modules.Tenancy.Infrastructure;
+using EEMP.Modules.Workflow.Infrastructure;
 using Microsoft.AspNetCore.Diagnostics.HealthChecks;
 using Microsoft.AspNetCore.Http.Json;
 using OpenTelemetry.Resources;
@@ -37,6 +38,7 @@ builder.Services.AddIdentityModule(builder.Configuration);
 builder.Services.AddOrganizationModule();
 builder.Services.AddPeopleModule();
 builder.Services.AddAcademicModule();
+builder.Services.AddWorkflowModule(builder.Configuration);
 builder.Services.AddDevelopmentSeed(builder.Configuration);
 
 builder.Services.AddOpenApi("v1");
@@ -74,6 +76,7 @@ api.MapIdentityEndpoints();
 api.MapOrganizationEndpoints();
 api.MapPeopleEndpoints();
 api.MapAcademicEndpoints();
+api.MapWorkflowEndpoints();
 
 await app.Services.InitializeDatabasesAsync();
 await app.Services.RunDevelopmentSeedAsync();

@@ -10,6 +10,7 @@
     <ProjectReference Include="../Modules/Organization/EEMP.Modules.Organization.Infrastructure/EEMP.Modules.Organization.Infrastructure.csproj" />
     <ProjectReference Include="../Modules/People/EEMP.Modules.People.Infrastructure/EEMP.Modules.People.Infrastructure.csproj" />
     <ProjectReference Include="../Modules/Academic/EEMP.Modules.Academic.Infrastructure/EEMP.Modules.Academic.Infrastructure.csproj" />
+    <ProjectReference Include="../Modules/Workflow/EEMP.Modules.Workflow.Infrastructure/EEMP.Modules.Workflow.Infrastructure.csproj" />
   </ItemGroup>
   <ItemGroup>
     <PackageReference Include="Microsoft.AspNetCore.OpenApi" />
