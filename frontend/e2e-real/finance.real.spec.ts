@@ -97,7 +97,7 @@ test('guardian sees the invoice and pays the balance online through the fake gat
   expect(after.status).toBe('paid');
 });
 
-test('discount maker-checker: the maker sees no approve action; a second officer approves; the invoice is issued', async ({ page }) => {
+test('discount maker-checker through the workflow engine: the maker cannot approve; a second officer approves from the workflow inbox; the discount is applied', async ({ page }) => {
   // A second FinanceOfficer (checker), created by the tenant admin through the API.
   const admin = await apiLogin('demo', 'demo.admin', PASSWORDS.demoAdmin);
   const roles = await api<Role[]>(admin.accessToken, 'GET', '/roles');
@@ -129,18 +129,26 @@ test('discount maker-checker: the maker sees no approve action; a second officer
   await expect(page.getByRole('status').filter({ hasText: 'Discount requested' })).toBeVisible();
   await expect(page.getByTestId('own-request')).toBeVisible();
   await expect(page.getByTestId('discount-approve')).toHaveCount(0);
-  await page.goto(`${ADMIN}/en/finance/approvals`);
-  await expect(page.getByRole('row').filter({ hasText: reason }).getByTestId('own-request')).toBeVisible();
+  // The request is a workflow instance (DL-081): the maker sees it under their requests, not in their inbox.
+  const approvalHref = await page.getByTestId('discount-workflow').getAttribute('href');
+  expect(approvalHref).toMatch(/\/workflow\/instances\/[0-9a-f-]+$/);
+  const instanceId = approvalHref!.split('/').pop()!;
+  await page.goto(`${ADMIN}/en/workflow/inbox`);
+  await expect(page.locator(`a[href$="/workflow/instances/${instanceId}"]`)).toHaveCount(0);
 
   await page.context().clearCookies();
   await signIn(page, ADMIN, 'en', 'demo', checkerName, 'Checker1234');
-  await page.goto(`${ADMIN}/en/finance/approvals`);
-  const row = page.getByRole('row').filter({ hasText: reason });
-  await expect(row).toContainText('1,000,000 rials');
-  await row.getByTestId('approval-approve').click();
+  await page.goto(`${ADMIN}/en/workflow/inbox`);
+  await page.locator(`a[href$="/workflow/instances/${instanceId}"]`).click();
+  await page.waitForURL(new RegExp(`/en/workflow/instances/${instanceId}$`));
+  await page.getByTestId('wf-approve').click();
+  await page.locator('textarea[name="comment"]').fill('Merit confirmed');
   await page.getByRole('dialog').getByRole('button', { name: 'Approve' }).click();
-  await expect(page.getByRole('status').filter({ hasText: 'Approved.' })).toBeVisible();
+  await expect(page.getByTestId('wf-done')).toHaveText('Approved.');
+  await page.goto(`${ADMIN}/en/workflow/inbox`);
+  await expect(page.locator(`a[href$="/workflow/instances/${instanceId}"]`)).toHaveCount(0);
 
+  // The finance event handler applied the discount.
   await page.goto(invoiceUrl);
   await expect(page.getByTestId('invoice-total')).toHaveAttribute('data-amount', '3000000');
   await page.getByRole('button', { name: 'Issue' }).click();
