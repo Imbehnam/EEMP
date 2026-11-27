@@ -43,7 +43,11 @@ public static class Permissions
     public const string FinancePaymentsManage = "finance.payments.manage";
     public const string FinanceApprove = "finance.approve";
     public const string FinanceReports = "finance.reports.read";
-
+    public const string WorkflowDefinitionsRead = "workflow.definitions.read";
+    public const string WorkflowDefinitionsManage = "workflow.definitions.manage";
+    public const string WorkflowInstancesRead = "workflow.instances.read";
+    public const string WorkflowInstancesManage = "workflow.instances.manage";
+    public const string WorkflowTasksApprove = "workflow.tasks.approve";
     public static readonly IReadOnlyList<PermissionDefinition> All =
     [
         new(OrganizationRead, "organization", false, false),
@@ -84,6 +88,11 @@ public static class Permissions
         new(FinancePaymentsManage, "finance", true, true),
         new(FinanceApprove, "finance", true, true),
         new(FinanceReports, "finance", true, true),
+        new(WorkflowDefinitionsRead, "workflow", false, false),
+        new(WorkflowDefinitionsManage, "workflow", false, false),
+        new(WorkflowInstancesRead, "workflow", true, true),
+        new(WorkflowInstancesManage, "workflow", true, true),
+        new(WorkflowTasksApprove, "workflow", true, true),
     ];
 
     private static readonly HashSet<string> Codes = All.Select(p => p.Code).ToHashSet(StringComparer.Ordinal);

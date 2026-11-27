@@ -41,6 +41,12 @@
     <Project Path="src/Modules/Tenancy/EEMP.Modules.Tenancy.Domain/EEMP.Modules.Tenancy.Domain.csproj" />
     <Project Path="src/Modules/Tenancy/EEMP.Modules.Tenancy.Infrastructure/EEMP.Modules.Tenancy.Infrastructure.csproj" />
   </Folder>
+  <Folder Name="/src/Modules/Workflow/">
+    <Project Path="src/Modules/Workflow/EEMP.Modules.Workflow.Application/EEMP.Modules.Workflow.Application.csproj" />
+    <Project Path="src/Modules/Workflow/EEMP.Modules.Workflow.Contracts/EEMP.Modules.Workflow.Contracts.csproj" />
+    <Project Path="src/Modules/Workflow/EEMP.Modules.Workflow.Domain/EEMP.Modules.Workflow.Domain.csproj" />
+    <Project Path="src/Modules/Workflow/EEMP.Modules.Workflow.Infrastructure/EEMP.Modules.Workflow.Infrastructure.csproj" />
+  </Folder>
   <Folder Name="/tests/">
     <Project Path="tests/EEMP.ArchitectureTests/EEMP.ArchitectureTests.csproj" />
     <Project Path="tests/EEMP.IntegrationTests/EEMP.IntegrationTests.csproj" />

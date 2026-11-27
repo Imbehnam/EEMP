@@ -202,4 +202,18 @@
   "finance.pdf.method.transfer": "Havale",
   "finance.pdf.method.cheque": "Çek",
   "finance.pdf.method.online": "Çevrimiçi"
+  "workflow.definition_key_taken": "Bu anahtara sahip bir iş akışı zaten var.",
+  "workflow.definition_inactive": "Bu iş akışı etkin değil.",
+  "workflow.definition_not_published": "Bu iş akışının yayımlanmış bir sürümü yok.",
+  "workflow.version_not_draft": "Yalnızca taslak sürümler değiştirilebilir veya yayımlanabilir.",
+  "workflow.draft_exists": "Zaten bir taslak sürüm var.",
+  "workflow.invalid_transition": "Bu işlem talebin mevcut durumunda yapılamaz.",
+  "workflow.self_approval_forbidden": "Kendi talebinizi onaylayamaz veya karara bağlayamazsınız.",
+  "workflow.approver_already_acted": "Bu talebin önceki bir adımını zaten onayladınız; başka bir onaylayıcı karar vermelidir.",
+  "workflow.not_eligible": "Bu talebin mevcut adımı için onaylayıcı değilsiniz.",
+  "workflow.return_not_allowed": "Bu adım talebin talep sahibine iade edilmesine izin vermiyor.",
+  "workflow.active_instance_exists": "Bu öğe için devam eden bir onay talebi zaten var.",
+  "workflow.subject_mismatch": "İş akışı bu öğe türüyle eşleşmiyor.",
+  "workflow.unknown_assignee": "Seçilen onaylayıcı mevcut değil.",
+  "workflow.branch_not_found": "Şube mevcut değil."
 }

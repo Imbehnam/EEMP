@@ -13,6 +13,7 @@ public class LocalizationCatalogTests
 
     private static IEnumerable<string> ErrorCodeValues() =>
         new[] { typeof(ErrorCodes), typeof(EEMP.Modules.Academic.Domain.AcademicErrors), typeof(EEMP.Modules.Finance.Domain.FinanceErrors) }
+        new[] { typeof(ErrorCodes), typeof(EEMP.Modules.Academic.Domain.AcademicErrors), typeof(EEMP.Modules.Workflow.Domain.WorkflowErrors) }
             .SelectMany(t => t.GetFields(BindingFlags.Public | BindingFlags.Static))
             .Where(f => f.IsLiteral && f.FieldType == typeof(string)).Select(f => (string)f.GetRawConstantValue()!);
 

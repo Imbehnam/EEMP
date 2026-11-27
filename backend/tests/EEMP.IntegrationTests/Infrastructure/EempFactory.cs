@@ -34,6 +34,8 @@ public class EempFactory : WebApplicationFactory<Program>
         builder.UseSetting("RateLimiting:AuthWindowSeconds", "60");
         builder.UseSetting("Serilog:MinimumLevel:Default", "Warning");
         builder.UseSetting("Finance:Gateways:Fake:Enabled", "true");
+        // Tests drive outbox delivery explicitly (inline after each transition, or by calling the dispatcher).
+        builder.UseSetting("Workflow:Outbox:WorkerEnabled", "false");
     }
 
     protected override void Dispose(bool disposing)
