@@ -4,6 +4,19 @@ All notable changes to this project are documented here. Dates are UTC.
 
 ## [Unreleased]
 
+### Added — Consultation and support booking (EEMP-012), 2026-11-28
+- Backend module `Consultation` (schema `consultation`): consultant profiles per branch, availability slots (single and weekly pattern in
+  the tenant time zone), portal booking for linked students in their own branch with atomic slot reservation, lifecycle
+  confirm/complete/no-show/cancel with a configurable cancellation window, confidential append-only consultation notes (own consultant or
+  `consultation.notes.read`; every read audited; TenantAdmin and BranchManager excluded), support tickets with internal notes.
+- Permissions `consultation.*` and `support.*` (DL-091), built-in roles Consultant and SupportDesk, BranchManager grants; booking policy
+  settings; fa/en/tr/ar error messages; dev seed `consultant.one` with a week of slots, a requested booking and a ticket.
+- Admin console: consultation schedule (Saturday-first week view, add/repeat slots), bookings week/list, booking detail with confidential
+  notes, consultants and booking policy, support inbox and ticket thread. Portal: book a consultation, my sessions with cancel, support
+  requests. Shared `@eemp/app/consultation` (week view, thread, badges) and `@eemp/i18n` zoned time helpers.
+- Fixed: `DevelopmentSeed.cs` compile error and invalid `messages.ar.json` left on `main` by the PR #8/#9 merges.
+- Decisions DL-090..DL-095 (Proposed); contract `docs/08-planning/CONSULTATION_CONTRACT.md`.
+
 ### Changed — Accessible neumorphic UI redesign (both web apps), 2026-11-27
 - New "accessible soft UI" design system (DL-080, `docs/05-experience/DESIGN_SYSTEM.md`): soft single-base light and dark palettes,
   dual-shadow raised surfaces, inset inputs/selected states, RTL-mirrored light source, Vazirmatn for every locale, 44px targets,

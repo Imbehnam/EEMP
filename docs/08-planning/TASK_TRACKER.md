@@ -16,7 +16,7 @@ Statuses: `NOT_STARTED`, `IN_PROGRESS`, `IN_REVIEW` (implemented, build and auto
 | EEMP-009 | Enrollment and attendance | IN_REVIEW | EEMP-008 |
 | EEMP-010 | Assessment, grades, report cards | IN_REVIEW | EEMP-009 |
 | EEMP-011 | Workflow engine | IN_REVIEW | EEMP-005 |
-| EEMP-012 | Consultation and support booking | NOT_STARTED | EEMP-011 |
+| EEMP-012 | Consultation and support booking | IN_REVIEW | EEMP-011 |
 | EEMP-013 | Academic planning and paid service | NOT_STARTED | EEMP-011, EEMP-012 |
 | EEMP-014 | Institute finance and tuition payments | IN_PROGRESS (backend IN_REVIEW; frontend not started) | EEMP-007, EEMP-011 |
 | EEMP-015 | Recorded courses and media | NOT_STARTED | EEMP-005 |
@@ -131,3 +131,22 @@ classification and schema checks + `WorkflowArchitectureTests`), IntegrationTest
 | ID | Evidence | Open items |
 |---|---|---|
 | EEMP-011 | `workflow` schema (Definitions, DefinitionVersions, DefinitionSteps, Instances, InstanceHistory, OutboxMessages) + migration; `/workflow/definitions` CRUD/versions/publish, `/workflow/inbox`, `/workflow/instances` (mine/all), `/workflow/instances/{id}` + approve/reject/return/resubmit/cancel; `IWorkflowService` + `IWorkflowEventHandler` contracts; outbox dispatcher + retry worker; `workflow.*` permissions; fa/en/tr/ar error codes; dev seed `discount-approval`; tests `WorkflowTests.Definitions_are_versioned_and_published_versions_are_immutable`, `Two_step_approval_applies_maker_checker_and_distinct_approvers_and_completes_once`, `Instances_are_isolated_by_branch_and_tenant`, `Return_resubmit_and_cancel_notify_the_owning_module`, `Concurrent_and_retried_commands_do_not_corrupt_state`, `Starting_is_idempotent_and_completion_delivery_retries_until_the_handler_succeeds` | Frontend not built; conditions/parallel/delegation/escalation/reminders not built (OD-027); requester's-manager and role-based steps unavailable (DL-071); existing tenants need the Finance branch's system-role sync (DL-072); Finance still uses its local approval step until it integrates (contract §7) |
+
+## EEMP-012 consultation and support booking evidence (2026-11-28, branch `feature/m4-consultation`)
+
+Backend + frontend. Contract `docs/08-planning/CONSULTATION_CONTRACT.md`; decisions DL-090..DL-095 (Proposed). Stays `IN_REVIEW` until user
+verification; the booking-policy defaults (DL-092), the notes model (DL-093) and the role grants (DL-091) need product confirmation.
+
+- Module `EEMP.Modules.Consultation.*` (schema `consultation`, migration `InitialCreate`, covered by `check-migrations.sh`): settings,
+  consultants + branches, slots (single + weekly bulk in the tenant zone), bookings (unique filtered index per slot), append-only notes,
+  tickets + messages; `/consultation/*`, `/portal/consultation/*`, `/support/*`, `/portal/support/*`; 7 permissions, roles Consultant and
+  SupportDesk, BranchManager grants; fa/en/tr/ar error codes; dev seed `consultant.one`.
+- Also fixed on `main` breakage found while branching: `DevelopmentSeed.cs` did not compile (duplicated method after the #8/#9 merge) and
+  `messages.ar.json` was invalid JSON (missing comma).
+- Tests: `ConsultationTests` integration (notes confidentiality incl. TenantAdmin/manager/student denial and audit, guardian linkage and
+  branch rule, double-booking race, cancellation window and staff cancel, settings tenant-wide, tenant/branch isolation, ticket round trip),
+  unit `ConsultationRuleTests`, architecture `ConsultationArchitectureTests`.
+- Frontend: admin schedule (week view, add/repeat slots), bookings week/list, booking detail with confidential notes, consultants + policy,
+  support inbox/thread; portal booking, my sessions (cancel), support; mock backend; Vitest; mock e2e `e2e/consultation.spec.ts` (axe on
+  portal booking and ticket thread); real-API e2e `e2e-real/consultation.real.spec.ts`.
+
