@@ -201,7 +201,7 @@
   "finance.pdf.method.pos": "Kart (POS)",
   "finance.pdf.method.transfer": "Havale",
   "finance.pdf.method.cheque": "Çek",
-  "finance.pdf.method.online": "Çevrimiçi"
+  "finance.pdf.method.online": "Çevrimiçi",
   "workflow.definition_key_taken": "Bu anahtara sahip bir iş akışı zaten var.",
   "workflow.definition_inactive": "Bu iş akışı etkin değil.",
   "workflow.definition_not_published": "Bu iş akışının yayımlanmış bir sürümü yok.",

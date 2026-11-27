@@ -3,6 +3,7 @@
 import styled from '@emotion/styled';
 
 import { Button } from './Button';
+import { IconChevron } from './icons';
 
 const Nav = styled.nav`
   display: flex;
@@ -43,12 +44,12 @@ export function Pagination({ page, pageSize, totalCount, onPageChange, labels }:
       <span aria-live="polite">{labels.summary}</span>
       <div style={{ display: 'flex', gap: 8 }}>
         <Button variant="secondary" size="sm" onClick={() => onPageChange(page - 1)} disabled={page <= 1}>
-          <span aria-hidden="true" className="eemp-flip">{'‹'}</span>
+          <IconChevron size={16} towards="start" />
           {labels.previous}
         </Button>
         <Button variant="secondary" size="sm" onClick={() => onPageChange(page + 1)} disabled={page >= pages}>
           {labels.next}
-          <span aria-hidden="true" className="eemp-flip">{'›'}</span>
+          <IconChevron size={16} />
         </Button>
       </div>
     </Nav>

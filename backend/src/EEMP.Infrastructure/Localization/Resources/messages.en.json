@@ -201,7 +201,7 @@
   "finance.pdf.method.pos": "Card (POS)",
   "finance.pdf.method.transfer": "Bank transfer",
   "finance.pdf.method.cheque": "Cheque",
-  "finance.pdf.method.online": "Online"
+  "finance.pdf.method.online": "Online",
   "workflow.definition_key_taken": "A workflow with this key already exists.",
   "workflow.definition_inactive": "This workflow is inactive.",
   "workflow.definition_not_published": "This workflow has no published version.",

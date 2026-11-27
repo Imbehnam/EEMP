@@ -4,6 +4,22 @@ All notable changes to this project are documented here. Dates are UTC.
 
 ## [Unreleased]
 
+### Changed — Accessible neumorphic UI redesign (both web apps), 2026-11-27
+- New "accessible soft UI" design system (DL-080, `docs/05-experience/DESIGN_SYSTEM.md`): soft single-base light and dark palettes,
+  dual-shadow raised surfaces, inset inputs/selected states, RTL-mirrored light source, Vazirmatn for every locale, 44px targets,
+  visible 3px focus ring, reduced-motion support; all text/boundary pairs WCAG 2.2 AA (tested).
+- Restyled centrally in `@eemp/ui`: buttons, text fields/selects/text areas, checkboxes/radios (global), cards, alerts (icon + text),
+  badges, data tables (sticky header, zebra, tabular numbers, skeleton loading), pagination, search, confirm dialog, state panels.
+- New components: `ToastProvider`/`useToast` (redirect notices now toast), `StatCard`/`StatGrid`, `Skeleton`, icon set incl.
+  direction-aware `IconChevron`.
+- App shell: off-canvas navigation drawer with backdrop below 1024px (Escape/backdrop close, focus management), header actions move
+  into the drawer on phones, breadcrumbs derived from navigation, brand mark, content max width.
+- Screens: redesigned sign-in page (brand panel + card), admin dashboard KPI cards (students, teachers, branches, users, permissions;
+  tenants for platform admins), quick-link and portal-home tiles, empty lists offer the create action.
+- New strings (fa/en/tr/ar): `common.close`, `common.breadcrumb`, `auth.tagline`, `dashboard.kpiTitle|kpiViewAll|kpiPermissions`.
+- Tests: `packages/ui/test/contrast.test.ts`, `packages/ui/test/ssr.test.tsx`, `e2e/a11y.spec.ts` (axe-core via
+  `@axe-core/playwright`), design-review screenshot config `playwright.shots.config.ts`.
+
 ### Added — Milestone 3 institute finance backend (EEMP-014), 2026-11-26
 - New module `Finance` (schema `finance`): settings (VAT, late fees, sibling discount, results blocking, online payments), fee types and
   items, invoices with gap-free per-tenant numbers (INV/R/CN, DL-060), discounts/scholarships with local maker-checker approval (DL-063),
@@ -36,7 +52,6 @@ All notable changes to this project are documented here. Dates are UTC.
 - Tests: unit (state machine, approver policy, backoff), architecture (module boundaries, data classification, tenant-composite FKs,
   permission flags), integration (versioning, maker-checker, distinct approvers, branch/tenant isolation, concurrency, idempotent
   start/retry, outbox retry and exactly-once application by the handler).
-
 
 ### Added — Report-card PDF export (EEMP-010 follow-up), 2026-11-26
 - Backend: server-side PDF rendering of report-card versions from the stored snapshot (DL-057, DL-058) — SkiaSharp + HarfBuzzSharp

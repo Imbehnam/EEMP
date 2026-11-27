@@ -412,6 +412,58 @@ owner approved (2026-11-26) that discount and refund approvals live inside Finan
   verified on SQLite only (SQL Server migration generated and checked with `has-pending-model-changes`, not executed here).
 - Owner: Implementing agent.
 
+### DL-073 — In-process integration: IWorkflowService and the workflow outbox
+- Date: 2026-11-26
+- Status: Recorded (implementing agent)
+- Decision: other modules reference `EEMP.Modules.Workflow.Contracts` only. `IWorkflowService.StartAsync` validates the definition
+  (active, published, matching subject kind), the branch and "one active instance per definition+subject", and is idempotent on
+  (subjectModule, idempotencyKey) — a unique index resolves concurrent starts. Completion (`approved/rejected/cancelled`) and `returned`
+  write a `WorkflowEvent` to `workflow.OutboxMessages` in the same SaveChanges as the transition. A dispatcher delivers it inline after
+  the commit (best-effort; failures never fail the user's request) and a background worker (`Workflow:Outbox:WorkerEnabled`, default
+  true, `PollSeconds` 15) retries with exponential backoff (5·n² s, capped at 1 h; `failed` after 10 attempts). Messages are claimed
+  with rowversion + a 2-minute lease so concurrent dispatchers never deliver the same message at the same time; delivery is
+  at-least-once, so `IWorkflowEventHandler`s must be idempotent (dedupe on `EventId` or a guarded state change). Only exception type
+  names are stored/logged. Retried user commands are idempotent through an optional `requestId` (unique per instance); concurrent
+  commands are serialised by the instance rowversion (`409 concurrency.conflict`).
+- Alternatives: synchronous callback inside the transition transaction (rejected: couples modules' transactions and fails the
+  approval when the subject module is down); message broker (rejected: premature, modular monolith).
+- Consequences: starting an instance is not atomic with the subject module's own write — the module saves its subject as pending and
+  retries `StartAsync` with the same idempotency key (documented in the contract §4/§7).
+- Owner: Implementing agent.
+
+### DL-074 — Workflow dev seed and known gaps
+- Date: 2026-11-26
+- Status: Recorded (implementing agent)
+- Decision: the demo tenant gets `discount-approval` (subject `finance/discount`), version 1 published, one step "Branch manager
+  approval" (`workflow.tasks.approve`, 48 h SLA, return allowed). Finance should publish a version 2 using `finance.approve` once it
+  integrates.
+- Known gaps: no frontend yet (inbox/definition editor); no SLA escalation/reminders; no attachments, comments-only threads, delegation
+  or reassignment; instance titles are module-supplied free text (modules must keep personal data in them minimal); history is not
+  exported to the generic audit trail as values (field names only, as everywhere); workflow reads (inbox/detail) are not audited;
+  verified on SQLite only (SQL Server migration generated and checked with `has-pending-model-changes`, not executed here).
+- Owner: Implementing agent.
+
+### DL-080 — Accessible neumorphic ("soft UI") visual language for both web apps
+- Date: 2026-11-27
+- Status: Proposed (implementing agent; awaiting user review in the draft PR)
+- Context: the user asked to redesign the UI "based on Neumorphism and best practices in UX". Plain neumorphism has well-known
+  accessibility failures (low-contrast surfaces, shadow-only boundaries and states, invisible focus, ambiguous buttons), which would
+  conflict with the WCAG 2.2 AA target in `docs/05-experience/UX_ACCESSIBILITY_DESIGN_SYSTEM.md`.
+- Decision: adopt an "accessible soft UI": one soft base colour per theme with dual light/dark shadows for raised surfaces and inset
+  shadows for value-holding/selected controls, but every meaningful boundary or state also has a non-shadow cue (3:1 hairline on
+  controls, solid accent fills for primary/destructive actions, accent bar + bold text for selection, colour + icon + text for status,
+  3px solid focus outline). Tokens are CSS variables in `@eemp/ui/styles.css` (light + dark), mirrored in `tokens.ts` and the Tailwind
+  preset; the light source mirrors in RTL (`--eemp-lx`). Vazirmatn is used for all four locales. Components are restyled centrally;
+  screens change only for layout (dashboard KPIs, portal tiles, empty-state actions). Details: `docs/05-experience/DESIGN_SYSTEM.md`.
+- Quality gates: palette contrast unit test (both themes), SSR render test through both Emotion caches, axe-core e2e check (fa/en ×
+  light/dark, login/dashboard/list/form/portal home) failing on serious/critical violations.
+- Alternatives: pure neumorphism (rejected: fails WCAG 1.4.11/2.4.7 by design); keep the flat design (rejected: not what was asked);
+  adopt a third-party component library (rejected: large migration of every screen, RTL/Emotion integration risk).
+- Consequences: mobile header moves language/theme/sign-out into the navigation drawer; post-redirect notices become toasts; tables cap
+  their height to keep the header sticky. The branch is based on the unfinished finance frontend (draft), so it must be rebased/merged
+  after that work lands.
+- Owner: Implementing agent; approval: user.
+
 ## Proposed, not yet approved
 - SQL Server RLS defense-in-depth (engine approved in DL-045; shared database with TenantId adopted as an M1 assumption in DL-049; RLS not implemented, see DL-052).
 - Provider adapters for payments, SMS, video, storage.

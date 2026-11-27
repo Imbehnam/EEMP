@@ -3,22 +3,35 @@
 import styled from '@emotion/styled';
 import type { ReactNode } from 'react';
 
-import { Spinner } from './primitives';
+import { Skeleton, VisuallyHidden } from './primitives';
 
+/**
+ * Raised table card. The scroller caps its height so the header row can stay sticky while rows
+ * scroll; hairline row separators + subtle zebra keep rows readable without relying on depth.
+ */
 const Scroller = styled.div`
-  overflow-x: auto;
-  border: 1px solid ${({ theme }) => theme.colors.border};
+  overflow: auto;
+  max-block-size: min(72vh, 52rem);
+  border: 1px solid var(--eemp-card-edge, transparent);
   border-radius: ${({ theme }) => theme.radii.lg};
   background: ${({ theme }) => theme.colors.surface};
+  box-shadow: ${({ theme }) => theme.shadows.raised};
   &:focus-visible {
     outline: 3px solid ${({ theme }) => theme.colors.focus};
+    outline-offset: 2px;
+  }
+  @media print {
+    max-block-size: none;
+    box-shadow: none;
   }
 `;
 
 const Table = styled.table`
   inline-size: 100%;
-  border-collapse: collapse;
+  border-collapse: separate;
+  border-spacing: 0;
   font-size: ${({ theme }) => theme.fontSizes.sm};
+  font-variant-numeric: tabular-nums;
   caption {
     text-align: start;
     padding: ${({ theme }) => `${theme.space[3]} ${theme.space[4]}`};
@@ -31,16 +44,29 @@ const Table = styled.table`
     border-block-end: 1px solid ${({ theme }) => theme.colors.border};
     vertical-align: middle;
   }
-  th {
+  thead th {
+    position: sticky;
+    inset-block-start: 0;
+    z-index: 1;
     background: ${({ theme }) => theme.colors.surfaceMuted};
-    font-weight: ${({ theme }) => theme.fontWeights.semibold};
+    border-block-end-color: ${({ theme }) => theme.colors.borderStrong};
+    color: ${({ theme }) => theme.colors.fg};
+    font-size: ${({ theme }) => theme.fontSizes.xs};
+    font-weight: ${({ theme }) => theme.fontWeights.bold};
+    letter-spacing: 0.02em;
     white-space: nowrap;
   }
-  tbody tr:last-of-type td {
+  tbody tr:nth-of-type(even) {
+    background: color-mix(in srgb, ${({ theme }) => theme.colors.surfaceMuted} 45%, transparent);
+  }
+  tbody tr:last-of-type > * {
     border-block-end: none;
   }
   tbody tr:hover {
-    background: ${({ theme }) => theme.colors.surfaceMuted};
+    background: ${({ theme }) => theme.colors.primarySoft};
+  }
+  tbody th {
+    font-weight: ${({ theme }) => theme.fontWeights.semibold};
   }
 `;
 
@@ -85,11 +111,15 @@ export function DataTable<T>({
         </thead>
         <tbody>
           {loading && rows.length === 0 ? (
-            <tr>
-              <td colSpan={columns.length} style={{ textAlign: 'center', padding: 32 }}>
-                <Spinner label={loadingLabel} size={20} />
-              </td>
-            </tr>
+            Array.from({ length: 4 }, (_, r) => (
+              <tr key={`skeleton-${r}`} aria-hidden="true">
+                {columns.map((c, i) => (
+                  <td key={c.key}>
+                    <Skeleton width={i === 0 ? '70%' : `${40 + ((r + i) % 3) * 15}%`} />
+                  </td>
+                ))}
+              </tr>
+            ))
           ) : rows.length === 0 ? (
             <tr>
               <td colSpan={columns.length}>{empty}</td>
@@ -99,7 +129,7 @@ export function DataTable<T>({
               <tr key={getRowKey(row)}>
                 {columns.map((c) =>
                   c.isRowHeader ? (
-                    <th key={c.key} scope="row" style={{ textAlign: c.align ?? 'start', background: 'transparent' }}>
+                    <th key={c.key} scope="row" style={{ textAlign: c.align ?? 'start' }}>
                       {c.cell(row)}
                     </th>
                   ) : (
@@ -113,6 +143,9 @@ export function DataTable<T>({
           )}
         </tbody>
       </Table>
+      {loading && rows.length === 0 && loadingLabel && (
+        <VisuallyHidden role="status">{loadingLabel}</VisuallyHidden>
+      )}
     </Scroller>
   );
 }

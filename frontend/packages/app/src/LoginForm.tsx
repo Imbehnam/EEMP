@@ -23,6 +23,7 @@ export interface LoginFormProps {
 
 export function LoginForm({ appId, variant, next, reason, mock }: LoginFormProps) {
   const t = useTranslations('auth');
+  const common = useTranslations('common');
   const errors = useErrorTranslator();
   const locale = useLocale();
   const [platform, setPlatform] = useState(false);
@@ -56,16 +57,19 @@ export function LoginForm({ appId, variant, next, reason, mock }: LoginFormProps
   const fieldErrors = apiError ? errors.fields(apiError.fieldErrors) : {};
 
   return (
-    <main
-      id="main-content"
-      style={{ minHeight: '100vh', display: 'grid', placeItems: 'center', padding: 16 }}
-    >
-      <Card style={{ inlineSize: '100%', maxInlineSize: 420 }}>
-        <div style={{ display: 'flex', justifyContent: 'flex-end', marginBlockEnd: 8 }}>
+    <main id="main-content" className="eemp-login">
+      <div className="eemp-login-brand">
+        <span className="eemp-login-mark" aria-hidden="true">{common('appName').charAt(0)}</span>
+        <p className="eemp-login-app">{common('appName')}</p>
+        <p className="eemp-login-tagline">{t('tagline')}</p>
+      </div>
+      <Card className="eemp-login-card">
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, marginBlockEnd: 20 }}>
+          <span className="eemp-login-badge" aria-hidden="true">{common('appName')}</span>
           <LocaleSwitcher />
         </div>
-        <h1 style={{ margin: 0, fontSize: '1.5rem' }}>{t('signInTitle')}</h1>
-        <p style={{ marginBlock: '4px 20px', color: 'var(--eemp-color-fg-muted)' }}>
+        <h1 style={{ margin: 0, fontSize: '1.75rem' }}>{t('signInTitle')}</h1>
+        <p style={{ marginBlock: '4px 24px', color: 'var(--eemp-color-fg-muted)' }}>
           {variant === 'admin' ? t('adminSubtitle') : t('portalSubtitle')}
         </p>
         {mock && <Alert tone="info" style={{ marginBlockEnd: 16 }}>{t('mockNotice')}</Alert>}
@@ -120,7 +124,7 @@ export function LoginForm({ appId, variant, next, reason, mock }: LoginFormProps
               error={fieldErrors.password}
               onChange={(e) => setPassword(e.target.value)}
             />
-            <Button type="submit" loading={busy} fullWidth>
+            <Button type="submit" size="lg" loading={busy} fullWidth>
               {t('submit')}
             </Button>
           </FormGrid>

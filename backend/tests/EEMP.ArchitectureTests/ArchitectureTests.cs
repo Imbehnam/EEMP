@@ -14,8 +14,7 @@ namespace EEMP.ArchitectureTests;
 
 public class ModuleBoundaryTests
 {
-    private static readonly string[] Modules = ["Tenancy", "Identity", "Organization", "People", "Academic", "Finance"];
-    private static readonly string[] Modules = ["Tenancy", "Identity", "Organization", "People", "Academic", "Workflow"];
+    private static readonly string[] Modules = ["Tenancy", "Identity", "Organization", "People", "Academic", "Finance", "Workflow"];
     private static readonly string[] Layers = ["Domain", "Application", "Infrastructure", "Contracts"];
 
     private static Assembly Load(string module, string layer) => Assembly.Load($"EEMP.Modules.{module}.{layer}");
@@ -66,7 +65,7 @@ public class AcademicArchitectureTests
     [Fact]
     public void Contracts_projects_do_not_reference_other_modules()
     {
-        foreach (var m in new[] { "Tenancy", "Identity", "Organization", "People", "Academic", "Workflow", "Finance" })
+        foreach (var m in new[] { "Tenancy", "Identity", "Organization", "People", "Academic", "Finance", "Workflow" })
         {
             var refs = Assembly.Load($"EEMP.Modules.{m}.Contracts").GetReferencedAssemblies().Select(r => r.Name!).ToList();
             Assert.DoesNotContain(refs, r => r.StartsWith("EEMP.Modules.", StringComparison.Ordinal));

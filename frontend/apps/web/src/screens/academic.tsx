@@ -160,7 +160,7 @@ function useStudentContext(selected?: string) {
   return { kind, studentId: null, students: [] as PortalStudent[], loading: false, error: undefined };
 }
 
-function StudentPage({
+export function StudentPage({
   title, intro, selected, children,
 }: { title: string; intro: string; selected?: string; children: (studentId: string) => ReactNode }) {
   const t = useTranslations('academic.portal');

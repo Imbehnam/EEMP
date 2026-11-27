@@ -20,8 +20,8 @@ export function forwardedFor(request: { headers: Headers }): Record<string, stri
   return value ? { 'X-Forwarded-For': value } : {};
 }
 const FORWARD_RESPONSE_HEADERS = ['content-type', 'x-correlation-id', 'location', 'x-total-count', 'content-disposition'];
-/** Binary downloads (report-card PDFs, archives) are streamed through instead of buffered. */
-const STREAMED_TYPES = ['application/pdf', 'application/zip', 'application/octet-stream'];
+/** Downloads (report-card/invoice/receipt PDFs, archives, CSV reports) are streamed through instead of buffered. */
+const STREAMED_TYPES = ['application/pdf', 'application/zip', 'text/csv', 'application/octet-stream'];
 
 function problemResponse(status: number, code: string, extra: Record<string, unknown> = {}) {
   return NextResponse.json(

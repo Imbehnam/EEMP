@@ -201,7 +201,7 @@
   "finance.pdf.method.pos": "کارتخوان",
   "finance.pdf.method.transfer": "انتقال بانکی",
   "finance.pdf.method.cheque": "چک",
-  "finance.pdf.method.online": "پرداخت اینترنتی"
+  "finance.pdf.method.online": "پرداخت اینترنتی",
   "workflow.definition_key_taken": "گردش کاری با این شناسه از قبل وجود دارد.",
   "workflow.definition_inactive": "این گردش کار غیرفعال است.",
   "workflow.definition_not_published": "این گردش کار نسخه منتشرشده‌ای ندارد.",

@@ -5,7 +5,9 @@
  * A second tenant ("alborz") exists only to exercise tenant isolation.
  */
 import type { Branch, Guardian, Organization, Permission, Role, Staff, Student, Teacher, Tenant } from '../types';
-import { createAcademicSeed, emptyAcademic, type MockAcademic } from './academic';
+import { ACADEMIC_IDS, createAcademicSeed, emptyAcademic, type MockAcademic } from './academic';
+import { createFinanceSeed, emptyFinance, type MockFinance } from './finance';
+import { createWorkflowSeed, emptyWorkflow, type MockWorkflow } from './workflow';
 
 export interface MockUser {
   id: string;
@@ -32,6 +34,10 @@ export interface MockTenantData {
   staff: Staff[];
   /** Milestone 2 academic data (catalog, classes, enrollments, attendance, grades, report cards). */
   academic: MockAcademic;
+  /** Milestone 3 finance data (fees, invoices, payments, refunds). */
+  finance: MockFinance;
+  /** EEMP-011 workflow definitions and instances. */
+  workflow: MockWorkflow;
 }
 
 export interface MockState {
@@ -75,13 +81,41 @@ export const ACADEMIC_PERMISSIONS: Permission[] = [
   ...['read', 'manage', 'publish'].map((a) => academic(`reportcards.${a}`, true, true)),
 ];
 
-export const PERMISSIONS: Permission[] = [...M1_PERMISSIONS, ...ACADEMIC_PERMISSIONS];
+/** Milestone 3 finance permissions (contract §2): all sensitive and branch-scoped except fee setup. */
+const fin = (code: string, isSensitive: boolean, branchScoped: boolean): Permission => ({ code, module: 'finance', isSensitive, branchScoped });
+export const FINANCE_PERMISSIONS: Permission[] = [
+  fin('finance.setup.manage', false, false),
+  fin('finance.read', true, true),
+  fin('finance.invoices.manage', true, true),
+  fin('finance.payments.manage', true, true),
+  fin('finance.approve', true, true),
+  fin('finance.reports.read', true, true),
+];
+/** EEMP-011 workflow permissions (DL-072). */
+const wfp = (code: string, isSensitive: boolean, branchScoped: boolean): Permission => ({ code, module: 'workflow', isSensitive, branchScoped });
+export const WORKFLOW_PERMISSIONS: Permission[] = [
+  wfp('workflow.definitions.read', false, false),
+  wfp('workflow.definitions.manage', false, false),
+  wfp('workflow.instances.read', true, true),
+  wfp('workflow.instances.manage', true, true),
+  wfp('workflow.tasks.approve', true, true),
+];
+
+export const PERMISSIONS: Permission[] = [...M1_PERMISSIONS, ...ACADEMIC_PERMISSIONS, ...FINANCE_PERMISSIONS, ...WORKFLOW_PERMISSIONS];
 
 const ALL = PERMISSIONS.map((p) => p.code);
 const PEOPLE = ALL.filter((c) => /^(students|guardians|teachers|staff)\./.test(c));
 const ACADEMIC = ACADEMIC_PERMISSIONS.map((p) => p.code);
 /** No sensitive academic data for tenant admins (security baseline #1): catalog.* and classes.* only. */
-export const TENANT_ADMIN_PERMISSIONS = ALL.filter((c) => !PEOPLE.includes(c) && (!ACADEMIC.includes(c) || /^(catalog|classes)\./.test(c)));
+export const TENANT_ADMIN_PERMISSIONS = ALL.filter(
+  (c) => !PEOPLE.includes(c) && (!ACADEMIC.includes(c) || /^(catalog|classes)\./.test(c)) && !c.startsWith('finance.') && (!c.startsWith('workflow.') || c.startsWith('workflow.definitions.')),
+);
+/** Built-in FinanceOfficer (DL-064): every finance code plus the reads finance screens need. */
+const FINANCE_OFFICER = [
+  ...FINANCE_PERMISSIONS.map((p) => p.code),
+  'organization.read', 'branches.read', 'catalog.read', 'classes.read', 'students.read', 'guardians.read', 'enrollments.read',
+];
+const BRANCH_WORKFLOW = ['workflow.definitions.read', 'workflow.instances.read', 'workflow.instances.manage', 'workflow.tasks.approve'];
 const TENANT_CONFIG = TENANT_ADMIN_PERMISSIONS;
 
 export const IDS = {
@@ -96,6 +130,7 @@ export const IDS = {
   roleGuardian: 'a0000000-0000-4000-8000-000000000004',
   roleStudent: 'a0000000-0000-4000-8000-000000000005',
   roleAlborzAdmin: 'a0000000-0000-4000-8000-000000000006',
+  roleFinanceOfficer: 'a0000000-0000-4000-8000-000000000007',
   userPlatform: 'c0000000-0000-4000-8000-000000000001',
   userDemoAdmin: 'c0000000-0000-4000-8000-000000000002',
   userTeacher: 'c0000000-0000-4000-8000-000000000003',
@@ -103,6 +138,8 @@ export const IDS = {
   userStudent: 'c0000000-0000-4000-8000-000000000005',
   userManagerSouth: 'c0000000-0000-4000-8000-000000000006',
   userAlborzAdmin: 'c0000000-0000-4000-8000-000000000007',
+  userFinance: 'c0000000-0000-4000-8000-000000000008',
+  userFinanceChecker: 'c0000000-0000-4000-8000-000000000009',
   student1: 'd0000000-0000-4000-8000-000000000001',
   student2: 'd0000000-0000-4000-8000-000000000002',
   student3: 'd0000000-0000-4000-8000-000000000003',
@@ -173,10 +210,11 @@ export function createSeed(): MockState {
     roles: [
       // Tenant admins manage configuration only — no implicit access to people records (security baseline #1).
       role(IDS.roleTenantAdmin, 'TenantAdmin', 'Tenant administrator', TENANT_CONFIG),
-      role(IDS.roleBranchManager, 'BranchManager', 'Branch manager', ['branches.read', ...PEOPLE, ...ACADEMIC]),
+      role(IDS.roleBranchManager, 'BranchManager', 'Branch manager', ['branches.read', ...PEOPLE, ...ACADEMIC, ...BRANCH_WORKFLOW]),
       role(IDS.roleTeacher, 'Teacher', 'Teacher', ['students.read']),
       role(IDS.roleGuardian, 'Guardian', 'Guardian', []),
       role(IDS.roleStudent, 'Student', 'Student', []),
+      role(IDS.roleFinanceOfficer, 'FinanceOfficer', 'Finance officer', FINANCE_OFFICER),
     ],
     students: [
       person({
@@ -218,7 +256,13 @@ export function createSeed(): MockState {
       }) as Staff,
     ],
     academic: createAcademicSeed(rv, IDS),
+    finance: emptyFinance(rv),
+    workflow: createWorkflowSeed(rv, IDS),
   };
+  demo.finance = createFinanceSeed(rv, IDS, {
+    term1: ACADEMIC_IDS.term1,
+    enrollmentOf: (studentId) => demo.academic.enrollments.find((e) => e.studentId === studentId && e.classId === ACADEMIC_IDS.classMath7A)?.id,
+  });
 
   const alborz: MockTenantData = {
     organization: {
@@ -227,7 +271,7 @@ export function createSeed(): MockState {
     },
     branches: [{ id: IDS.branchAlborz, code: 'A01', name: 'Karaj', address: null, phone: null, isActive: true, rowVersion: rv() }],
     roles: [role(IDS.roleAlborzAdmin, 'TenantAdmin', 'Tenant administrator', TENANT_CONFIG)],
-    students: [], guardians: [], teachers: [], staff: [], academic: emptyAcademic(),
+    students: [], guardians: [], teachers: [], staff: [], academic: emptyAcademic(), finance: emptyFinance(rv), workflow: emptyWorkflow(),
   };
 
   const user = (u: Omit<MockUser, 'rowVersion' | 'email' | 'phone' | 'isActive'> & Partial<MockUser>): MockUser => ({
@@ -244,6 +288,8 @@ export function createSeed(): MockState {
     user({ id: IDS.userTeacher, tenantId: IDS.tenantDemo, userName: 'teacher.sara', displayName: 'سارا کریمی', locale: 'fa-IR', timeZone: 'Asia/Tehran', isPlatformAdmin: false, assignments: [{ roleId: IDS.roleTeacher, branchId: IDS.branchNorth }] }),
     user({ id: IDS.userGuardian, tenantId: IDS.tenantDemo, userName: 'guardian.ali', displayName: 'علی احمدی', locale: 'fa-IR', timeZone: 'Asia/Tehran', isPlatformAdmin: false, assignments: [{ roleId: IDS.roleGuardian, branchId: IDS.branchNorth }] }),
     user({ id: IDS.userStudent, tenantId: IDS.tenantDemo, userName: 'student.reza', displayName: 'رضا احمدی', locale: 'fa-IR', timeZone: 'Asia/Tehran', isPlatformAdmin: false, assignments: [{ roleId: IDS.roleStudent, branchId: IDS.branchNorth }] }),
+    user({ id: IDS.userFinance, tenantId: IDS.tenantDemo, userName: 'finance.officer', displayName: 'Finance Officer', locale: 'en', timeZone: 'Asia/Tehran', isPlatformAdmin: false, assignments: [{ roleId: IDS.roleFinanceOfficer, branchId: null }] }),
+    user({ id: IDS.userFinanceChecker, tenantId: IDS.tenantDemo, userName: 'finance.checker', displayName: 'Finance Checker', locale: 'en', timeZone: 'Asia/Tehran', isPlatformAdmin: false, assignments: [{ roleId: IDS.roleFinanceOfficer, branchId: null }] }),
     user({ id: IDS.userAlborzAdmin, tenantId: IDS.tenantAlborz, userName: 'alborz.admin', displayName: 'Alborz Admin', locale: 'fa-IR', timeZone: 'Asia/Tehran', isPlatformAdmin: false, assignments: [{ roleId: IDS.roleAlborzAdmin, branchId: null }] }),
   ];
 

@@ -1,11 +1,14 @@
 export * from './tokens';
 export * from './components/primitives';
+export * from './components/icons';
 export * from './components/Button';
 export * from './components/Field';
 export * from './components/DataTable';
 export * from './components/Pagination';
 export * from './components/SearchBox';
 export * from './components/ConfirmDialog';
+export * from './components/Toast';
+export * from './components/StatCard';
 export * from './components/AppShell';
 export { EmotionRegistry, type EmotionRegistryProps } from './EmotionRegistry';
 export { createEmotionCache, type Dir } from './createEmotionCache';

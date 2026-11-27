@@ -79,7 +79,8 @@ export function PermissionMatrix({
           </thead>
           <tbody>
             {rows.map((row) => {
-              const moduleLabel = t('module', { module: row.module });
+              // Sub-resource codes (finance.invoices, workflow.tasks) use underscores as ICU select keys.
+              const moduleLabel = t('module', { module: row.module.replace(/\./g, '_') });
               return (
                 <tr key={row.module}>
                   <th scope="row" style={{ textAlign: 'start' }}>{moduleLabel}</th>

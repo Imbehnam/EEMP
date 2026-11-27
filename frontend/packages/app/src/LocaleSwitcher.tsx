@@ -16,8 +16,8 @@ export function LocaleSwitcher() {
   const locale = useLocale();
   const id = useId();
   return (
-    <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
-      <label htmlFor={id} style={{ fontSize: '0.8125rem' }}>{t('language')}</label>
+    <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+      <label htmlFor={id} className="eemp-hide-sm eemp-compact-label">{t('language')}</label>
       <select
         id={id}
         className="eemp-compact-select"

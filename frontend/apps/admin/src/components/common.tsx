@@ -4,9 +4,9 @@ import type { Endpoints, PageQuery, Paged } from '@eemp/api-client';
 import { ButtonLink, LoadError, toApiErrorLike, useApiQuery } from '@eemp/app';
 import { useErrorTranslator, useLocaleFormat } from '@eemp/i18n/react';
 import { Link } from '@eemp/i18n/navigation';
-import { Alert, Badge, Button, DataTable, Pagination, SearchBox, StatePanel, type Column } from '@eemp/ui';
+import { Badge, Button, DataTable, IconChevron, Pagination, SearchBox, StatePanel, useToast, type Column } from '@eemp/ui';
 import { useTranslations } from 'next-intl';
-import { useState, type ReactNode } from 'react';
+import { useEffect, useRef, useState, type ReactNode } from 'react';
 
 export const PAGE_SIZE = 20;
 
@@ -22,22 +22,28 @@ export function ActiveBadge({ active }: { active: boolean }) {
   return <Badge tone={active ? 'success' : 'neutral'}>{active ? t('active') : t('inactive')}</Badge>;
 }
 
-/** One-shot confirmation after a redirect (e.g. `?notice=created`). */
+/** One-shot confirmation after a redirect (e.g. `?notice=created`), shown as a toast. */
 export function Notice({ notice }: { notice?: string }) {
   const t = useTranslations('common');
-  if (notice !== 'created' && notice !== 'saved' && notice !== 'deleted') return null;
-  return (
-    <Alert tone="success" role="status" style={{ marginBlockEnd: 16 }}>
-      {t(notice)}
-    </Alert>
-  );
+  const toast = useToast();
+  const shown = useRef<string | undefined>(undefined);
+  const known = notice === 'created' || notice === 'saved' || notice === 'deleted';
+  useEffect(() => {
+    if (!known || shown.current === notice) return;
+    shown.current = notice;
+    toast.show(t(notice));
+  }, [known, notice, t, toast]);
+  return null;
 }
 
 export function BackLink({ href }: { href: string }) {
   const t = useTranslations('common');
   return (
     <Link href={href} style={{ fontSize: '0.875rem' }}>
-      <span aria-hidden="true" className="eemp-flip">{'←'}</span> {t('backToList')}
+      <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+        <IconChevron size={16} towards="start" />
+        {t('backToList')}
+      </span>
     </Link>
   );
 }
@@ -55,10 +61,12 @@ export interface PagedListProps<T> {
   caption: string;
   searchLabel: string;
   emptyText: string;
+  /** Next step offered when the list is empty and not filtered (e.g. the create button). */
+  emptyAction?: ReactNode;
 }
 
 /** Server-paged, searchable table with loading, empty, error and forbidden states. */
-export function PagedList<T>({ queryKey, load, columns, getRowKey, caption, searchLabel, emptyText }: PagedListProps<T>) {
+export function PagedList<T>({ queryKey, load, columns, getRowKey, caption, searchLabel, emptyText, emptyAction }: PagedListProps<T>) {
   const t = useTranslations('common');
   const format = useLocaleFormat();
   const [page, setPage] = useState(1);
@@ -88,7 +96,7 @@ export function PagedList<T>({ queryKey, load, columns, getRowKey, caption, sear
         getRowKey={getRowKey}
         loading={query.loading}
         loadingLabel={t('loading')}
-        empty={<StatePanel title={search ? t('noResults', { query: search }) : emptyText} />}
+        empty={<StatePanel title={search ? t('noResults', { query: search }) : emptyText} action={search ? undefined : emptyAction} />}
       />
       {data && data.totalCount > 0 && (
         <Pagination

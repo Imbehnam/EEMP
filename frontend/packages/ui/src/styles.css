@@ -1,112 +1,190 @@
-/* EEMP design tokens as CSS variables + minimal base styles. */
+/*
+ * EEMP design tokens as CSS variables + base styles — "accessible soft UI" (neumorphism).
+ * See docs/05-experience/DESIGN_SYSTEM.md for the rules. Every text/background pair below is
+ * checked by packages/ui/test/contrast.test.ts (WCAG 2.2 AA: 4.5:1 text, 3:1 UI boundaries).
+ */
 @import '@fontsource-variable/vazirmatn';
 
 :root {
   color-scheme: light;
+  /* Vazirmatn ships Arabic, Latin and Latin-Extended (Turkish) subsets, so one family keeps
+     mixed Persian/English text (names, codes) visually consistent in every locale. */
   --eemp-font-system: ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
   --eemp-font-vazirmatn: 'Vazirmatn Variable', 'Vazirmatn', Tahoma, var(--eemp-font-system);
-  --eemp-font-sans: var(--eemp-font-system);
-
-  --eemp-color-bg: #f6f7f9;
-  --eemp-color-surface: #ffffff;
-  --eemp-color-surface-muted: #eef1f5;
-  --eemp-color-border: #d5dae1;
-  --eemp-color-border-strong: #8a94a3;
-  --eemp-color-fg: #17202c;
-  --eemp-color-fg-muted: #4d5a6a;
-  --eemp-color-primary: #0b5cad;
-  --eemp-color-primary-hover: #094a8c;
-  --eemp-color-primary-fg: #ffffff;
-  --eemp-color-primary-soft: #e3eefa;
-  --eemp-color-danger: #b42318;
-  --eemp-color-danger-soft: #fdecea;
-  --eemp-color-success: #106b3a;
-  --eemp-color-success-soft: #e6f4ec;
-  --eemp-color-warning: #8a5300;
-  --eemp-color-warning-soft: #fff4df;
-  --eemp-color-info: #0b5cad;
-  --eemp-color-info-soft: #e3eefa;
-  --eemp-color-focus: #1f6fd1;
-
-  --eemp-radius-sm: 0.375rem;
-  --eemp-radius-md: 0.5rem;
-  --eemp-radius-lg: 0.875rem;
-  --eemp-shadow-card: 0 1px 2px rgb(16 24 40 / 0.06), 0 1px 3px rgb(16 24 40 / 0.08);
-  --eemp-shadow-overlay: 0 12px 32px rgb(16 24 40 / 0.24);
-}
-
-:root[lang='fa'],
-:root[lang='ar'] {
   --eemp-font-sans: var(--eemp-font-vazirmatn);
+  --eemp-line-height: 1.6;
+
+  /* Light source: top-start. --eemp-lx flips the horizontal offset in RTL so shadows fall
+     towards the reading end (bottom-right in LTR, bottom-left in RTL). */
+  --eemp-lx: 1;
+
+  /* Surfaces: one soft base; depth comes from paired light/dark shadows. */
+  --eemp-color-bg: #e6ebf1;
+  --eemp-color-surface: #eaeff4;
+  --eemp-color-surface-muted: #dde3ea; /* inset wells: inputs, pressed, table header */
+  --eemp-color-border: #c3ccd7; /* hairlines / separators (decorative) */
+  --eemp-color-border-strong: #6a7586; /* control boundaries, >= 3:1 on every surface */
+  --eemp-color-fg: #1a2433;
+  --eemp-color-fg-muted: #475467;
+  --eemp-color-primary: #0a58a8;
+  --eemp-color-primary-hover: #084987;
+  --eemp-color-primary-fg: #ffffff;
+  --eemp-color-primary-soft: #d5e3f3;
+  --eemp-color-danger: #b3261e;
+  --eemp-color-danger-fg: #ffffff;
+  --eemp-color-danger-soft: #f6dcd9;
+  --eemp-color-success: #146c3c;
+  --eemp-color-success-soft: #d6ecdf;
+  --eemp-color-warning: #8a5300;
+  --eemp-color-warning-soft: #f6e6c8;
+  --eemp-color-info: #0a58a8;
+  --eemp-color-info-soft: #d5e3f3;
+  --eemp-color-focus: #0a58a8;
+  --eemp-color-backdrop: rgb(26 36 51 / 0.5);
+
+  --eemp-shadow-dark: rgb(163 177 198 / 0.62);
+  --eemp-shadow-light: rgb(255 255 255 / 0.9);
+  --eemp-card-edge: rgb(255 255 255 / 0.6);
+
+  --eemp-radius-sm: 0.625rem; /* 10px: chips, small controls */
+  --eemp-radius-md: 0.75rem; /* 12px: buttons, inputs */
+  --eemp-radius-lg: 1.25rem; /* 20px: cards, dialogs, tables */
 }
 
+:root[dir='rtl'] {
+  --eemp-lx: -1;
+}
 
 :root[data-theme='dark'] {
   color-scheme: dark;
-  --eemp-color-bg: #0f141b;
-  --eemp-color-surface: #161d27;
-  --eemp-color-surface-muted: #1e2733;
-  --eemp-color-border: #2e3a4a;
-  --eemp-color-border-strong: #6b7a8e;
-  --eemp-color-fg: #e8edf3;
-  --eemp-color-fg-muted: #a7b3c2;
-  --eemp-color-primary: #6aa9ef;
-  --eemp-color-primary-hover: #8dbdf3;
-  --eemp-color-primary-fg: #08121f;
-  --eemp-color-primary-soft: #16304d;
-  --eemp-color-danger: #ff8a80;
-  --eemp-color-danger-soft: #3a1714;
-  --eemp-color-success: #6fd39b;
-  --eemp-color-success-soft: #12301f;
-  --eemp-color-warning: #f3c066;
-  --eemp-color-warning-soft: #352710;
-  --eemp-color-info: #6aa9ef;
-  --eemp-color-info-soft: #16304d;
-  --eemp-color-focus: #8dbdf3;
-  --eemp-shadow-card: 0 1px 2px rgb(0 0 0 / 0.4);
+  --eemp-color-bg: #1e252f;
+  --eemp-color-surface: #222a35;
+  --eemp-color-surface-muted: #19202a;
+  --eemp-color-border: #343e4c;
+  --eemp-color-border-strong: #7a879a;
+  --eemp-color-fg: #e7ecf3;
+  --eemp-color-fg-muted: #a8b3c2;
+  --eemp-color-primary: #79b3f2;
+  --eemp-color-primary-hover: #9cc8f7;
+  --eemp-color-primary-fg: #0b1726;
+  --eemp-color-primary-soft: #1f3450;
+  --eemp-color-danger: #ff9b91;
+  --eemp-color-danger-fg: #1f0b0a;
+  --eemp-color-danger-soft: #3b2224;
+  --eemp-color-success: #74d39f;
+  --eemp-color-success-soft: #1c3529;
+  --eemp-color-warning: #f2c063;
+  --eemp-color-warning-soft: #3a3020;
+  --eemp-color-info: #79b3f2;
+  --eemp-color-info-soft: #1f3450;
+  --eemp-color-focus: #9cc8f7;
+  --eemp-color-backdrop: rgb(5 8 12 / 0.65);
+  --eemp-shadow-dark: rgb(8 11 16 / 0.7);
+  --eemp-shadow-light: rgb(70 84 104 / 0.32);
+  --eemp-card-edge: rgb(255 255 255 / 0.06);
 }
 
 @media (prefers-color-scheme: dark) {
   :root[data-theme='system'] {
     color-scheme: dark;
-    --eemp-color-bg: #0f141b;
-    --eemp-color-surface: #161d27;
-    --eemp-color-surface-muted: #1e2733;
-    --eemp-color-border: #2e3a4a;
-    --eemp-color-border-strong: #6b7a8e;
-    --eemp-color-fg: #e8edf3;
-    --eemp-color-fg-muted: #a7b3c2;
-    --eemp-color-primary: #6aa9ef;
-    --eemp-color-primary-hover: #8dbdf3;
-    --eemp-color-primary-fg: #08121f;
-    --eemp-color-primary-soft: #16304d;
-    --eemp-color-danger: #ff8a80;
-    --eemp-color-danger-soft: #3a1714;
-    --eemp-color-success: #6fd39b;
-    --eemp-color-success-soft: #12301f;
-    --eemp-color-warning: #f3c066;
-    --eemp-color-warning-soft: #352710;
-    --eemp-color-info: #6aa9ef;
-    --eemp-color-info-soft: #16304d;
-    --eemp-color-focus: #8dbdf3;
-    --eemp-shadow-card: 0 1px 2px rgb(0 0 0 / 0.4);
+    --eemp-color-bg: #1e252f;
+    --eemp-color-surface: #222a35;
+    --eemp-color-surface-muted: #19202a;
+    --eemp-color-border: #343e4c;
+    --eemp-color-border-strong: #7a879a;
+    --eemp-color-fg: #e7ecf3;
+    --eemp-color-fg-muted: #a8b3c2;
+    --eemp-color-primary: #79b3f2;
+    --eemp-color-primary-hover: #9cc8f7;
+    --eemp-color-primary-fg: #0b1726;
+    --eemp-color-primary-soft: #1f3450;
+    --eemp-color-danger: #ff9b91;
+    --eemp-color-danger-fg: #1f0b0a;
+    --eemp-color-danger-soft: #3b2224;
+    --eemp-color-success: #74d39f;
+    --eemp-color-success-soft: #1c3529;
+    --eemp-color-warning: #f2c063;
+    --eemp-color-warning-soft: #3a3020;
+    --eemp-color-info: #79b3f2;
+    --eemp-color-info-soft: #1f3450;
+    --eemp-color-focus: #9cc8f7;
+    --eemp-color-backdrop: rgb(5 8 12 / 0.65);
+    --eemp-shadow-dark: rgb(8 11 16 / 0.7);
+    --eemp-shadow-light: rgb(70 84 104 / 0.32);
+  --eemp-card-edge: rgb(255 255 255 / 0.06);
   }
 }
 
+/* Elevation recipes (resolved on :root, where dir and theme live). */
+:root {
+  --eemp-shadow-raised-sm:
+    calc(var(--eemp-lx) * 3px) 3px 6px var(--eemp-shadow-dark),
+    calc(var(--eemp-lx) * -3px) -3px 6px var(--eemp-shadow-light);
+  --eemp-shadow-raised:
+    calc(var(--eemp-lx) * 6px) 6px 14px var(--eemp-shadow-dark),
+    calc(var(--eemp-lx) * -6px) -6px 14px var(--eemp-shadow-light);
+  --eemp-shadow-raised-lg:
+    calc(var(--eemp-lx) * 12px) 12px 28px var(--eemp-shadow-dark),
+    calc(var(--eemp-lx) * -10px) -10px 24px var(--eemp-shadow-light);
+  --eemp-shadow-inset:
+    inset calc(var(--eemp-lx) * 2px) 2px 5px var(--eemp-shadow-dark),
+    inset calc(var(--eemp-lx) * -2px) -2px 5px var(--eemp-shadow-light);
+  --eemp-shadow-pressed:
+    inset calc(var(--eemp-lx) * 3px) 3px 7px var(--eemp-shadow-dark),
+    inset calc(var(--eemp-lx) * -3px) -3px 7px var(--eemp-shadow-light);
+  /* Back-compat aliases. */
+  --eemp-shadow-card: var(--eemp-shadow-raised);
+  --eemp-shadow-overlay: var(--eemp-shadow-raised-lg);
+  --eemp-ease: cubic-bezier(0.2, 0.7, 0.3, 1);
+}
 
 html {
   background: var(--eemp-color-bg);
   color: var(--eemp-color-fg);
   font-family: var(--eemp-font-sans);
+  font-size: 100%;
   -webkit-text-size-adjust: 100%;
+  text-rendering: optimizeLegibility;
 }
 
 body {
   margin: 0;
   min-height: 100vh;
-  line-height: 1.6;
+  line-height: var(--eemp-line-height);
+  background: var(--eemp-color-bg);
 }
 
+:root[lang='en'],
+:root[lang='tr'] {
+  --eemp-line-height: 1.55;
+}
+
+h1,
+h2,
+h3,
+h4 {
+  line-height: 1.35;
+  font-weight: 700;
+  letter-spacing: -0.005em;
+}
+
+:root[lang='fa'] h1,
+:root[lang='ar'] h1,
+:root[lang='fa'] h2,
+:root[lang='ar'] h2 {
+  letter-spacing: 0;
+}
+
+a {
+  color: var(--eemp-color-primary);
+  text-underline-offset: 0.2em;
+  text-decoration-thickness: 1px;
+}
+a:hover {
+  text-decoration-thickness: 2px;
+}
+
+/* Visible focus on every interactive element: a solid outline, never shadow-only. */
 :where(a, button, input, select, textarea, summary, [tabindex]):focus-visible {
   outline: 3px solid var(--eemp-color-focus);
   outline-offset: 2px;
@@ -117,8 +195,96 @@ body {
   *::before,
   *::after {
     animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
     transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
   }
+}
+
+/* Numbers line up in tables, KPIs and money (works for Persian digits too). */
+table,
+.eemp-num,
+.eemp-money {
+  font-variant-numeric: tabular-nums;
+}
+
+/* Raw form controls used inside grids (score entry, attendance, filters) get the soft inset well. */
+:where(input:not([type='checkbox'], [type='radio'], [type='range'], [type='color'], [type='file'], [type='hidden']), select, textarea) {
+  border: 1px solid var(--eemp-color-border-strong);
+  border-radius: var(--eemp-radius-sm);
+  background: var(--eemp-color-surface-muted);
+  box-shadow: var(--eemp-shadow-inset);
+  color: var(--eemp-color-fg);
+  font: inherit;
+}
+:where(input, select, textarea)::placeholder {
+  color: var(--eemp-color-fg-muted);
+  opacity: 1;
+}
+
+/* Checkbox and radio: soft inset well, accent fill + check mark when on (not colour only). */
+:where(input[type='checkbox'], input[type='radio']) {
+  appearance: none;
+  -webkit-appearance: none;
+  flex: none;
+  display: inline-grid;
+  place-content: center;
+  inline-size: 1.375rem;
+  block-size: 1.375rem;
+  margin: 0;
+  border: 1.5px solid var(--eemp-color-border-strong);
+  border-radius: 0.4375rem;
+  background: var(--eemp-color-surface-muted);
+  box-shadow: var(--eemp-shadow-inset);
+  cursor: pointer;
+  vertical-align: middle;
+  transition: background-color 140ms var(--eemp-ease), border-color 140ms var(--eemp-ease);
+}
+:where(input[type='radio']) {
+  border-radius: 9999px;
+}
+:where(input[type='checkbox'])::before {
+  content: '';
+  inline-size: 0.75rem;
+  block-size: 0.75rem;
+  transform: scale(0);
+  transition: transform 120ms var(--eemp-ease);
+  background: var(--eemp-color-primary-fg);
+  clip-path: polygon(14% 44%, 0 65%, 50% 100%, 100% 16%, 80% 0%, 43% 62%);
+}
+:where(input[type='radio'])::before {
+  content: '';
+  inline-size: 0.5rem;
+  block-size: 0.5rem;
+  border-radius: 9999px;
+  transform: scale(0);
+  transition: transform 120ms var(--eemp-ease);
+  background: var(--eemp-color-primary-fg);
+}
+:where(input[type='checkbox'], input[type='radio']):checked {
+  background: var(--eemp-color-primary);
+  border-color: var(--eemp-color-primary);
+  box-shadow: none;
+}
+:where(input[type='checkbox'], input[type='radio']):checked::before {
+  transform: scale(1);
+}
+:where(input[type='checkbox']):indeterminate {
+  background: var(--eemp-color-primary);
+  border-color: var(--eemp-color-primary);
+}
+:where(input[type='checkbox']):indeterminate::before {
+  transform: scale(1);
+  block-size: 0.1875rem;
+  clip-path: none;
+}
+:where(input[type='checkbox'], input[type='radio']):disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
+  background-image: repeating-linear-gradient(45deg, transparent 0 3px, var(--eemp-color-border) 3px 4px);
+}
+:where(input[type='checkbox'], input[type='radio'])[aria-invalid='true'] {
+  border-color: var(--eemp-color-danger);
 }
 
 /* Latin identifiers (usernames, codes, emails) inside RTL text keep their own direction. */
@@ -133,19 +299,38 @@ body {
   transform: scaleX(-1);
 }
 
-/* Compact header selects (language, theme). */
+/* Direction-specific artwork (IconChevron draws both; the document direction picks one). */
+[dir='rtl'] .eemp-ltr-only,
+:root:not([dir='rtl']) .eemp-rtl-only {
+  display: none;
+}
+
+/* Compact header selects (language, theme): pill-shaped inset wells. */
 .eemp-compact-select {
-  min-block-size: 2rem;
-  padding-inline: 0.5rem;
+  min-block-size: 2.25rem;
+  padding-inline: 0.75rem 0.5rem;
   border: 1px solid var(--eemp-color-border-strong);
-  border-radius: var(--eemp-radius-sm);
-  background: var(--eemp-color-surface);
+  border-radius: 9999px;
+  background: var(--eemp-color-surface-muted);
+  box-shadow: var(--eemp-shadow-inset);
   color: var(--eemp-color-fg);
   font: inherit;
   font-size: 0.875rem;
+  cursor: pointer;
+}
+@media (pointer: coarse) {
+  .eemp-compact-select {
+    min-block-size: 2.75rem;
+  }
 }
 
-.eemp-visually-hidden {
+.eemp-compact-label {
+  font-size: 0.8125rem;
+  color: var(--eemp-color-fg-muted);
+}
+
+.eemp-visually-hidden,
+.eemp-hide-sm {
   position: absolute !important;
   inline-size: 1px;
   block-size: 1px;
@@ -156,6 +341,74 @@ body {
   white-space: nowrap;
   border: 0;
 }
+@media (min-width: 768px) {
+  .eemp-hide-sm {
+    position: static !important;
+    inline-size: auto;
+    block-size: auto;
+    margin: 0;
+    overflow: visible;
+    clip: auto;
+    white-space: normal;
+  }
+}
+
+/* Link tiles (portal home, quick links): raised, press in on :active. */
+.eemp-tile {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  min-block-size: 4.5rem;
+  padding: 1rem 1.25rem;
+  border-radius: var(--eemp-radius-lg);
+  background: var(--eemp-color-surface);
+  box-shadow: var(--eemp-shadow-raised);
+  color: var(--eemp-color-fg);
+  font-weight: 600;
+  text-decoration: none;
+  transition: box-shadow 160ms var(--eemp-ease), transform 160ms var(--eemp-ease), color 160ms var(--eemp-ease);
+}
+.eemp-tile:hover {
+  color: var(--eemp-color-primary);
+  text-decoration: none;
+  transform: translateY(-1px);
+}
+.eemp-tile:active {
+  box-shadow: var(--eemp-shadow-pressed);
+  transform: none;
+}
+.eemp-tile > .eemp-tile-icon {
+  display: inline-grid;
+  place-items: center;
+  inline-size: 2.5rem;
+  block-size: 2.5rem;
+  flex: none;
+  border-radius: 9999px;
+  background: var(--eemp-color-surface-muted);
+  box-shadow: var(--eemp-shadow-inset);
+  color: var(--eemp-color-primary);
+}
+
+/* Skeleton placeholders while data loads. */
+@keyframes eemp-shimmer {
+  0% {
+    opacity: 0.55;
+  }
+  50% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0.55;
+  }
+}
+.eemp-skeleton {
+  display: block;
+  block-size: 0.875rem;
+  border-radius: 9999px;
+  background: var(--eemp-color-border);
+  animation: eemp-shimmer 1.4s ease-in-out infinite;
+}
 
 /* Permission matrix (roles editor). */
 .eemp-matrix th,
@@ -165,7 +418,89 @@ body {
   vertical-align: middle;
 }
 .eemp-matrix thead th {
+  position: sticky;
+  inset-block-start: 0;
+  z-index: 1;
   background: var(--eemp-color-surface-muted);
   font-weight: 600;
   white-space: nowrap;
+}
+.eemp-matrix tbody tr:nth-of-type(even) {
+  background: color-mix(in srgb, var(--eemp-color-surface-muted) 45%, transparent);
+}
+
+/* Sign-in page: soft brand panel + raised form card (single column on small screens). */
+.eemp-login {
+  min-block-size: 100vh;
+  display: grid;
+  place-items: center;
+  align-content: center;
+  gap: 2.5rem;
+  padding: 1.5rem 1rem;
+  box-sizing: border-box;
+}
+.eemp-login-card {
+  inline-size: 100%;
+  max-inline-size: 28rem;
+  box-sizing: border-box;
+}
+.eemp-login-brand {
+  display: none;
+}
+.eemp-login-badge {
+  display: inline-grid;
+  place-items: center;
+  min-inline-size: 2.75rem;
+  block-size: 2.75rem;
+  padding-inline: 0.75rem;
+  border-radius: var(--eemp-radius-md);
+  background: var(--eemp-color-primary);
+  color: var(--eemp-color-primary-fg);
+  box-shadow: var(--eemp-shadow-raised-sm);
+  font-weight: 800;
+  letter-spacing: 0.04em;
+}
+@media (min-width: 1024px) {
+  .eemp-login {
+    grid-template-columns: minmax(0, 26rem) minmax(0, 28rem);
+    justify-content: center;
+    gap: 4rem;
+  }
+  .eemp-login-brand {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.75rem;
+    padding: 2.5rem;
+    border-radius: 2rem;
+    background: var(--eemp-color-bg);
+    box-shadow: var(--eemp-shadow-pressed);
+  }
+  .eemp-login-badge {
+    visibility: hidden;
+  }
+}
+.eemp-login-mark {
+  display: inline-grid;
+  place-items: center;
+  inline-size: 4.5rem;
+  block-size: 4.5rem;
+  border-radius: 1.25rem;
+  background: var(--eemp-color-primary);
+  color: var(--eemp-color-primary-fg);
+  box-shadow: var(--eemp-shadow-raised);
+  font-size: 2rem;
+  font-weight: 800;
+}
+.eemp-login-app {
+  margin: 0.75rem 0 0;
+  font-size: 2.125rem;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+}
+.eemp-login-tagline {
+  margin: 0;
+  font-size: 1.125rem;
+  line-height: 1.8;
+  color: var(--eemp-color-fg-muted);
 }

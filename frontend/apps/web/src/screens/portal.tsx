@@ -4,7 +4,7 @@ import type { PersonBase, PortalKind, PortalProfile, PortalStudent, Staff, Stude
 import { LoadError, PreferencesForm, useApiQuery, useSession } from '@eemp/app';
 import { Link } from '@eemp/i18n/navigation';
 import { useLocaleFormat } from '@eemp/i18n/react';
-import { Badge, Card, DescriptionList, PageHeader, Spinner, StatePanel } from '@eemp/ui';
+import { Badge, Card, DescriptionList, IconChevron, PageHeader, Spinner, StatePanel } from '@eemp/ui';
 import { useTranslations } from 'next-intl';
 
 
@@ -20,6 +20,7 @@ export function PortalHomeScreen({ kind }: { kind: PortalKind | null }) {
       ? [
           { href: '/timetable', label: t('cardTimetable') },
           { href: '/grades', label: t('cardGrades') },
+          { href: '/invoices', label: t('cardInvoices') },
         ]
       : []),
     { href: '/settings', label: t('cardSettings') },
@@ -30,7 +31,7 @@ export function PortalHomeScreen({ kind }: { kind: PortalKind | null }) {
         title={t('welcome', { name: user.displayName })}
         description={user.tenantName ? t('intro', { tenant: user.tenantName }) : t('introNoTenant')}
       />
-      <div style={{ display: 'grid', gap: 16, gridTemplateColumns: 'repeat(auto-fit, minmax(16rem, 1fr))' }}>
+      <div style={{ display: 'grid', gap: 20, gridTemplateColumns: 'repeat(auto-fill, minmax(min(100%, 17rem), 1fr))', alignItems: 'stretch' }}>
         <Card aria-labelledby="roles-heading">
           <h2 id="roles-heading" style={{ fontSize: '1.0625rem', marginBlockStart: 0 }}>{t('yourRoles')}</h2>
           {kind && <p><Badge tone="info">{t('kind', { kind })}</Badge></p>}
@@ -48,9 +49,12 @@ export function PortalHomeScreen({ kind }: { kind: PortalKind | null }) {
           )}
         </Card>
         {cards.map((c) => (
-          <Card key={c.href}>
-            <Link href={c.href} style={{ fontWeight: 600 }}>{c.label}</Link>
-          </Card>
+          <Link key={c.href} href={c.href} className="eemp-tile">
+            <span>{c.label}</span>
+            <span className="eemp-tile-icon">
+              <IconChevron size={18} />
+            </span>
+          </Link>
         ))}
       </div>
     </>

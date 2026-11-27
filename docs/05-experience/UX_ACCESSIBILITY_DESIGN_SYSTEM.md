@@ -11,3 +11,6 @@ Tenant onboarding; branch switch; student enrollment; class scheduling; grade en
 
 ## UX artifacts to create during discovery
 Information architecture, role-based navigation matrix, low-fidelity wireframes, responsive behavior, design tokens, component inventory, and usability acceptance criteria.
+
+## Implementation
+The implemented visual language, tokens, component rules and quality gates are documented in [DESIGN_SYSTEM.md](DESIGN_SYSTEM.md) (DL-080).

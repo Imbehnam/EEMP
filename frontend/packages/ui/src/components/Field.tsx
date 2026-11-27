@@ -11,6 +11,8 @@ import {
   type TextareaHTMLAttributes,
 } from 'react';
 
+import { IconDanger } from './icons';
+
 const FieldWrap = styled.div`
   display: flex;
   flex-direction: column;
@@ -31,28 +33,54 @@ const Hint = styled.p`
 `;
 
 const ErrorText = styled.p`
+  display: flex;
+  align-items: flex-start;
+  gap: ${({ theme }) => theme.space[1]};
   margin: 0;
   font-size: ${({ theme }) => theme.fontSizes.sm};
   color: ${({ theme }) => theme.colors.danger};
   font-weight: ${({ theme }) => theme.fontWeights.medium};
+  svg {
+    flex: none;
+    margin-block-start: 0.125rem;
+  }
 `;
 
+/**
+ * Text-entry wells: inset (pressed-in) surface + a 3:1 hairline so the boundary never depends on
+ * shadow alone. Invalid = danger border + thicker ring + icon/text message below.
+ */
+// Note: placeholder colour lives in styles.css — a ::placeholder rule here makes the stylis 4.3
+// prefixer (createEmotionCache) crash inside Emotion's bundled stylis during SSR.
 const controlCss = ({ theme }: { theme: Theme }) => `
+  box-sizing: border-box;
   inline-size: 100%;
   min-block-size: ${theme.controlHeight.md};
   padding: ${theme.space[2]} ${theme.space[3]};
   border: 1px solid ${theme.colors.borderStrong};
   border-radius: ${theme.radii.md};
-  background: ${theme.colors.surface};
+  background: ${theme.colors.surfaceMuted};
+  box-shadow: ${theme.shadows.inset};
   color: ${theme.colors.fg};
   font: inherit;
+  line-height: 1.5;
   text-align: start;
+  transition: border-color ${theme.motion.fast} ease, background-color ${theme.motion.fast} ease;
+  &:hover:not(:disabled):not([readonly]) {
+    border-color: ${theme.colors.fg};
+  }
+  &:focus-visible {
+    border-color: ${theme.colors.focus};
+  }
   &[aria-invalid='true'] {
     border-color: ${theme.colors.danger};
-    box-shadow: 0 0 0 1px ${theme.colors.danger};
+    box-shadow: ${theme.shadows.inset}, 0 0 0 1px ${theme.colors.danger};
   }
   &:disabled, &[readonly] {
-    background: ${theme.colors.surfaceMuted};
+    background: transparent;
+    border-style: dashed;
+    box-shadow: none;
+    color: ${theme.colors.fgMuted};
     cursor: not-allowed;
   }
 `;
@@ -99,7 +127,12 @@ function Chrome({
       </Label>
       {children}
       {hint && <Hint id={ids.hintId}>{hint}</Hint>}
-      {error && <ErrorText id={ids.errorId}>{error}</ErrorText>}
+      {error && (
+        <ErrorText id={ids.errorId}>
+          <IconDanger size={16} />
+          <span>{error}</span>
+        </ErrorText>
+      )}
     </FieldWrap>
   );
 }
@@ -186,15 +219,15 @@ export const TextAreaField = forwardRef<HTMLTextAreaElement, TextAreaFieldProps>
 const CheckRow = styled.div`
   display: flex;
   align-items: flex-start;
-  gap: ${({ theme }) => theme.space[2]};
+  gap: ${({ theme }) => theme.space[3]};
+  min-block-size: ${({ theme }) => theme.controlHeight.md};
+  padding-block: ${({ theme }) => theme.space[2]};
   input {
-    inline-size: 1.125rem;
-    block-size: 1.125rem;
-    margin-block-start: 0.2rem;
-    accent-color: ${({ theme }) => theme.colors.primary};
+    margin-block-start: 0.125rem;
   }
   label {
     font-size: ${({ theme }) => theme.fontSizes.md};
+    cursor: pointer;
   }
 `;
 
@@ -215,7 +248,7 @@ export const Checkbox = forwardRef<HTMLInputElement, CheckboxProps>(function Che
 
 export const Fieldset = styled.fieldset`
   border: 1px solid ${({ theme }) => theme.colors.border};
-  border-radius: ${({ theme }) => theme.radii.md};
+  border-radius: ${({ theme }) => theme.radii.lg};
   padding: ${({ theme }) => theme.space[4]};
   margin: 0;
   min-inline-size: 0;
@@ -228,6 +261,7 @@ export const Fieldset = styled.fieldset`
 /** Responsive two-column form grid built with logical properties. */
 export const FormGrid = styled.div`
   display: grid;
-  gap: ${({ theme }) => theme.space[4]};
+  gap: ${({ theme }) => `${theme.space[5]} ${theme.space[4]}`};
   grid-template-columns: repeat(auto-fit, minmax(min(100%, 16rem), 1fr));
+  align-items: start;
 `;

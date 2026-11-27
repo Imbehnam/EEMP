@@ -2,6 +2,7 @@
 
 import { ApiError, ErrorCodes, isApiError } from '@eemp/api-client';
 import { useErrorTranslator } from '@eemp/i18n/react';
+import { Link } from '@eemp/i18n/navigation';
 import { Alert, Button, StatePanel } from '@eemp/ui';
 import { useTranslations } from 'next-intl';
 
@@ -51,6 +52,7 @@ export function LoadError({ error, onRetry }: { error: unknown; onRetry?: () => 
   const common = useTranslations('common');
   const errors = useErrorTranslator();
   const apiError = toApiErrorLike(error);
+  if (apiError.code === 'finance.results_blocked') return <ResultsBlocked />;
   if (apiError.isForbidden) {
     return <StatePanel role="alert" title={t('forbiddenTitle')} description={t('forbiddenBody')} />;
   }
@@ -68,6 +70,19 @@ export function LoadError({ error, onRetry }: { error: unknown; onRetry?: () => 
         </>
       }
       action={onRetry && <Button variant="secondary" onClick={onRetry}>{common('retry')}</Button>}
+    />
+  );
+}
+
+/** DL-065: portal grades and report cards are withheld while the student has an overdue balance (tenant setting). */
+export function ResultsBlocked() {
+  const t = useTranslations('finance.resultsBlocked');
+  return (
+    <StatePanel
+      role="alert"
+      title={t('title')}
+      description={t('body')}
+      action={<Link href="/invoices" data-testid="results-blocked-invoices">{t('link')}</Link>}
     />
   );
 }
