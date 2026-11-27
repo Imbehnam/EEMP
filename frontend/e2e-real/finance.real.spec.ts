@@ -134,8 +134,11 @@ test('discount maker-checker through the workflow engine: the maker cannot appro
   expect(approvalHref).toMatch(/\/workflow\/instances\/[0-9a-f-]+$/);
   const instanceId = approvalHref!.split('/').pop()!;
   await page.goto(`${ADMIN}/en/workflow/inbox`);
+  await page.waitForLoadState('networkidle'); // the list has loaded, so an empty match is meaningful
   await expect(page.locator(`a[href$="/workflow/instances/${instanceId}"]`)).toHaveCount(0);
 
+  // Leave the app first: a page still polling with the old session would redirect to /login and abort the next goto.
+  await page.goto('about:blank');
   await page.context().clearCookies();
   await signIn(page, ADMIN, 'en', 'demo', checkerName, 'Checker1234');
   await page.goto(`${ADMIN}/en/workflow/inbox`);
@@ -146,6 +149,7 @@ test('discount maker-checker through the workflow engine: the maker cannot appro
   await page.getByRole('dialog').getByRole('button', { name: 'Approve' }).click();
   await expect(page.getByTestId('wf-done')).toHaveText('Approved.');
   await page.goto(`${ADMIN}/en/workflow/inbox`);
+  await page.waitForLoadState('networkidle'); // the list has loaded, so an empty match is meaningful
   await expect(page.locator(`a[href$="/workflow/instances/${instanceId}"]`)).toHaveCount(0);
 
   // The finance event handler applied the discount.
@@ -166,6 +170,8 @@ test('workflow: branch.manager approves the seeded request from the inbox; the r
   await page.goto(`${ADMIN}/en/workflow/requests`);
   await expect(page.getByRole('link', { name: 'Sample request' })).toBeVisible();
 
+  // Leave the app first: a page still polling with the old session would redirect to /login and abort the next goto.
+  await page.goto('about:blank');
   await page.context().clearCookies();
   await signIn(page, ADMIN, 'en', 'demo', 'branch.manager', PASSWORDS.demoUser);
   await page.goto(`${ADMIN}/en/workflow/inbox`);
