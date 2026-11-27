@@ -11,7 +11,7 @@ using static EEMP.Modules.Consultation.Application.Fmt;
 namespace EEMP.Modules.Consultation.Application;
 
 /// <summary>
-/// Availability slots. A consultant manages their own slots in branches where they hold consultation.consult and that their profile
+/// Availability slots. A consultant manages their own slots in branches where they hold consultation.sessions.manage and that their profile
 /// serves; holders of consultation.consultants.manage manage any consultant's slots in their branches.
 /// </summary>
 public sealed class SlotService(IConsultationDbContext db, ConsultationActor actor, IConsultationClock clock, IPeopleDirectory people)
@@ -123,8 +123,11 @@ public sealed class SlotService(IConsultationDbContext db, ConsultationActor act
         var own = consultant is not null && await actor.IsOwnAsync(consultant.Id, branchId, ct);
         if (!own && !manage.Includes(branchId))
         {
-            if (consultant is null || !consultant.Branches.Any(b => manage.Includes(b.BranchId))) throw new NotFoundException();
-            throw new ForbiddenException(ErrorCodes.ForbiddenScope);
+            if (consultant is null) throw new NotFoundException();
+            // Own profile, or a consultant the caller manages elsewhere: the record is visible, the branch is not in scope.
+            if (consultant.UserId == actor.UserId || consultant.Branches.Any(b => manage.Includes(b.BranchId)))
+                throw new ForbiddenException(ErrorCodes.ForbiddenScope);
+            throw new NotFoundException();
         }
         if (consultant is null) throw new NotFoundException();
         if (!consultant.IsActive) throw new BusinessRuleException(ConsultationErrors.ConsultantInactive);
@@ -139,7 +142,7 @@ public sealed class SlotService(IConsultationDbContext db, ConsultationActor act
             Permissions.ConsultationBookingsManage);
         Expression<Func<Slot, bool>> filter = ScopeFilter.Covers<Slot>(scope, s => s.BranchId);
         var me = await actor.ConsultantAsync(ct);
-        var consult = await actor.ScopeAsync(Permissions.ConsultationConsult, ct);
+        var consult = await actor.ScopeAsync(Permissions.ConsultationSessionsManage, ct);
         if (me is not null && !consult.IsEmpty)
         {
             var myId = me.Id;

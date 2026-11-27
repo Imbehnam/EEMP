@@ -28,7 +28,7 @@ students are referenced by id only. All instants UTC (`...At`), serialized with 
 
 | Table | Fields (besides Id, TenantId, RowVersion, CreatedAt/UpdatedAt) |
 |---|---|
-| `Settings` | one row per tenant (lazy-created with defaults): `cancellationWindowHours` (24; 0..336), `bookingHorizonDays` (30; 1..180), `minLeadHours` (2; 0..168), `maxActiveBookingsPerStudent` (3; 1..20) |
+| `ConsultationSettings` | one row per tenant (lazy-created with defaults): `cancellationWindowHours` (24; 0..336), `bookingHorizonDays` (30; 1..180), `minLeadHours` (2; 0..168), `maxActiveBookingsPerStudent` (3; 1..20) |
 | `Consultants` | `userId` (unique per tenant), `displayName` (1..200), `bio` (≤1000), `specialties` (≤500), `isActive`; child `ConsultantBranches(consultantId, branchId)` = branches served |
 | `Slots` | `consultantId`, `branchId`, `startsAt`, `endsAt` (15..240 min, same consultant may not overlap non-cancelled slots), `mode` `inPerson|online`, `location` (≤200), `status` `open|cancelled` |
 | `Bookings` | `slotId`, `consultantId`, `branchId`, `studentId`, `bookedByUserId`, `startsAt`, `endsAt`, `mode`, `location` (copied from the slot), `topic` (1..200), `requesterNote` (≤1000, visible to the family and staff — **not** confidential), `status`, `confirmedAt`, `completedAt`, `cancelledAt`, `cancelledByUserId`, `cancelledBy` `requester|staff`, `cancelReason` (≤500). **Unique filtered index `(TenantId, SlotId) WHERE Status <> 'Cancelled'`** |
@@ -43,7 +43,7 @@ students are referenced by id only. All instants UTC (`...At`), serialized with 
 | — | book | portal: student for self / guardian for a linked student | `requested` |
 | `requested` | `confirm` | booking's consultant; `consultation.bookings.manage` in the branch | `confirmed` |
 | `requested`, `confirmed` | `cancel` (reason optional) | portal user who can see the booking, only while `startsAt - now ≥ cancellationWindowHours` (`422 consultation.cancellation_window_passed`); consultant / `bookings.manage`: any time before completion | `cancelled` |
-| `confirmed` | `complete` | consultant / `bookings.manage`, only once `now ≥ startsAt` (`422 consultation.session_not_started`) | `completed` |
+| `confirmed` | `complete` | consultant / `bookings.manage`, only once `now ≥ startsAt` (`422 consultation.session_not_started`; completion is allowed from 15 minutes before the start, no-show only after it) | `completed` |
 | `confirmed` | `no-show` | consultant / `bookings.manage`, only once `now ≥ startsAt` | `noShow` |
 | terminal (`completed`, `noShow`, `cancelled`) | any | — | `409 consultation.invalid_transition` |
 
@@ -68,7 +68,7 @@ index ignores cancelled rows) so it can be booked again.
 | Code | Sensitive | Branch-scoped | Use |
 |---|---|---|---|
 | `consultation.consultants.manage` | false | true | create/edit consultant profiles serving the branch; manage any consultant's slots in the branch; tenant-wide grant also edits settings |
-| `consultation.consult` | true | true | act as a consultant in the branch (requires an **active consultant profile** linked to the user): own slots, own bookings, write notes on own bookings |
+| `consultation.sessions.manage` | true | true | act as a consultant in the branch (requires an **active consultant profile** linked to the user): own slots, own bookings, write notes on own bookings |
 | `consultation.bookings.read` | true | true | list/read booking metadata (no notes) in the branch |
 | `consultation.bookings.manage` | true | true | confirm/cancel/complete/no-show any booking in the branch |
 | `consultation.notes.read` | true | true | read confidential notes of any booking in the branch (supervision). Granted to **no built-in role** |
@@ -79,17 +79,17 @@ Built-in roles (synced into existing tenants at startup by the Identity system-r
 - **TenantAdmin**: no consultation/support code (security baseline #1).
 - **BranchManager**: `consultation.consultants.manage`, `consultation.bookings.read`, `consultation.bookings.manage`,
   `support.tickets.read`, `support.tickets.manage` — **not** `consultation.notes.read`.
-- **Consultant** (new): `organization.read`, `branches.read`, `consultation.consult`.
+- **Consultant** (new): `organization.read`, `branches.read`, `consultation.sessions.manage`.
 - **SupportDesk** (new): `organization.read`, `branches.read`, `support.tickets.read`, `support.tickets.manage`.
 - Guardian / Student: none (portal endpoints authorize by relationship).
 
 Consultant identity: a consultant is a **user account** (any staff user) with a `Consultants` profile. The profile alone grants
-nothing; the user also needs `consultation.consult` in the branch (Consultant role assignment), so revoking the role or deactivating
+nothing; the user also needs `consultation.sessions.manage` in the branch (Consultant role assignment), so revoking the role or deactivating
 the profile both stop access immediately.
 
 ## 4. Confidential notes (DL-093, resolves OD-017 for this task)
 - Notes are a separate table and a separate endpoint; booking DTOs never contain notes. `canReadNotes`/`canWriteNotes` flags tell the UI.
-- **Read**: the booking's own consultant (with `consultation.consult` in the branch), or a holder of `consultation.notes.read` in the
+- **Read**: the booking's own consultant (with `consultation.sessions.manage` in the branch), or a holder of `consultation.notes.read` in the
   booking's branch. Everyone else who can see the booking (e.g. BranchManager via `bookings.read`) gets `403 consultation.notes_forbidden`;
   callers who cannot see the booking get `404`. TenantAdmin has neither.
 - **Write**: only the booking's consultant, on a booking that is `confirmed` or `completed` (`403 consultation.not_booking_consultant`,
@@ -113,7 +113,7 @@ the profile both stop access immediately.
 Staff / consultant:
 - `GET /consultation/settings` (tenant user) → `{ cancellationWindowHours, bookingHorizonDays, minLeadHours, maxActiveBookingsPerStudent, rowVersion }`
 - `PUT /consultation/settings` (`consultation.consultants.manage` tenant-wide) same body.
-- `GET /consultation/me` (tenant user) → `{ consultant: consultantDto | null, canConsultBranchIds: [guid], canManageBranchIds?: [guid] | "all" }` — lets the UI show consultant screens.
+- `GET /consultation/me` (tenant user) → `{ consultant: consultantDto | null, canConsult, canManageConsultants, canReadBookings, canManageBookings, canReadNotes, canManageSettings }` (booleans; UI hints only, every call is re-authorized).
 - `GET /consultation/consultants?branchId&includeInactive` (`consultants.manage` or `bookings.read`, filtered to the caller's branch scope; a consultant always sees their own profile) → `[consultantDto]`
 - `POST /consultation/consultants` (`consultants.manage` in **every** listed branch) `{ userId, displayName, bio?, specialties?, branchIds: [guid] (1..20) }` → 201 consultantDto. `409 consultation.consultant_exists`, `422 consultation.user_not_found`, `422 consultation.branch_not_found`.
 - `GET /consultation/consultants/{id}`; `PUT /consultation/consultants/{id}` `{ displayName, bio?, specialties?, branchIds, isActive, rowVersion }` (manage in every old and new branch).

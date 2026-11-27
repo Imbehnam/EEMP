@@ -93,11 +93,11 @@ public sealed class ConsultationActor(IConsultationDbContext db, IAccessControl 
         return s;
     }
 
-    /// <summary>True when the caller is this consultant and holds consultation.consult in the branch.</summary>
+    /// <summary>True when the caller is this consultant and holds consultation.sessions.manage in the branch.</summary>
     public async Task<bool> IsOwnAsync(Guid consultantId, Guid branchId, CancellationToken ct)
     {
         var me = await ConsultantAsync(ct);
-        return me is not null && me.Id == consultantId && (await ScopeAsync(Permissions.ConsultationConsult, ct)).Includes(branchId);
+        return me is not null && me.Id == consultantId && (await ScopeAsync(Permissions.ConsultationSessionsManage, ct)).Includes(branchId);
     }
 
     /// <summary>Union of the scopes of the given permissions.</summary>

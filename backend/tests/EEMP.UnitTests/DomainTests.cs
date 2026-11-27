@@ -50,9 +50,9 @@ public class DomainTests
     {
         // M2 (DL-055): approve/publish verbs separate grade approval and publication from entry (segregation of duties).
         // M3 (DL-064) and EEMP-011 (DL-072): module codes may carry one sub-resource segment
-        // (finance.invoices.manage, finance.reports.read, workflow.definitions.read).
+        // (finance.invoices.manage, finance.reports.read, workflow.definitions.read); EEMP-012 (DL-091) adds consultation.* and support.*.
         Assert.All(Permissions.All, p => Assert.Matches("^[a-z]+(\\.[a-z]+)?\\.(read|manage|approve|publish)$", p.Code));
-        Assert.All(Permissions.All.Where(p => p.Code.Count(c => c == '.') == 2), p => Assert.Contains(p.Module, new[] { "finance", "workflow" }));
+        Assert.All(Permissions.All.Where(p => p.Code.Count(c => c == '.') == 2), p => Assert.Contains(p.Module, new[] { "finance", "workflow", "consultation", "support" }));
 
         Assert.Equal(Permissions.All.Count, Permissions.All.Select(p => p.Code).Distinct().Count());
     }

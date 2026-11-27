@@ -36,7 +36,7 @@ public sealed class TenantAccessProvisioner(IIdentityDbContext db, UserManager<A
                 Permissions.SupportTicketsRead, Permissions.SupportTicketsManage]),
             [SystemRoles.Teacher] = ("Teacher", [Permissions.BranchesRead]),
             // DL-091: consultants act on their own slots/bookings/notes; the profile plus this role is required.
-            [SystemRoles.Consultant] = ("Consultant", [Permissions.OrganizationRead, Permissions.BranchesRead, Permissions.ConsultationConsult]),
+            [SystemRoles.Consultant] = ("Consultant", [Permissions.OrganizationRead, Permissions.BranchesRead, Permissions.ConsultationSessionsManage]),
             // DL-094: branch support desk for portal tickets.
             [SystemRoles.SupportDesk] = ("Support desk", [
                 Permissions.OrganizationRead, Permissions.BranchesRead, Permissions.SupportTicketsRead, Permissions.SupportTicketsManage]),

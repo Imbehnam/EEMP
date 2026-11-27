@@ -12,7 +12,7 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace EEMP.Modules.Consultation.Infrastructure.Migrations
 {
     [DbContext(typeof(ConsultationDbContext))]
-    [Migration("20261127214503_InitialCreate")]
+    [Migration("20261127215712_InitialCreate")]
     partial class InitialCreate
     {
         /// <inheritdoc />
@@ -272,9 +272,9 @@ namespace EEMP.Modules.Consultation.Infrastructure.Migrations
 
                     b.HasIndex("TenantId")
                         .IsUnique()
-                        .HasDatabaseName("UX_Settings_TenantId");
+                        .HasDatabaseName("UX_ConsultationSettings_TenantId");
 
-                    b.ToTable("Settings", "consultation");
+                    b.ToTable("ConsultationSettings", "consultation");
                 });
 
             modelBuilder.Entity("EEMP.Modules.Consultation.Domain.Slot", b =>

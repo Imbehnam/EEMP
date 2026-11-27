@@ -60,7 +60,7 @@ public sealed class ConsultantService(IConsultationDbContext db, ConsultationAct
     public async Task<ConsultationMeDto> MeAsync(CancellationToken ct)
     {
         var c = await actor.ConsultantAsync(ct);
-        var consult = await actor.ScopeAsync(Permissions.ConsultationConsult, ct);
+        var consult = await actor.ScopeAsync(Permissions.ConsultationSessionsManage, ct);
         return new ConsultationMeDto(c is null ? null : ToDto(c), c is not null && c.IsActive && !consult.IsEmpty,
             !(await actor.ScopeAsync(Permissions.ConsultationConsultantsManage, ct)).IsEmpty,
             !(await actor.ScopeAsync(Permissions.ConsultationBookingsRead, ct)).IsEmpty,

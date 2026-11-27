@@ -35,9 +35,9 @@ public sealed class ConsultationDbContext(DbContextOptions<ConsultationDbContext
     {
         modelBuilder.Entity<ConsultationSettings>(b =>
         {
-            Root(b, "Settings");
+            Root(b, "ConsultationSettings");
             // One row per tenant.
-            b.HasIndex(x => x.TenantId).IsUnique().HasDatabaseName("UX_Settings_TenantId");
+            b.HasIndex(x => x.TenantId).IsUnique().HasDatabaseName("UX_ConsultationSettings_TenantId");
         });
         modelBuilder.Entity<Consultant>(b =>
         {

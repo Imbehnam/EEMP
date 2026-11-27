@@ -56,7 +56,7 @@ public sealed class BookingService(IConsultationDbContext db, ConsultationActor 
 
         Expression<Func<Booking, bool>> filter = b => false;
         var me = await actor.ConsultantAsync(ct);
-        var consult = await actor.ScopeAsync(Permissions.ConsultationConsult, ct);
+        var consult = await actor.ScopeAsync(Permissions.ConsultationSessionsManage, ct);
         if (me is not null && !consult.IsEmpty)
         {
             var myId = me.Id;

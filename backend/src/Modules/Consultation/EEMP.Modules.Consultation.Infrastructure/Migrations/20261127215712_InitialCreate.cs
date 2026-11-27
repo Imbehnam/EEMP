@@ -37,7 +37,7 @@ namespace EEMP.Modules.Consultation.Infrastructure.Migrations
                 });
 
             migrationBuilder.CreateTable(
-                name: "Settings",
+                name: "ConsultationSettings",
                 schema: "consultation",
                 columns: table => new
                 {
@@ -53,8 +53,8 @@ namespace EEMP.Modules.Consultation.Infrastructure.Migrations
                 },
                 constraints: table =>
                 {
-                    table.PrimaryKey("PK_Settings", x => x.Id);
-                    table.UniqueConstraint("AK_Settings_TenantId_Id", x => new { x.TenantId, x.Id });
+                    table.PrimaryKey("PK_ConsultationSettings", x => x.Id);
+                    table.UniqueConstraint("AK_ConsultationSettings_TenantId_Id", x => new { x.TenantId, x.Id });
                 });
 
             migrationBuilder.CreateTable(
@@ -309,9 +309,9 @@ namespace EEMP.Modules.Consultation.Infrastructure.Migrations
                 unique: true);
 
             migrationBuilder.CreateIndex(
-                name: "UX_Settings_TenantId",
+                name: "UX_ConsultationSettings_TenantId",
                 schema: "consultation",
-                table: "Settings",
+                table: "ConsultationSettings",
                 column: "TenantId",
                 unique: true);
 
@@ -383,7 +383,7 @@ namespace EEMP.Modules.Consultation.Infrastructure.Migrations
                 schema: "consultation");
 
             migrationBuilder.DropTable(
-                name: "Settings",
+                name: "ConsultationSettings",
                 schema: "consultation");
 
             migrationBuilder.DropTable(

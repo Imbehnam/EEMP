@@ -34,7 +34,7 @@ public sealed class ConsultationSettings : TenantEntity
 
 /// <summary>
 /// A staff user who offers consultation sessions. The profile alone grants nothing: acting as a consultant also needs
-/// <c>consultation.consult</c> in the branch (DL-091).
+/// <c>consultation.sessions.manage</c> in the branch (DL-091).
 /// </summary>
 public sealed class Consultant : TenantEntity
 {

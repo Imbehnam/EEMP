@@ -49,7 +49,7 @@ public static class Permissions
     public const string WorkflowInstancesManage = "workflow.instances.manage";
     public const string WorkflowTasksApprove = "workflow.tasks.approve";
     public const string ConsultationConsultantsManage = "consultation.consultants.manage";
-    public const string ConsultationConsult = "consultation.consult";
+    public const string ConsultationSessionsManage = "consultation.sessions.manage";
     public const string ConsultationBookingsRead = "consultation.bookings.read";
     public const string ConsultationBookingsManage = "consultation.bookings.manage";
     public const string ConsultationNotesRead = "consultation.notes.read";
@@ -101,7 +101,7 @@ public static class Permissions
         new(WorkflowInstancesManage, "workflow", true, true),
         new(WorkflowTasksApprove, "workflow", true, true),
         new(ConsultationConsultantsManage, "consultation", false, true),
-        new(ConsultationConsult, "consultation", true, true),
+        new(ConsultationSessionsManage, "consultation", true, true),
         new(ConsultationBookingsRead, "consultation", true, true),
         new(ConsultationBookingsManage, "consultation", true, true),
         new(ConsultationNotesRead, "consultation", true, true),

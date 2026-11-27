@@ -269,9 +269,9 @@ namespace EEMP.Modules.Consultation.Infrastructure.Migrations
 
                     b.HasIndex("TenantId")
                         .IsUnique()
-                        .HasDatabaseName("UX_Settings_TenantId");
+                        .HasDatabaseName("UX_ConsultationSettings_TenantId");
 
-                    b.ToTable("Settings", "consultation");
+                    b.ToTable("ConsultationSettings", "consultation");
                 });
 
             modelBuilder.Entity("EEMP.Modules.Consultation.Domain.Slot", b =>
