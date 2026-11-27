@@ -4,6 +4,22 @@ All notable changes to this project are documented here. Dates are UTC.
 
 ## [Unreleased]
 
+### Added — Milestone 3 institute finance backend (EEMP-014), 2026-11-26
+- New module `Finance` (schema `finance`): settings (VAT, late fees, sibling discount, results blocking, online payments), fee types and
+  items, invoices with gap-free per-tenant numbers (INV/R/CN, DL-060), discounts/scholarships with local maker-checker approval (DL-063),
+  installments, late fees, manual and online payments, allocation and credit balance (DL-061), refunds with approval, credit notes, void.
+- Online payments: `IPaymentGateway` with a fake gateway (dev/test) and a Zarinpal v4 adapter (off by default, config only); anonymous
+  callback `/api/v1/finance/gateway/{provider}/callback/{paymentId}` bound to the stored authority, verified with the stored amount, idempotent.
+- Portal: `/api/v1/portal/me/finance/*` (account, invoices, payments, pay, verify, invoice/receipt PDFs) for the student and linked guardians.
+- Reports: outstanding, aging, daily collections by method/branch, `?format=csv` (UTF-8 BOM).
+- PDFs: invoice and receipt (fa/en/tr/ar, Jalali for fa) on the shared PDF pipeline.
+- Permissions `finance.setup.manage`, `finance.read`, `finance.invoices.manage`, `finance.payments.manage`, `finance.approve`,
+  `finance.reports.read`; built-in role `FinanceOfficer`; startup sync adds new system roles/codes to every tenant (DL-064).
+  TenantAdmin and BranchManager hold no finance code.
+- Cross-module contracts: `ITenantFinanceSettings` (Tenancy), `IEnrollmentDirectory` (Academic), `IPeopleDirectory.GetSiblingIdsAsync`
+  (People), `IFinanceStanding`/`IFinanceUsage` (Finance). Academic portal grades/report cards honour `blockResultsOnOverdue` (DL-065).
+- 20 new error codes `finance.*` and `finance.pdf.*` labels in fa/en/tr/ar; dev seed adds `finance.officer` and sample finance data.
+
 ### Added — Workflow engine backend (EEMP-011), 2026-11-26
 - New `Workflow` module (schema `workflow`, own migrations history, 6 tables): tenant-scoped versioned definitions (draft → published →
   retired) of sequential approval steps (permission, optional named assignee, SLA hours, return allowed), instances pinned to a
@@ -20,6 +36,7 @@ All notable changes to this project are documented here. Dates are UTC.
 - Tests: unit (state machine, approver policy, backoff), architecture (module boundaries, data classification, tenant-composite FKs,
   permission flags), integration (versioning, maker-checker, distinct approvers, branch/tenant isolation, concurrency, idempotent
   start/retry, outbox retry and exactly-once application by the handler).
+
 
 ### Added — Report-card PDF export (EEMP-010 follow-up), 2026-11-26
 - Backend: server-side PDF rendering of report-card versions from the stored snapshot (DL-057, DL-058) — SkiaSharp + HarfBuzzSharp

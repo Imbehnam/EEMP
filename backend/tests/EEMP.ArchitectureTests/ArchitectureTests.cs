@@ -14,6 +14,7 @@ namespace EEMP.ArchitectureTests;
 
 public class ModuleBoundaryTests
 {
+    private static readonly string[] Modules = ["Tenancy", "Identity", "Organization", "People", "Academic", "Finance"];
     private static readonly string[] Modules = ["Tenancy", "Identity", "Organization", "People", "Academic", "Workflow"];
     private static readonly string[] Layers = ["Domain", "Application", "Infrastructure", "Contracts"];
 
@@ -65,7 +66,7 @@ public class AcademicArchitectureTests
     [Fact]
     public void Contracts_projects_do_not_reference_other_modules()
     {
-        foreach (var m in new[] { "Tenancy", "Identity", "Organization", "People", "Academic", "Workflow" })
+        foreach (var m in new[] { "Tenancy", "Identity", "Organization", "People", "Academic", "Workflow", "Finance" })
         {
             var refs = Assembly.Load($"EEMP.Modules.{m}.Contracts").GetReferencedAssemblies().Select(r => r.Name!).ToList();
             Assert.DoesNotContain(refs, r => r.StartsWith("EEMP.Modules.", StringComparison.Ordinal));
@@ -145,6 +146,7 @@ public class DataClassificationTests
         yield return [new OrganizationDbContext(DesignTime.Options<OrganizationDbContext>(OrganizationDbContext.SchemaName), t)];
         yield return [new PeopleDbContext(DesignTime.Options<PeopleDbContext>(PeopleDbContext.SchemaName), t)];
         yield return [new AcademicDbContext(DesignTime.Options<AcademicDbContext>(AcademicDbContext.SchemaName), t)];
+        yield return [new EEMP.Modules.Finance.Infrastructure.FinanceDbContext(DesignTime.Options<EEMP.Modules.Finance.Infrastructure.FinanceDbContext>(EEMP.Modules.Finance.Infrastructure.FinanceDbContext.SchemaName), t)];
         yield return [new WorkflowDbContext(DesignTime.Options<WorkflowDbContext>(WorkflowDbContext.SchemaName), t)];
     }
 
@@ -184,5 +186,63 @@ public class DataClassificationTests
         using var _ = context;
         var schemas = context.Model.GetEntityTypes().Select(e => e.GetSchema()).Distinct().ToList();
         Assert.Single(schemas);
+    }
+}
+
+public class FinanceArchitectureTests
+{
+    private static EEMP.Modules.Finance.Infrastructure.FinanceDbContext Context() =>
+        new(DesignTime.Options<EEMP.Modules.Finance.Infrastructure.FinanceDbContext>(EEMP.Modules.Finance.Infrastructure.FinanceDbContext.SchemaName), DesignTime.NoTenant());
+
+    [Fact]
+    public void Finance_permissions_are_sensitive_and_branch_scoped_except_setup()
+    {
+        var finance = EEMP.SharedKernel.Authorization.Permissions.All.Where(p => p.Module == "finance").ToList();
+        Assert.Equal(6, finance.Count);
+        Assert.All(finance.Where(p => p.Code != EEMP.SharedKernel.Authorization.Permissions.FinanceSetup), p => Assert.True(p.IsSensitive && p.BranchScoped, p.Code));
+        Assert.All(finance, p => Assert.StartsWith("finance.", p.Code, StringComparison.Ordinal));
+    }
+
+    [Fact]
+    public void TenantAdmin_and_BranchManager_hold_no_finance_permission()
+    {
+        var defs = EEMP.Modules.Identity.Application.TenantAccessProvisioner.SystemRoleDefinitions;
+        foreach (var role in new[] { EEMP.Modules.Identity.Domain.SystemRoles.TenantAdmin, EEMP.Modules.Identity.Domain.SystemRoles.BranchManager })
+            Assert.DoesNotContain(defs[role].Permissions, c => c.StartsWith("finance.", StringComparison.Ordinal));
+        Assert.Contains(EEMP.SharedKernel.Authorization.Permissions.FinanceApprove, defs[EEMP.Modules.Identity.Domain.SystemRoles.FinanceOfficer].Permissions);
+    }
+
+    [Fact]
+    public void Finance_tables_use_tenant_composite_foreign_keys()
+    {
+        using var ctx = Context();
+        foreach (var fk in ctx.Model.GetEntityTypes().SelectMany(e => e.GetForeignKeys()))
+            Assert.True(fk.Properties[0].Name == "TenantId", $"{fk.DeclaringEntityType.GetTableName()} FK is not tenant-composite");
+        foreach (var ix in ctx.Model.GetEntityTypes().SelectMany(e => e.GetIndexes()))
+            Assert.True(ix.Properties[0].Name == "TenantId", $"{ix.DeclaringEntityType.GetTableName()} index {string.Join(",", ix.Properties.Select(p => p.Name))} is not tenant-leading");
+    }
+
+    [Fact]
+    public void Money_is_decimal_never_floating_point_and_carries_a_currency()
+    {
+        using var ctx = Context();
+        foreach (var e in ctx.Model.GetEntityTypes())
+        {
+            Assert.DoesNotContain(e.GetProperties(), p => p.ClrType == typeof(double) || p.ClrType == typeof(float) || p.ClrType == typeof(double?) || p.ClrType == typeof(float?));
+            foreach (var p in e.GetProperties().Where(p => p.ClrType == typeof(decimal) || p.ClrType == typeof(decimal?)))
+                Assert.True(p.GetColumnType() is "decimal(19,4)" or "decimal(5,2)", $"{e.GetTableName()}.{p.Name} is {p.GetColumnType()}");
+            if (e.GetProperties().Any(p => p.Name == "Amount") && e.FindProperty("Currency") is null)
+                Assert.Contains(e.ClrType.Name, new[] { "InvoiceLine", "InvoiceDiscount", "Installment", "InvoiceAdjustment", "PaymentAllocation", "FinanceAuditEntry" });
+        }
+    }
+
+    [Fact]
+    public void Finance_audit_is_append_only()
+    {
+        using var ctx = Context();
+        var entry = new EEMP.Modules.Finance.Domain.FinanceAuditEntry { TenantId = Guid.NewGuid(), Action = "x", EntityType = "y" };
+        ctx.Attach(entry);
+        ctx.Entry(entry).State = Microsoft.EntityFrameworkCore.EntityState.Deleted;
+        Assert.Throws<InvalidOperationException>(() => ctx.SaveChanges());
     }
 }

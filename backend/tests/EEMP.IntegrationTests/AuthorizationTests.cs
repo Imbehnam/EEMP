@@ -86,7 +86,9 @@ public class AuthorizationTests(EempFactory factory)
     [Fact]
     public async Task Every_api_endpoint_requires_authorization_except_auth_entry_points()
     {
-        var allowAnonymous = new HashSet<string> { "/api/v1/auth/login", "/api/v1/auth/refresh", "/api/v1/auth/logout" };
+        // Payment-provider callbacks are anonymous by nature (DL-066): bound to the payment id + stored authority, verified server-side.
+        var allowAnonymous = new HashSet<string> { "/api/v1/auth/login", "/api/v1/auth/refresh", "/api/v1/auth/logout",
+            "/api/v1/finance/gateway/{provider}/callback/{paymentId:guid}" };
         var endpoints = factory.Services.GetRequiredService<EndpointDataSource>().Endpoints.OfType<RouteEndpoint>()
             .Where(e => e.RoutePattern.RawText?.StartsWith("/api/v1", StringComparison.Ordinal) == true).ToList();
         Assert.NotEmpty(endpoints);

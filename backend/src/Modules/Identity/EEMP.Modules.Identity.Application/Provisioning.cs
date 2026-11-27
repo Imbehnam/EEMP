@@ -34,6 +34,12 @@ public sealed class TenantAccessProvisioner(IIdentityDbContext db, UserManager<A
             [SystemRoles.Teacher] = ("Teacher", [Permissions.BranchesRead]),
             [SystemRoles.Guardian] = ("Guardian", []),
             [SystemRoles.Student] = ("Student", []),
+            // DL-064: finance is a separate duty; TenantAdmin and BranchManager hold no finance.* code.
+            [SystemRoles.FinanceOfficer] = ("Finance officer", [
+                Permissions.OrganizationRead, Permissions.BranchesRead, Permissions.CatalogRead, Permissions.ClassesRead,
+                Permissions.StudentsRead, Permissions.GuardiansRead, Permissions.EnrollmentsRead,
+                Permissions.FinanceSetup, Permissions.FinanceRead, Permissions.FinanceInvoicesManage, Permissions.FinancePaymentsManage,
+                Permissions.FinanceApprove, Permissions.FinanceReports]),
         };
 
     public async Task<Guid> ProvisionTenantAsync(Guid tenantId, NewUserSpec admin, CancellationToken ct = default)
@@ -64,6 +70,40 @@ public sealed class TenantAccessProvisioner(IIdentityDbContext db, UserManager<A
             if (!result.Succeeded) return [Validator.PasswordTooWeak];
         }
         return [];
+    }
+}
+
+/// <summary>
+/// DL-064: idempotent per-tenant sync of the built-in roles. Creates missing system roles and adds catalog codes that a system
+/// role's definition gained since the tenant was provisioned. Never removes codes and never touches custom roles.
+/// Runs inside the tenant's scope.
+/// </summary>
+public sealed class SystemRoleSync(IIdentityDbContext db)
+{
+    public async Task<int> SyncAsync(CancellationToken ct = default)
+    {
+        var changes = 0;
+        var existing = await db.Roles.Include(r => r.Permissions).Where(r => r.IsSystem).ToListAsync(ct);
+        foreach (var (code, def) in TenantAccessProvisioner.SystemRoleDefinitions)
+        {
+            var role = existing.FirstOrDefault(r => r.Code == code);
+            if (role is null)
+            {
+                if (await db.Roles.AnyAsync(r => r.Code == code, ct)) continue; // a custom role already uses the code
+                role = new Role { Code = code, Name = def.Name, IsSystem = true };
+                role.SetPermissions(def.Permissions);
+                db.Roles.Add(role);
+                changes++;
+                continue;
+            }
+            var have = role.Permissions.Select(p => p.PermissionCode).ToHashSet(StringComparer.Ordinal);
+            var missing = def.Permissions.Where(p => !have.Contains(p)).ToList();
+            if (missing.Count == 0) continue;
+            role.SetPermissions(have.Concat(missing));
+            changes++;
+        }
+        if (changes > 0) await db.SaveChangesAsync(ct);
+        return changes;
     }
 }
 

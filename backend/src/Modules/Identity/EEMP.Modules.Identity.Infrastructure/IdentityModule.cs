@@ -87,6 +87,7 @@ public static class IdentityModule
         services.AddScoped<ITenantAccessProvisioner, TenantAccessProvisioner>();
         services.AddScoped<IUserDirectory, UserDirectory>();
         services.AddScoped<IAssignmentUsage, AssignmentUsage>();
+        services.AddScoped<SystemRoleSync>();
         return services;
     }
 
@@ -118,6 +119,28 @@ public static class IdentityModule
             return;
         }
         services.GetRequiredService<ITenantContext>().Initialize(tenantId, userId, result.IsPlatformAdmin);
+    }
+
+    /// <summary>DL-064: brings every provisioned tenant's built-in roles up to the current definitions (idempotent, startup).</summary>
+    public static async Task SyncSystemRolesAsync(this IServiceProvider root, CancellationToken ct = default)
+    {
+        List<Guid> tenantIds;
+        await using (var scope = root.CreateAsyncScope())
+        {
+            var tenant = scope.ServiceProvider.GetRequiredService<ITenantContext>();
+            using var _ = tenant.BeginTenantScope(null);
+            var db = scope.ServiceProvider.GetRequiredService<IIdentityDbContext>();
+            tenantIds = await Microsoft.EntityFrameworkCore.EntityFrameworkQueryableExtensions.ToListAsync(
+                System.Linq.Queryable.Distinct(System.Linq.Queryable.Select(
+                    Microsoft.EntityFrameworkCore.EntityFrameworkQueryableExtensions.IgnoreQueryFilters(db.Roles), r => r.TenantId)), ct);
+        }
+        foreach (var tenantId in tenantIds)
+        {
+            await using var scope = root.CreateAsyncScope();
+            var tenant = scope.ServiceProvider.GetRequiredService<ITenantContext>();
+            using var _ = tenant.BeginTenantScope(tenantId);
+            await scope.ServiceProvider.GetRequiredService<SystemRoleSync>().SyncAsync(ct);
+        }
     }
 
     public static IEndpointRouteBuilder MapIdentityEndpoints(this IEndpointRouteBuilder api)

@@ -1,5 +1,7 @@
 using EEMP.Modules.Academic.Application;
 using EEMP.Modules.Academic.Domain;
+using EEMP.Modules.Finance.Application;
+using EEMP.Modules.Finance.Domain;
 using EEMP.Modules.Identity.Application;
 using EEMP.Modules.Identity.Contracts;
 using EEMP.Modules.Identity.Domain;
@@ -40,6 +42,7 @@ public static class DevelopmentSeed
     public const string TeacherUser = "teacher.one";
     public const string GuardianUser = "guardian.one";
     public const string StudentUser = "student.one";
+    public const string FinanceOfficerUser = "finance.officer";
 
     public static IServiceCollection AddDevelopmentSeed(this IServiceCollection services, IConfiguration configuration)
     {
@@ -96,6 +99,7 @@ public static class DevelopmentSeed
             using (tenant.BeginTenantScope(existing.Id))
             {
                 await SeedAcademicAsync(sp, logger, ct);
+                await SeedFinanceAsync(sp, existing.Id, options.DemoUserPassword, logger, ct);
                 await SeedWorkflowAsync(sp, logger, ct);
             }
             return;
@@ -140,6 +144,7 @@ public static class DevelopmentSeed
             people.Staff.Add(new StaffMember { BranchId = north.Id, FirstName = "Leila", LastName = "Sadeghi", EmployeeNumber = "E0001", Position = "Receptionist" });
             await people.SaveChangesAsync(ct);
             await SeedAcademicAsync(sp, logger, ct);
+            await SeedFinanceAsync(sp, created.Id, options.DemoUserPassword, logger, ct);
             await SeedWorkflowAsync(sp, logger, ct);
         }
         logger.LogInformation("Seeded demo tenant {Slug}", DemoSlug);
@@ -228,6 +233,82 @@ public static class DevelopmentSeed
         logger.LogInformation("Seeded demo academic data");
     }
 
+    /// <summary>
+    /// Milestone 3 sample data (demo tenant scope; skipped when any fee type exists): user finance.officer (FinanceOfficer, tenant-wide),
+    /// fee type TUITION, fee item "Tuition - Term 1" (12,000,000 IRR), an issued two-installment invoice for Sara's MATH-7A enrollment
+    /// (student.one / guardian.one) and a 5,000,000 IRR cash payment with receipt.
+    /// </summary>
+    private static async Task SeedFinanceAsync(IServiceProvider sp, Guid tenantId, string password, ILogger logger, CancellationToken ct)
+    {
+        var fin = sp.GetRequiredService<IFinanceDbContext>();
+        if (await fin.FeeTypes.AnyAsync(ct)) return;
+        var identity = sp.GetRequiredService<IIdentityDbContext>();
+        var users = sp.GetRequiredService<UserManager<AppUser>>();
+        var role = await identity.Roles.FirstOrDefaultAsync(r => r.Code == SystemRoles.FinanceOfficer, ct);
+        var normalized = users.NormalizeName(FinanceOfficerUser);
+        if (role is not null && !await identity.Users.AnyAsync(u => u.NormalizedUserName == normalized, ct))
+        {
+            var u = await UserService.CreateUserAsync(tenantId, new NewUserSpec(FinanceOfficerUser, "Finance Officer", null, null, password, "fa-IR", "Asia/Tehran"), users, ct);
+            identity.RoleAssignments.Add(new RoleAssignment { UserId = u.Id, RoleId = role.Id, BranchId = null });
+            await identity.SaveChangesAsync(ct);
+        }
+
+        var academic = sp.GetRequiredService<IAcademicDbContext>();
+        var people = sp.GetRequiredService<IPeopleDbContext>();
+        var sara = await people.Students.FirstOrDefaultAsync(x => x.StudentNumber == "S0001", ct);
+        var mathA = await academic.Classes.FirstOrDefaultAsync(c => c.Code == "MATH-7A", ct);
+        var enrollment = sara is null || mathA is null ? null
+            : await academic.Enrollments.FirstOrDefaultAsync(e => e.ClassId == mathA.Id && e.StudentId == sara.Id, ct);
+
+        var tuition = new FeeType { Code = "TUITION", Name = "Tuition", Taxable = false };
+        fin.FeeTypes.Add(tuition);
+        var fee = new FeeItem { FeeTypeId = tuition.Id, Name = "Tuition - Term 1", Amount = 12_000_000m, Currency = "IRR", TermId = mathA?.TermId };
+        fin.FeeItems.Add(fee);
+        fin.Settings.Add(new FinanceSettings { OnlinePaymentsEnabled = true });
+        if (sara is null || mathA is null || enrollment is null)
+        {
+            await fin.SaveChangesAsync(ct);
+            logger.LogWarning("Demo tenant lacks the M2 sample enrollment; seeded finance setup only.");
+            return;
+        }
+
+        var now = DateTime.UtcNow;
+        var issueDate = new DateOnly(2026, 9, 23);
+        var inv = new Invoice
+        {
+            Number = DocumentNumbers.Format(DocumentNumbers.Invoice, 1), StudentId = sara.Id, BranchId = mathA.BranchId, TermId = mathA.TermId,
+            Status = InvoiceStatus.Issued, Currency = "IRR", IssueDate = issueDate, IssuedAt = now,
+        };
+        inv.Lines.Add(new InvoiceLine { InvoiceId = inv.Id, FeeItemId = fee.Id, EnrollmentId = enrollment.Id, Description = fee.Name, Quantity = 1, UnitPrice = fee.Amount });
+        InvoiceCalculator.Recalculate(inv);
+        var seq = 1;
+        foreach (var (due, amount) in InstallmentPlanner.EqualSplit(inv.Total, 2, new DateOnly(2026, 10, 22), 60, inv.Currency))
+            inv.Installments.Add(new Installment { InvoiceId = inv.Id, SeqNo = seq++, DueDate = due, Amount = amount });
+        inv.DueDate = inv.Installments[^1].DueDate;
+        fin.Invoices.Add(inv);
+        fin.GeneratedCharges.Add(new GeneratedCharge { EnrollmentId = enrollment.Id, FeeItemId = fee.Id, InvoiceId = inv.Id });
+
+        var payment = new Payment
+        {
+            StudentId = sara.Id, BranchId = mathA.BranchId, Method = PaymentMethod.Cash, Status = PaymentStatus.Succeeded, Amount = 5_000_000m, Currency = "IRR",
+            ReceivedOn = new DateOnly(2026, 10, 1), ReceiptNumber = DocumentNumbers.Format(DocumentNumbers.Receipt, 1), SucceededAt = now, TargetInvoiceId = inv.Id,
+        };
+        var (lines, _) = Allocator.Allocate(payment.Amount, [new AllocationTarget(inv.Id, inv.Balance, inv.Installments.Select(i => (i.Id, i.DueDate, i.Remaining)).ToList())]);
+        foreach (var l in lines)
+        {
+            payment.Allocations.Add(new PaymentAllocation { PaymentId = payment.Id, InvoiceId = inv.Id, InstallmentId = l.InstallmentId, Amount = l.Amount, CreatedAt = now });
+            inv.Installments.First(i => i.Id == l.InstallmentId).PaidAmount += l.Amount;
+            inv.PaidAmount += l.Amount;
+            payment.Allocated += l.Amount;
+        }
+        InvoiceCalculator.UpdatePaymentStatus(inv);
+        fin.Payments.Add(payment);
+        fin.NumberSeries.Add(new NumberSeries { Series = DocumentNumbers.Invoice, LastValue = 1 });
+        fin.NumberSeries.Add(new NumberSeries { Series = DocumentNumbers.Receipt, LastValue = 1 });
+        fin.Audit.Add(new FinanceAuditEntry { At = now, Action = "seed.invoice", EntityType = "invoice", EntityId = inv.Id, InvoiceId = inv.Id, StudentId = sara.Id, Amount = inv.Total, Currency = "IRR" });
+        fin.Audit.Add(new FinanceAuditEntry { At = now, Action = "seed.payment", EntityType = "payment", EntityId = payment.Id, InvoiceId = inv.Id, PaymentId = payment.Id, StudentId = sara.Id, Amount = payment.Amount, Currency = "IRR" });
+        await fin.SaveChangesAsync(ct);
+        logger.LogInformation("Seeded demo finance data");
     public const string DiscountApprovalKey = "discount-approval";
 
     /// <summary>

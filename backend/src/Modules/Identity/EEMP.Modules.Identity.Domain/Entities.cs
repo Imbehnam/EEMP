@@ -85,4 +85,5 @@ public static class SystemRoles
     public const string Teacher = "Teacher";
     public const string Guardian = "Guardian";
     public const string Student = "Student";
+    public const string FinanceOfficer = "FinanceOfficer";
 }

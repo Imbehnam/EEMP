@@ -245,6 +245,95 @@
   are published for linux-x64/arm64 and musl.
 - Owner: Implementing agent.
 
+## Milestone 3 decisions (2026-11-26) — institute finance (EEMP-014 backend)
+
+Contract: `work/eemp-milestone3-contract.md` (kept next to the M1/M2 contracts). EEMP-011 (workflow engine) is not built; the product
+owner approved (2026-11-26) that discount and refund approvals live inside Finance as a local maker-checker step for now (DL-063).
+
+### DL-059 — Money representation and currency
+- Date: 2026-11-26
+- Status: Recorded (implementing agent) — resolves OD-011 for M3 as "single currency per tenant"
+- Context: AGENTS.md requires decimal money with explicit currency; Tenant.Currency (default IRR) existed but no module could read it.
+  IRR has no minor unit, but percentage discounts and VAT produce fractions, and tr/ar tenants may later use currencies with decimals.
+- Decision: `decimal(19,4)` columns with a `Currency` (ISO 4217, 3 chars) column on every monetary record (fee item, invoice, payment,
+  refund, adjustment). Currency comes only from the tenant (`ITenantFinanceSettings` in Tenancy.Contracts) and is stamped at creation.
+  Every stored amount is rounded to the currency's minor unit (IRR/IRT 0 decimals) with MidpointRounding.AwayFromZero; client amounts
+  with more decimals are rejected. Installment remainders go to the last installment.
+- Alternatives: `decimal(18,0)` IRR-only (simpler, but a schema change for any decimal currency); integer minor units (long).
+- Consequences: one currency per tenant in M3; multi-currency would add FX rules, not a schema change.
+- Owner: Implementing agent; confirm with product owner (OD-011).
+
+### DL-060 — Gap-free per-tenant document numbering
+- Date: 2026-11-26
+- Status: Recorded (implementing agent)
+- Decision: a `finance.NumberSeries` row per (tenant, series) — `INV`, `R` (receipts), `CN` (credit notes) — with a rowversion.
+  A number is taken by incrementing the row **in the same SaveChanges/transaction** as the document that uses it; a concurrency
+  conflict rolls everything back and the whole operation is retried (bounded, 5 attempts) on a fresh change tracker. Because the
+  number and the document commit together, a failure never consumes a number (gap-free) and two documents never share one (unique
+  index on (TenantId, Number) per document type as a second guard). Numbers never reset (no yearly reset in M3); format
+  `{series}-{000000}`.
+- Alternatives: SQL Server SEQUENCE (fast, but gaps on rollback); MAX()+1 (races).
+- Owner: Implementing agent.
+
+### DL-061 — Allocation order and credit balance
+- Date: 2026-11-26
+- Status: Recorded (implementing agent)
+- Decision: a succeeded payment is allocated to the requested invoice, else to the student's issued/partially paid invoices by
+  due date (then issue date, number); inside an invoice to open installments by due date. Any remainder stays on the payment as
+  `unallocated` = the student's credit balance, usable via apply-credit or refundable (DL-063). Voiding an invoice releases its
+  allocations back to the payments' unallocated amounts.
+- Owner: Implementing agent.
+
+### DL-062 — VAT per tenant
+- Date: 2026-11-26
+- Status: Recorded (implementing agent) — rate and taxable fee types must be confirmed by the institute's accountant
+- Decision: `FinanceSettings.VatEnabled` (default false) and `VatRatePercent`; VAT applies to lines whose fee type is `taxable`, on the
+  line amount after a proportional share of approved discounts, at the rate in force when the invoice is issued (stored on the invoice).
+  No jurisdiction engine; no e-invoicing (Iranian tax system "سامانه مودیان") integration in M3.
+- Owner: Implementing agent; confirm with product owner.
+
+### DL-063 — Local maker-checker for discounts and refunds; append-only finance audit
+- Date: 2026-11-26
+- Status: Approved by product owner (local approval step), design recorded by implementing agent
+- Decision: discounts/scholarships and refunds are created `pending` by a maker and approved/rejected by a different user holding
+  `finance.approve` in the record's branch (`403 finance.maker_checker` for the same user). The approval step is behind a small
+  `IFinanceApprovals` seam inside the module so it can later be replaced by the EEMP-011 workflow engine without changing the
+  public API. Because the generic audit stores only changed field names, every finance state change also writes an append-only
+  `finance.FinanceAudit` row (actor, action, entity, invoice/payment/student ids, amount, currency, UTC time) in the same SaveChanges;
+  the context refuses to update or delete audit rows.
+- Workflow seam (2026-11-26, after EEMP-011 draft PR #7): `IFinanceApprovals.SubmitAsync(ApprovalSubject)` is called in the maker's unit
+  of work and is a no-op locally; a workflow implementation calls `IWorkflowService.StartAsync` with idempotency key `finance:{kind}:{id}`
+  and its `IWorkflowEventHandler` (SubjectModule `finance`) applies the outcome through `ApprovalService.DecideDiscountAsync/DecideRefundAsync`,
+  which are idempotent for replayed (at-least-once) decisions. `EnsureCanDecideAsync` holds the local maker ≠ checker rule.
+- Owner: Product owner (approval model), implementing agent (design).
+
+### DL-064 — FinanceOfficer role and startup system-role sync
+- Date: 2026-11-26
+- Status: Recorded (implementing agent)
+- Decision: new built-in role `FinanceOfficer` (all `finance.*` + organization/branches/catalog/classes read, students/guardians/
+  enrollments read). TenantAdmin and BranchManager get no `finance.*` code. System roles were only created at provisioning, so an
+  idempotent startup sync creates missing system roles in every tenant and **adds** missing catalog codes to existing system roles
+  (never removes codes, never touches custom roles).
+- Owner: Implementing agent.
+
+### DL-065 — Unpaid balance blocking academic results
+- Date: 2026-11-26
+- Status: Recorded (implementing agent) — default off
+- Decision: `FinanceSettings.BlockResultsOnOverdue` (default false). When on, portal grade and report-card reads/PDFs of a student with
+  an overdue issued balance return `403 finance.results_blocked`; staff views are never blocked. Academic reads it through
+  `IFinanceStanding` (Finance.Contracts).
+- Owner: Implementing agent; policy to be confirmed by product owner (it is legally/ethically sensitive).
+
+### DL-066 — Payment gateways
+- Date: 2026-11-26
+- Status: Recorded (implementing agent)
+- Decision: `IPaymentGateway` (request/verify) with a `fake` gateway (enabled only by configuration, used in Development/Testing) and a
+  Zarinpal v4 adapter (`payment/request.json`, `payment/verify.json`), disabled by default, configured only through configuration
+  (`Finance__Gateways__Zarinpal__MerchantId` from the environment; nothing committed). The callback is anonymous, bound to the
+  payment id in the URL and the provider authority stored at request time; verification always uses the stored amount; replays and
+  concurrent callbacks are idempotent (rowversion + status check); a provider amount that differs from the stored amount fails the
+  payment. Gateway refunds and reconciliation/settlement files are out of scope for M3.
+
 ### DL-070 — EEMP-011 workflow engine: scope, model and numbering
 - Date: 2026-11-26
 - Status: Recorded (implementing agent) — scope follows OD-027 (accepted assumption, pending business confirmation)

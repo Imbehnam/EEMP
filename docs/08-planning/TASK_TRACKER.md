@@ -18,7 +18,7 @@ Statuses: `NOT_STARTED`, `IN_PROGRESS`, `IN_REVIEW` (implemented, build and auto
 | EEMP-011 | Workflow engine | IN_REVIEW | EEMP-005 |
 | EEMP-012 | Consultation and support booking | NOT_STARTED | EEMP-011 |
 | EEMP-013 | Academic planning and paid service | NOT_STARTED | EEMP-011, EEMP-012 |
-| EEMP-014 | Institute finance and tuition payments | NOT_STARTED | EEMP-007, EEMP-011 |
+| EEMP-014 | Institute finance and tuition payments | IN_PROGRESS (backend IN_REVIEW; frontend not started) | EEMP-007, EEMP-011 |
 | EEMP-015 | Recorded courses and media | NOT_STARTED | EEMP-005 |
 | EEMP-016 | Calendar and online meetings | NOT_STARTED | EEMP-012 |
 | EEMP-017 | SMS reminders and notification center | NOT_STARTED | EEMP-016 |
@@ -98,6 +98,24 @@ Rendered samples were inspected visually (fa/en/ar first pages).
 | ID | Evidence | Open items |
 |---|---|---|
 | EEMP-010 (PDF) | `GET /report-cards/{id}/versions/{n}/pdf`, `GET /portal/me/report-cards/{id}/pdf`, `GET /report-cards/pdf-archive?classId=`; SkiaSharp + HarfBuzzSharp renderer with embedded Vazirmatn (OFL); fa/ar RTL shaping, Persian/Arabic-Indic digits, Jalali for fa; tests `ReportCardPdfTests` (unit: bidi, locale, culture-independent dates, fa/en/ar/tr text extraction, multi-page; integration: permissions, branch scope, draft → portal 404, unlinked guardian/student 404, teacher 404/403, tenant isolation, content type, safe file name, archive); frontend "Download PDF" (admin detail, portal detail) and "Download all PDFs (ZIP)" (admin list with a class selected) through the BFF, fa/en/tr/ar strings, Vitest `report-card-pdf.test.ts` + BFF streaming tests, Playwright mock + real-API download specs | Not audited; untagged PDF; no tenant logo/templates (EEMP-021); Docker image not built here (DL-058) |
+
+## Milestone 3 finance backend (EEMP-014 backend, 2026-11-26, branch `feature/m3-finance-backend`)
+
+Contains `feature/report-card-pdf` (PR #6). Contract: `work/eemp-milestone3-contract.md` (copy in `docs/08-planning/M3_FINANCE_CONTRACT.md`);
+decisions DL-059..DL-066. EEMP-011 (workflow engine, draft PR #7) is not merged here: per the product owner's approval, discount and refund
+approvals run as a local maker-checker behind `IFinanceApprovals` (swappable to the workflow engine, DL-063).
+
+- Module `EEMP.Modules.Finance.*` with its own `finance` schema and migration `InitialCreate`; `check-migrations.sh` covers `FinanceDbContext`.
+- Fee types/items, invoices (draft → issued → partiallyPaid → paid, void, credit notes), idempotent generation per enrollment × fee
+  (single and bulk per class/term), discounts/scholarships/sibling rule with approval, installments, optional late fees, manual payments
+  (cash/POS/transfer/cheque) with gap-free receipts, refunds with approval, allocation + credit balance, fake + Zarinpal gateways with
+  idempotent, amount-checked callbacks, portal views, reports (outstanding, aging, collections, CSV), invoice/receipt PDFs,
+  append-only finance audit, results-blocking setting (default off), FinanceOfficer role + idempotent startup system-role sync.
+- Seed: `finance.officer` (password `Seed__DemoUserPassword`), TUITION fee, issued 2-installment invoice INV-000001 and cash receipt R-000001 for S0001.
+- Tests (sandbox, SQLite fallback, Debug): unit 94/94, architecture 78/78, integration 66/66 (15 new finance tests); `check-migrations.sh`
+  clean for all 7 contexts. SQL Server migration not applied in the sandbox (no SQL Server/Docker).
+- Not done: frontend (admin finance pages, portal pay flow), gateway refunds/reconciliation/settlement files, chargebacks, period closing,
+  e-invoicing (Moadian), notifications/reminders for due installments (EEMP-017), student/branch deletion guards for finance references.
 
 ## EEMP-011 workflow engine backend evidence (2026-11-26, branch `feature/workflow-engine-backend`)
 

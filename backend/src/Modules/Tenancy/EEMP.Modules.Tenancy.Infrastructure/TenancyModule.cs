@@ -17,6 +17,7 @@ public static class TenancyModule
         services.AddModuleDbContext<TenancyDbContext>(TenancyDbContext.SchemaName);
         services.AddScoped<ITenancyDbContext>(sp => sp.GetRequiredService<TenancyDbContext>());
         services.AddScoped<ITenantDirectory, TenantDirectory>();
+        services.AddScoped<ITenantFinanceSettings, TenantFinanceSettings>();
         services.AddScoped<TenantService>();
         return services;
     }
