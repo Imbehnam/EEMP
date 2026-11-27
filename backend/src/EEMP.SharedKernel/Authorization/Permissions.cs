@@ -48,7 +48,6 @@ public static class Permissions
     public const string WorkflowInstancesRead = "workflow.instances.read";
     public const string WorkflowInstancesManage = "workflow.instances.manage";
     public const string WorkflowTasksApprove = "workflow.tasks.approve";
-
     public static readonly IReadOnlyList<PermissionDefinition> All =
     [
         new(OrganizationRead, "organization", false, false),

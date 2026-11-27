@@ -53,6 +53,7 @@ public class DomainTests
         // (finance.invoices.manage, finance.reports.read, workflow.definitions.read).
         Assert.All(Permissions.All, p => Assert.Matches("^[a-z]+(\\.[a-z]+)?\\.(read|manage|approve|publish)$", p.Code));
         Assert.All(Permissions.All.Where(p => p.Code.Count(c => c == '.') == 2), p => Assert.Contains(p.Module, new[] { "finance", "workflow" }));
+
         Assert.Equal(Permissions.All.Count, Permissions.All.Select(p => p.Code).Distinct().Count());
     }
 

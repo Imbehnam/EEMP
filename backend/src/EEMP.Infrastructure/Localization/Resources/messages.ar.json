@@ -201,7 +201,7 @@
   "finance.pdf.method.pos": "بطاقة (نقطة بيع)",
   "finance.pdf.method.transfer": "تحويل بنكي",
   "finance.pdf.method.cheque": "شيك",
-  "finance.pdf.method.online": "إلكتروني",
+  "finance.pdf.method.online": "إلكتروني"
   "workflow.definition_key_taken": "يوجد بالفعل سير عمل بهذا المعرّف.",
   "workflow.definition_inactive": "سير العمل هذا غير نشط.",
   "workflow.definition_not_published": "لا يوجد إصدار منشور لسير العمل هذا.",
