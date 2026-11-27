@@ -1,5 +1,7 @@
 using EEMP.Modules.Academic.Application;
 using EEMP.Modules.Academic.Domain;
+using EEMP.Modules.Consultation.Application;
+using EEMP.Modules.Consultation.Domain;
 using EEMP.Modules.Finance.Application;
 using EEMP.Modules.Finance.Domain;
 using EEMP.Modules.Identity.Application;
@@ -43,6 +45,7 @@ public static class DevelopmentSeed
     public const string GuardianUser = "guardian.one";
     public const string StudentUser = "student.one";
     public const string FinanceOfficerUser = "finance.officer";
+    public const string ConsultantUser = "consultant.one";
 
     public static IServiceCollection AddDevelopmentSeed(this IServiceCollection services, IConfiguration configuration)
     {
@@ -101,6 +104,7 @@ public static class DevelopmentSeed
                 await SeedAcademicAsync(sp, logger, ct);
                 await SeedFinanceAsync(sp, existing.Id, options.DemoUserPassword, logger, ct);
                 await SeedWorkflowAsync(sp, logger, ct);
+                await SeedConsultationAsync(sp, existing.Id, options.DemoUserPassword, logger, ct);
             }
             return;
         }
@@ -146,6 +150,7 @@ public static class DevelopmentSeed
             await SeedAcademicAsync(sp, logger, ct);
             await SeedFinanceAsync(sp, created.Id, options.DemoUserPassword, logger, ct);
             await SeedWorkflowAsync(sp, logger, ct);
+            await SeedConsultationAsync(sp, created.Id, options.DemoUserPassword, logger, ct);
         }
         logger.LogInformation("Seeded demo tenant {Slug}", DemoSlug);
     }
@@ -335,5 +340,79 @@ public static class DevelopmentSeed
         db.Definitions.Add(def);
         await db.SaveChangesAsync(ct);
         logger.LogInformation("Seeded workflow definition {Key}", DiscountApprovalKey);
+    }
+
+    /// <summary>
+    /// EEMP-012 sample data (demo tenant; skipped when any consultant exists): user consultant.one (role Consultant, North), profile
+    /// "Dr. Narges Tavakoli" serving North, booking policy with minLeadHours 0 (so walk-in style sessions can be demoed), open 30-minute
+    /// slots 10:00–12:00 Tehran time on the next five Saturday–Wednesday days, one requested booking for Sara (S0001) and one open
+    /// support ticket from guardian.one about Sara.
+    /// </summary>
+    private static async Task SeedConsultationAsync(IServiceProvider sp, Guid tenantId, string password, ILogger logger, CancellationToken ct)
+    {
+        var db = sp.GetRequiredService<IConsultationDbContext>();
+        if (await db.Consultants.AnyAsync(ct)) return;
+        var identity = sp.GetRequiredService<IIdentityDbContext>();
+        var users = sp.GetRequiredService<UserManager<AppUser>>();
+        var org = sp.GetRequiredService<IOrganizationDbContext>();
+        var people = sp.GetRequiredService<IPeopleDbContext>();
+        var north = await org.Branches.FirstOrDefaultAsync(b => b.Code == "NORTH", ct);
+        var role = await identity.Roles.FirstOrDefaultAsync(r => r.Code == SystemRoles.Consultant, ct);
+        if (north is null || role is null)
+        {
+            logger.LogWarning("Demo tenant lacks the North branch or the Consultant role; skipped consultation sample data.");
+            return;
+        }
+        var normalized = users.NormalizeName(ConsultantUser);
+        var user = await identity.Users.FirstOrDefaultAsync(u => u.NormalizedUserName == normalized, ct);
+        if (user is null)
+        {
+            user = await UserService.CreateUserAsync(tenantId, new NewUserSpec(ConsultantUser, "Narges Tavakoli", null, null, password, "fa-IR", "Asia/Tehran"), users, ct);
+            identity.RoleAssignments.Add(new RoleAssignment { UserId = user.Id, RoleId = role.Id, BranchId = north.Id });
+            await identity.SaveChangesAsync(ct);
+        }
+
+        if (!await db.Settings.AnyAsync(ct)) db.Settings.Add(new ConsultationSettings { MinLeadHours = 0 });
+        var consultant = new Consultant
+        {
+            UserId = user.Id, DisplayName = "Dr. Narges Tavakoli", Bio = "Educational counselor (study skills, course selection).",
+            Specialties = "Study planning; Course selection",
+        };
+        consultant.Branches.Add(new ConsultantBranch { ConsultantId = consultant.Id, BranchId = north.Id });
+        db.Consultants.Add(consultant);
+
+        var tz = TimeZoneInfo.TryFindSystemTimeZoneById("Asia/Tehran", out var found) ? found : TimeZoneInfo.Utc;
+        var today = DateOnly.FromDateTime(TimeZoneInfo.ConvertTimeFromUtc(DateTime.UtcNow, tz));
+        var days = new HashSet<DayOfWeek> { DayOfWeek.Saturday, DayOfWeek.Sunday, DayOfWeek.Monday, DayOfWeek.Tuesday, DayOfWeek.Wednesday };
+        var slots = SlotRules.Expand(today.AddDays(1), today.AddDays(8), days, new TimeOnly(10, 0), new TimeOnly(12, 0), 30, tz)
+            .Select(w => new Slot { ConsultantId = consultant.Id, BranchId = north.Id, StartsAt = w.Start, EndsAt = w.End, Mode = SessionMode.InPerson, Location = "Counseling 1" })
+            .ToList();
+        db.Slots.AddRange(slots);
+
+        var sara = await people.Students.FirstOrDefaultAsync(x => x.StudentNumber == "S0001", ct);
+        var guardianNormalized = users.NormalizeName(GuardianUser);
+        var guardianUser = await identity.Users.FirstOrDefaultAsync(u => u.NormalizedUserName == guardianNormalized, ct);
+        if (sara is not null && guardianUser is not null && slots.Count > 0)
+        {
+            var first = slots[0];
+            db.Bookings.Add(new Booking
+            {
+                SlotId = first.Id, ConsultantId = consultant.Id, BranchId = north.Id, StudentId = sara.Id, BookedByUserId = guardianUser.Id,
+                StartsAt = first.StartsAt, EndsAt = first.EndsAt, Mode = first.Mode, Location = first.Location, Topic = "Course selection for next term",
+            });
+            var now = DateTime.UtcNow;
+            var ticket = new Ticket
+            {
+                Number = 1, BranchId = sara.BranchId, StudentId = sara.Id, CreatedByUserId = guardianUser.Id, Subject = "Question about the class timetable",
+                Category = TicketCategory.Academic, LastMessageAt = now,
+            };
+            db.Tickets.Add(ticket);
+            db.TicketMessages.Add(new TicketMessage
+            {
+                TicketId = ticket.Id, AuthorUserId = guardianUser.Id, Body = "Could you confirm the room for the Wednesday math class?", CreatedAt = now,
+            });
+        }
+        await db.SaveChangesAsync(ct);
+        logger.LogInformation("Seeded demo consultation data");
     }
 }

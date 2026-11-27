@@ -201,7 +201,7 @@
   "finance.pdf.method.pos": "بطاقة (نقطة بيع)",
   "finance.pdf.method.transfer": "تحويل بنكي",
   "finance.pdf.method.cheque": "شيك",
-  "finance.pdf.method.online": "إلكتروني"
+  "finance.pdf.method.online": "إلكتروني",
   "workflow.definition_key_taken": "يوجد بالفعل سير عمل بهذا المعرّف.",
   "workflow.definition_inactive": "سير العمل هذا غير نشط.",
   "workflow.definition_not_published": "لا يوجد إصدار منشور لسير العمل هذا.",
@@ -215,5 +215,23 @@
   "workflow.active_instance_exists": "يوجد طلب موافقة قيد التنفيذ لهذا العنصر بالفعل.",
   "workflow.subject_mismatch": "سير العمل لا يطابق هذا النوع من العناصر.",
   "workflow.unknown_assignee": "الموافق المحدد غير موجود.",
-  "workflow.branch_not_found": "الفرع غير موجود."
+  "workflow.branch_not_found": "الفرع غير موجود.",
+  "consultation.consultant_exists": "لدى هذا المستخدم ملف مستشار بالفعل.",
+  "consultation.user_not_found": "لم يتم العثور على المستخدم المحدد.",
+  "consultation.consultant_inactive": "هذا المستشار غير نشط.",
+  "consultation.branch_not_found": "لم يتم العثور على الفرع المحدد.",
+  "consultation.branch_not_served": "هذا المستشار لا يخدم هذا الفرع.",
+  "consultation.slot_overlap": "هذا الوقت يتداخل مع موعد آخر للمستشار.",
+  "consultation.slot_in_past": "لا يمكن أن يبدأ الموعد في الماضي.",
+  "consultation.slot_unavailable": "هذا الموعد لم يعد متاحًا. يرجى اختيار موعد آخر.",
+  "consultation.slot_has_bookings": "لهذا الموعد حجز نشط؛ ألغِ الحجز أولًا.",
+  "consultation.outside_booking_window": "هذا الموعد خارج الفترة المسموح فيها بالحجز.",
+  "consultation.booking_limit_reached": "وصل الطالب إلى الحد الأقصى للجلسات القادمة.",
+  "consultation.cancellation_window_passed": "فات وقت إلغاء هذه الجلسة عبر الإنترنت؛ يرجى التواصل مع المعهد.",
+  "consultation.invalid_transition": "هذا الإجراء غير مسموح في الحالة الحالية للحجز.",
+  "consultation.session_not_started": "لم تبدأ الجلسة بعد.",
+  "consultation.notes_forbidden": "ملاحظات الاستشارة سرية وغير متاحة لك.",
+  "consultation.not_booking_consultant": "يمكن لمستشار الجلسة فقط القيام بذلك.",
+  "support.ticket_closed": "هذه التذكرة مغلقة.",
+  "support.unknown_assignee": "المسؤول المحدد غير موجود."
 }

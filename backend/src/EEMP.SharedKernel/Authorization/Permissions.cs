@@ -48,6 +48,13 @@ public static class Permissions
     public const string WorkflowInstancesRead = "workflow.instances.read";
     public const string WorkflowInstancesManage = "workflow.instances.manage";
     public const string WorkflowTasksApprove = "workflow.tasks.approve";
+    public const string ConsultationConsultantsManage = "consultation.consultants.manage";
+    public const string ConsultationConsult = "consultation.consult";
+    public const string ConsultationBookingsRead = "consultation.bookings.read";
+    public const string ConsultationBookingsManage = "consultation.bookings.manage";
+    public const string ConsultationNotesRead = "consultation.notes.read";
+    public const string SupportTicketsRead = "support.tickets.read";
+    public const string SupportTicketsManage = "support.tickets.manage";
     public static readonly IReadOnlyList<PermissionDefinition> All =
     [
         new(OrganizationRead, "organization", false, false),
@@ -93,6 +100,13 @@ public static class Permissions
         new(WorkflowInstancesRead, "workflow", true, true),
         new(WorkflowInstancesManage, "workflow", true, true),
         new(WorkflowTasksApprove, "workflow", true, true),
+        new(ConsultationConsultantsManage, "consultation", false, true),
+        new(ConsultationConsult, "consultation", true, true),
+        new(ConsultationBookingsRead, "consultation", true, true),
+        new(ConsultationBookingsManage, "consultation", true, true),
+        new(ConsultationNotesRead, "consultation", true, true),
+        new(SupportTicketsRead, "support", true, true),
+        new(SupportTicketsManage, "support", true, true),
     ];
 
     private static readonly HashSet<string> Codes = All.Select(p => p.Code).ToHashSet(StringComparer.Ordinal);

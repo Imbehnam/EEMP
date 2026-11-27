@@ -5,6 +5,7 @@ using EEMP.Api.Seeding;
 using EEMP.Infrastructure;
 using EEMP.Infrastructure.Persistence;
 using EEMP.Modules.Academic.Infrastructure;
+using EEMP.Modules.Consultation.Infrastructure;
 using EEMP.Modules.Finance.Infrastructure;
 using EEMP.Modules.Identity.Infrastructure;
 using EEMP.Modules.Organization.Infrastructure;
@@ -41,6 +42,7 @@ builder.Services.AddPeopleModule();
 builder.Services.AddAcademicModule();
 builder.Services.AddFinanceModule(builder.Configuration);
 builder.Services.AddWorkflowModule(builder.Configuration);
+builder.Services.AddConsultationModule();
 builder.Services.AddDevelopmentSeed(builder.Configuration);
 
 builder.Services.AddOpenApi("v1");
@@ -80,6 +82,7 @@ api.MapPeopleEndpoints();
 api.MapAcademicEndpoints();
 api.MapFinanceEndpoints();
 api.MapWorkflowEndpoints();
+api.MapConsultationEndpoints();
 
 await app.Services.InitializeDatabasesAsync();
 await app.Services.SyncSystemRolesAsync();

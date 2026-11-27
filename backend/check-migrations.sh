@@ -15,3 +15,4 @@ check src/Modules/Academic/EEMP.Modules.Academic.Infrastructure AcademicDbContex
 
 check src/Modules/Finance/EEMP.Modules.Finance.Infrastructure FinanceDbContext
 check src/Modules/Workflow/EEMP.Modules.Workflow.Infrastructure WorkflowDbContext
+check src/Modules/Consultation/EEMP.Modules.Consultation.Infrastructure ConsultationDbContext

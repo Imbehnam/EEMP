@@ -68,7 +68,7 @@ public sealed class OrganizationService(IOrganizationDbContext db, IAccessContro
 }
 
 public sealed class BranchService(IOrganizationDbContext db, IAccessControl access, IPeopleBranchUsage peopleUsage, IAssignmentUsage assignmentUsage,
-    IAcademicUsage academicUsage)
+    IAcademicUsage academicUsage, EEMP.Modules.Consultation.Contracts.IConsultationBranchUsage consultationUsage)
 {
     public async Task<PagedResult<BranchDto>> ListAsync(PageRequest page, CancellationToken ct)
     {
@@ -121,7 +121,7 @@ public sealed class BranchService(IOrganizationDbContext db, IAccessControl acce
         await access.EnsureTenantWideAsync(Permissions.BranchesManage, ct);
         var branch = await db.Branches.FirstOrDefaultAsync(b => b.Id == id, ct) ?? throw new NotFoundException();
         if (await peopleUsage.IsBranchReferencedAsync(id, ct) || await assignmentUsage.IsBranchReferencedAsync(id, ct) ||
-            await academicUsage.IsBranchReferencedAsync(id, ct))
+            await academicUsage.IsBranchReferencedAsync(id, ct) || await consultationUsage.IsBranchReferencedAsync(id, ct))
             throw new ConflictException(ErrorCodes.BranchInUse);
         db.Branches.Remove(branch);
         await db.SaveChangesAsync(ct);
