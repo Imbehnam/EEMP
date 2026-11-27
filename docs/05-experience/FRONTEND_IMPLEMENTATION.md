@@ -185,3 +185,19 @@ Status: implemented on branch `feature/m2-academic-frontend` (2026-11-25), verif
   selected (published cards only, hint shown); portal report-card page "Download PDF" (published version). Print stays.
 - Mock backend: stand-in one-page PDFs (Helvetica, ASCII) and stored ZIPs with the real routes, permissions and errors; the real
   document (shaping, RTL, Jalali) is only produced by the API.
+
+## Finance and workflow completion (2026-11-28, branch `feature/m3-finance-completion`)
+
+- Finance approvals are workflow instances (DL-081/082): discount and refund rows show `pending`, `returned`, `approved` or `rejected`;
+  a workflow-backed request links to `/workflow/instances/{id}` (`data-testid="discount-workflow"`). The maker never gets an approve
+  action (`own-request`); approvers use `/finance/approvals` or `/workflow/inbox`. Reject dialogs require a note.
+- Returned discounts/refunds can be edited and resubmitted by their maker from the invoice/payment page (rowversion-checked).
+- Workflow screens (admin): inbox, my requests, instance detail (approve/reject/return/resubmit/cancel with comment, history),
+  definitions (draft/versions/publish). Navigation is permission-driven (`workflow.*`).
+- `finance.records_exist` is translated (fa/en/tr/ar) for student and branch delete.
+- RTL (DL-086): `EmotionRegistry` provides the direction to `DirectionProvider`; `IconChevron towards="end|start"` draws one path
+  for the resolved side and `DirectionalGlyph` renders ‹ › ← → for back links and the date-picker month buttons. Screens never pick
+  left/right themselves; without a provider the CSS fallback (`.eemp-flip`, `.eemp-ltr-only`/`.eemp-rtl-only`) still applies.
+- Playwright (`playwright.config.ts`, `e2e-real/playwright.config.ts`) launches a system Chromium (`EEMP_CHROMIUM_PATH`, default
+  `/usr/bin/chromium`) only when the bundled browser is not installed; CI is unchanged.
+- Verification: see TASK_TRACKER "Milestone 3 finance + workflow completion".

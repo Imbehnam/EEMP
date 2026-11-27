@@ -433,6 +433,93 @@ owner approved (2026-11-26) that discount and refund approvals live inside Finan
   after that work lands.
 - Owner: Implementing agent; approval: user.
 
+### DL-081 — Finance discount and refund approvals run on the workflow engine (EEMP-011 × EEMP-014)
+- Date: 2026-11-28
+- Status: Recorded (implementing agent; replaces the local maker-checker of DL-063 for new requests, as planned in workflow contract §7)
+- Decision: `IFinanceApprovals` is now implemented by `WorkflowFinanceApprovals` (Finance.Application references only
+  `EEMP.Modules.Workflow.Contracts`). A discount or refund request is saved `pending` first; after that commit Finance calls
+  `IWorkflowService.StartAsync("discount-approval" | "refund-approval", "finance", "discount" | "refund", id, branch, title,
+  "finance:{kind}:{id}")` and stores the instance id in the new nullable column `WorkflowInstanceId` (`finance.InvoiceDiscounts`,
+  `finance.Refunds`; migration `WorkflowApprovals`). If the engine refuses to start (definition deactivated/unpublished), an explicit
+  request is withdrawn again (audit `*.cancelled`, details `workflow_start_failed`) and the workflow error is returned; automatic
+  sibling discounts from bulk generation stay pending without an instance and use the local checker (below), so a generation run is
+  never half-failed by configuration.
+- `FinanceWorkflowEventHandler` (SubjectModule `finance`) applies outcomes: completed/approved → discount amount recalculated on its
+  draft invoice / refund taken from the payment credit; rejected or cancelled → `rejected`; returned → new status `returned`;
+  resubmitted → `pending`. Every change is guarded by the request's current status **and** its recorded instance id, so redelivery
+  and events for unknown instances are no-ops (at-least-once delivery, DL-073). If an approval arrives when it can no longer be
+  applied (invoice left draft; credit used meanwhile), the request becomes `rejected` with decision note
+  `finance.invoice_not_editable` / `finance.refund_exceeds_credit` rather than failing the event forever. Audit rows keep the
+  approver as actor (`FinanceAuditor` accepts an explicit actor because handlers run without a user).
+- Returned requests are editable: `PUT /finance/discounts/{id}` and `PUT /finance/refunds/{id}` (maker only, rowversion-checked)
+  update the request, set it `pending` and resubmit the same instance (round + 1). Open = pending or returned: both block issuing the
+  invoice and reserve refund credit. Withdrawing a discount in Finance deletes it and then cancels its instance.
+- Legacy: requests created before this change (no instance id) are still decided by the local M3 maker-checker
+  (finance.approve in the branch, requester ≠ decider).
+- Alternatives: start the instance inside the Finance transaction (rejected: separate DbContexts/connections; SQLite would deadlock
+  with the inline handler); poll the workflow from Finance (rejected: the outbox already gives at-least-once delivery).
+- Owner: Implementing agent.
+
+### DL-082 — /finance approve/reject stay as thin wrappers over the engine
+- Date: 2026-11-28
+- Status: Recorded (implementing agent)
+- Decision: `IWorkflowService.ActAsync(instanceId, subjectModule, action, comment)` (new contract method) runs the same code path as
+  `POST /workflow/instances/{id}/{action}` as the current user (visibility, current-step permission in the branch, maker-checker,
+  distinct approvers, rowversion). `POST /finance/discounts|refunds/{id}/approve|reject` keep their `finance.approve` gate and call
+  it for workflow-backed requests; the outcome is applied by the inline outbox delivery before the response is built. Self-approval
+  keeps the M3 error code `finance.maker_checker` on these endpoints. Rejecting now requires a note (the engine requires a comment),
+  enforced on the API and in the console dialogs. `GET /finance/approvals` remains the finance-specific queue; items carry
+  `workflowInstanceId` so the UI links to the instance. Approvers can equally use `/workflow/inbox`.
+- Owner: Implementing agent.
+
+### DL-083 — Finance approval definitions: lazy per-tenant provisioning and a finance.approve-only step policy
+- Date: 2026-11-28
+- Status: Recorded (implementing agent)
+- Decision: new contract method `IWorkflowService.EnsureDefinitionAsync(template)` creates and publishes version 1 of a module's
+  default definition when the tenant has none with that key (existing definitions are never touched). Finance calls it before each
+  start with `discount-approval` / `refund-approval`: one step "Finance approval" requiring `finance.approve` in the request branch,
+  48 h SLA, return allowed, distinct approvers. So every tenant (not only the demo seed) works without manual setup. New contract
+  `IWorkflowSubjectPolicy`: Finance registers that steps of `finance` definitions may only require `finance.approve`; the engine checks
+  it on publish and on provisioning (`422 workflow.step_permission_not_allowed`), so configuring a definition cannot hand money
+  decisions to non-finance staff while maker-checker stays enforced by the engine. The Development seed provisions both definitions
+  and, for databases seeded earlier, publishes a new `discount-approval` version over the old `workflow.tasks.approve` step.
+- Owner: Implementing agent.
+
+### DL-084 — Workflow contract additions: resubmitted event and decision comment
+- Date: 2026-11-28
+- Status: Recorded (implementing agent)
+- Decision: the engine also emits `WorkflowEventTypes.Resubmitted` when a returned instance is resubmitted (so the subject module can
+  leave its "returned" state), and `WorkflowEvent` gains an optional `Comment` (the actor's comment on the transition, e.g. the
+  approver's note, stored by Finance as the decision note). Both are backward compatible: handlers that do not know an event type
+  ignore it, and older payloads deserialize with `Comment = null`. Comments already live in instance history; keeping personal data
+  out of them remains the module's/user's responsibility (DL-074).
+- Owner: Implementing agent.
+
+### DL-085 — Finance records block deleting students and branches
+- Date: 2026-11-28
+- Status: Recorded (implementing agent)
+- Decision: People's student delete and Organization's branch delete call `IFinanceUsage` (Finance.Contracts) after their existing
+  checks: a student referenced by invoices or payments, or a branch referenced by invoices, payments or branch-scoped fee items,
+  returns `409 finance.records_exist` (translated fa/en/tr/ar on server and client). Financial records must stay attributable; soft
+  delete/archival of students is out of scope.
+- Owner: Implementing agent.
+
+### DL-086 — Direction-specific artwork comes from a React direction provider, not only CSS
+- Date: 2026-11-28
+- Status: Recorded (implementing agent)
+- Context: chevrons and text arrows (breadcrumbs, pagination, "view all", back links, date-picker month buttons) relied on CSS
+  (`.eemp-flip`, `.eemp-ltr-only`/`.eemp-rtl-only`). Where the stylesheet was not applied yet, or a transform was ignored on a flex-item
+  SVG, RTL pages showed arrows pointing the wrong way.
+- Decision: `EmotionRegistry` wraps the app in `DirectionProvider` with the locale's direction (the same value that sets `<html dir>`),
+  so server and client render identically. `IconChevron` (moved to `@eemp/ui/components/direction`) draws exactly one path for
+  `towards="end" | "start"` resolved to the physical side; `DirectionalGlyph` does the same for text glyphs (‹ › ← →). Outside a
+  provider (isolated component tests, third-party embedding) both keep the previous CSS fallback. Screens use the logical
+  `towards` prop only; no screen decides left/right.
+- Alternatives: CSS `transform: scaleX(-1)` (rejected: unreliable on flex-item SVGs in Chromium, see DL-080 notes); per-locale icon
+  sets (rejected: duplicates every directional icon).
+- Consequences: unit test `packages/ui/test/direction.test.tsx` pins both directions for chevrons, pagination and glyphs.
+- Owner: Implementing agent.
+
 ## Proposed, not yet approved
 - SQL Server RLS defense-in-depth (engine approved in DL-045; shared database with TenantId adopted as an M1 assumption in DL-049; RLS not implemented, see DL-052).
 - Provider adapters for payments, SMS, video, storage.
