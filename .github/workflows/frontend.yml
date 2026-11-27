@@ -84,6 +84,9 @@ jobs:
       - name: Build API
         working-directory: .
         run: dotnet build "$BACKEND_DIR/src/EEMP.Api/EEMP.Api.csproj" -c Release -o "$RUNNER_TEMP/api"
+      # Run from the output directory: the content root is the working directory, and appsettings.Development.json
+      # (Seed:Enabled=true) is only found there. Started from the checkout, the seed was skipped and every seeded
+      # sign-in returned 401. Seed__Enabled is also set explicitly so the job does not depend on that file.
       - name: Start API (SQLite, dev seed, 1-minute access tokens)
         working-directory: .
         env:
@@ -94,13 +97,18 @@ jobs:
           Jwt__SigningKey: ci-e2e-signing-key-0123456789abcdef0123456789
           Jwt__AccessTokenMinutes: '1'
           RateLimiting__AuthPermitLimit: '1000'
+          Seed__Enabled: 'true'
           Seed__PlatformAdminPassword: Platform123
           Seed__DemoAdminPassword: DemoAdmin123
           Seed__DemoUserPassword: DemoUser123
         run: |
-          nohup dotnet "$RUNNER_TEMP/api/EEMP.Api.dll" > "$RUNNER_TEMP/api.log" 2>&1 &
-          for i in $(seq 1 60); do curl -sf http://127.0.0.1:5080/health/live && exit 0; sleep 1; done
-          cat "$RUNNER_TEMP/api.log"; exit 1
+          cd "$RUNNER_TEMP/api"
+          nohup dotnet EEMP.Api.dll > "$RUNNER_TEMP/api.log" 2>&1 &
+          for i in $(seq 1 60); do curl -sf http://127.0.0.1:5080/health/live && break; sleep 1; done
+          code=$(curl -s -o /dev/null -w '%{http_code}' -H 'Content-Type: application/json' \
+            -d '{"tenantSlug":"demo","userName":"student.one","password":"DemoUser123"}' http://127.0.0.1:5080/api/v1/auth/login || true)
+          echo "seeded sign-in (demo/student.one): HTTP $code"
+          if [ "$code" != "200" ]; then grep -E 'Seed|Content root|Hosting environment' "$RUNNER_TEMP/api.log" | tail -20; tail -50 "$RUNNER_TEMP/api.log"; exit 1; fi
       - uses: pnpm/action-setup@v4
         with:
           package_json_file: frontend/package.json

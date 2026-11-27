@@ -51,8 +51,17 @@ services:
       Seed__DemoAdminPassword: ${SEED_DEMO_ADMIN_PASSWORD:-}
       Seed__DemoUserPassword: ${SEED_DEMO_USER_PASSWORD:-}
       ConnectionStrings__Redis: redis:6379
+      # Trust X-Forwarded-For only from this compose network (the web apps' server-side BFF containers, or the
+      # host gateway when the web apps run on the host), so the per-client auth rate limit sees the real browser.
+      ReverseProxy__KnownNetworks__0: ${EEMP_DOCKER_SUBNET:-172.29.0.0/24}
     ports:
       - "5080:8080"
+
+networks:
+  default:
+    ipam:
+      config:
+        - subnet: ${EEMP_DOCKER_SUBNET:-172.29.0.0/24}
 
 volumes:
   sqlserver-data:
