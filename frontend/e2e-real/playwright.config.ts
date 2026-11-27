@@ -1,5 +1,7 @@
 import { defineConfig, devices } from '@playwright/test';
 
+import { chromiumLaunchOptions } from '../e2e/browser';
+
 /**
  * End-to-end suite against the REAL .NET API (no mock). Not part of the default `pnpm test:e2e`
  * (that config only reads ./e2e). Prerequisites, see docs/09-quality/M1_INTEGRATION_REPORT.md:
@@ -26,7 +28,7 @@ export default defineConfig({
   reporter: process.env.CI ? [['list'], ['html', { open: 'never', outputFolder: '../playwright-report-real' }]] : 'list',
   outputDir: '../test-results-real',
   globalSetup: './global-setup.ts',
-  use: { trace: 'retain-on-failure', actionTimeout: 15_000, navigationTimeout: 30_000, ...devices['Desktop Chrome'] },
+  use: { trace: 'retain-on-failure', actionTimeout: 15_000, navigationTimeout: 30_000, ...devices['Desktop Chrome'], launchOptions: chromiumLaunchOptions() },
   projects: [{ name: 'real-api' }],
   webServer: [
     {
