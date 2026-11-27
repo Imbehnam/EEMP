@@ -17,3 +17,11 @@
 
 ## Error taxonomy
 Validation, authentication, authorization, not-found, conflict/concurrency, business-rule violation, rate-limit, dependency failure, and unexpected server error. Do not leak internal exception details.
+
+## Binary documents (report-card PDFs, DL-057/DL-058)
+- Generated documents are rendered by the API from stored, authoritative data (e.g. a report-card version snapshot), never from
+  client-supplied content, and are authorized exactly like the JSON read of the same resource (404 outside scope).
+- `GET …/pdf` returns `application/pdf` (`application/zip` for archives) with `Content-Disposition: attachment` and a file name built
+  from opaque ids only (no personal data), plus `Cache-Control: no-store`; errors stay `application/problem+json`.
+- Language via `?lang=` (fa-IR, en, tr, ar) or `Accept-Language`; labels come from the server text catalogs.
+- Endpoints: `GET /report-cards/{id}/versions/{versionNo}/pdf`, `GET /portal/me/report-cards/{id}/pdf`, `GET /report-cards/pdf-archive?classId=`.

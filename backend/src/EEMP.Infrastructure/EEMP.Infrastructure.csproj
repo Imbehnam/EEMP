@@ -4,6 +4,10 @@
   </ItemGroup>
   <ItemGroup>
     <EmbeddedResource Include="Localization/Resources/*.json" WithCulture="false" LogicalName="EEMP.Infrastructure.Localization.%(Filename)%(Extension)" />
+    <EmbeddedResource Include="Pdf/Fonts/*.ttf" LogicalName="EEMP.Infrastructure.Pdf.Fonts.%(Filename)%(Extension)" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="Pdf/Fonts/OFL.txt" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" Link="licenses/Vazirmatn-OFL.txt" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="../EEMP.SharedKernel/EEMP.SharedKernel.csproj" />
@@ -14,5 +18,9 @@
     <PackageReference Include="Microsoft.EntityFrameworkCore.Relational" />
     <PackageReference Include="Microsoft.EntityFrameworkCore.Design" PrivateAssets="all" />
     <PackageReference Include="Microsoft.Extensions.Diagnostics.HealthChecks.EntityFrameworkCore" />
+    <PackageReference Include="SkiaSharp" />
+    <PackageReference Include="SkiaSharp.NativeAssets.Linux.NoDependencies" />
+    <PackageReference Include="HarfBuzzSharp" />
+    <PackageReference Include="HarfBuzzSharp.NativeAssets.Linux" />
   </ItemGroup>
 </Project>

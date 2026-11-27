@@ -217,7 +217,8 @@
       "invalid_date_range": "Bitiş tarihi başlangıç tarihinden sonra olmalıdır.",
       "invalid_time_range": "Bitiş saati başlangıç saatinden sonra olmalıdır.",
       "slot_overlap": "Bu sınıfın iki ders saati çakışıyor.",
-      "score_out_of_range": "Not sıfır ile en yüksek not arasında olmalıdır."
+      "score_out_of_range": "Not sıfır ile en yüksek not arasında olmalıdır.",
+      "archive_too_large": "Tek arşiv için çok fazla karne var (en fazla {max})."
     }
   },
   "nav": {
@@ -794,7 +795,11 @@
       "weight": "Ağırlık",
       "score": "Not",
       "attendance": "Yoklama",
-      "formula": "{formula} ile hesaplandı."
+      "formula": "{formula} ile hesaplandı.",
+      "downloadPdf": "PDF indir",
+      "downloadArchive": "Tüm PDF'leri indir (ZIP)",
+      "downloading": "Hazırlanıyor…",
+      "archiveHint": "ZIP yalnızca bu sınıftaki öğrencilerin yayınlanmış karnelerini içerir."
     },
     "portal": {
       "myClassesTitle": "Sınıflarım",

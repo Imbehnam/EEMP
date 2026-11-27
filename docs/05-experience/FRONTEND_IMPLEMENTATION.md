@@ -167,6 +167,21 @@ Status: implemented on branch `feature/m2-academic-frontend` (2026-11-25), verif
 5. **Teacher actions** in the portal assume the active assignment (the API checks it); approve/return/reopen/publish are never offered there.
 6. **Score range** is also enforced by the browser (`max = maxScore`); the server error `academic.score_out_of_range` is mapped to the row.
 7. **Band labels**: the IR20 keys (`excellent`, `good`, `fair`, `pass`, `fail`) are translated; other labels (e.g. `A`–`F`) are shown as stored.
-8. **Report cards**: printable HTML view (no PDF, per contract); the list has no branch filter; the default term is the one containing today in the user's zone.
+8. **Report cards**: printable HTML view plus server-rendered PDF download (2026-11-26, DL-058); the list has no branch filter; the default term is the one containing today in the user's zone.
 9. **Lookups** (terms, courses, schemes, teachers, students for enrollment) load the first 100 records, like M1.
 10. **Mock mode**: admin and web run separate in-process mocks, so cross-app flows (teacher submits → manager publishes → guardian sees) are only covered by the real-API suite.
+
+## Report-card PDF download (2026-11-26, branch `feature/report-card-pdf`)
+
+- `@eemp/api-client`: `client.download(path, { query })` returns `{ blob, fileName, contentType }` (Accept: pdf/zip/problem+json;
+  problem responses throw `ApiError` like JSON calls; `fileNameFromDisposition` honours `filename*`). Endpoints
+  `academic.reportCards.pdf(id, versionNo, lang)`, `academic.reportCards.archive(classId, lang)`, `academic.portal.reportCardPdf(id, lang)`;
+  `reportCardPdfLanguage(locale)` maps `fa` → `fa-IR`.
+- BFF: `application/pdf|zip|octet-stream` responses are streamed through (not buffered) with `Content-Disposition` forwarded and
+  `X-Content-Type-Options: nosniff`; cookies, refresh-on-401 and CSRF (mutations only) are unchanged.
+- `@eemp/app/academic`: `useFileDownload()` (captures errors for `<ErrorAlert>`), `ReportCardDownloadButton`, `saveDownloadedFile()`
+  (temporary object URL + `download` anchor, revoked after use), `usePdfLanguage()`.
+- Screens: admin report-card detail "Download PDF" (the version being viewed), admin list "Download all PDFs (ZIP)" when a class is
+  selected (published cards only, hint shown); portal report-card page "Download PDF" (published version). Print stays.
+- Mock backend: stand-in one-page PDFs (Helvetica, ASCII) and stored ZIPs with the real routes, permissions and errors; the real
+  document (shaping, RTL, Jalali) is only produced by the API.

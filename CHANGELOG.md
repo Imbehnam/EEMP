@@ -4,6 +4,21 @@ All notable changes to this project are documented here. Dates are UTC.
 
 ## [Unreleased]
 
+### Added — Report-card PDF export (EEMP-010 follow-up), 2026-11-26
+- Backend: server-side PDF rendering of report-card versions from the stored snapshot (DL-057, DL-058) — SkiaSharp + HarfBuzzSharp
+  (MIT) with an embedded Vazirmatn font (OFL 1.1), HarfBuzz shaping, minimal Unicode bidi, mirrored RTL layout, Persian digits and
+  Jalali dates for fa, Arabic-Indic digits for ar, Latin for en/tr; labels from the server catalogs (`reportCard.pdf.*`).
+- Endpoints: `GET /api/v1/report-cards/{id}/versions/{versionNo}/pdf` (staff, `reportcards.read`, branch-scoped),
+  `GET /api/v1/portal/me/report-cards/{id}/pdf` (student/guardian, published only), `GET /api/v1/report-cards/pdf-archive?classId=`
+  (ZIP of a class's published cards, max 200); `?lang=fa-IR|en|tr|ar` or Accept-Language. New error code `academic.archive_too_large`.
+- Organization contracts: `IOrganizationSettings.GetInstituteNameAsync`, `IBranchDirectory.GetNameAsync`.
+- Frontend: `api.download()` for binary responses, `academic.reportCards.pdf/archive` and `academic.portal.reportCardPdf`; the BFF
+  streams PDF/ZIP responses and forwards `Content-Disposition`; "Download PDF" on the admin and portal report-card pages and
+  "Download all PDFs (ZIP)" on the admin list (class selected); HTML print kept; fa/en/tr/ar strings; mock backend serves stand-in PDFs/ZIPs.
+- CI: backend job installs `poppler-utils` so PDF text assertions run.
+- Tests: unit (bidi, locale, rendering, text extraction), integration (permissions, scope, publication, isolation), Vitest, Playwright
+  mock and real-API download specs.
+
 ### Added — Milestone 2 academic core frontend (EEMP-008..010), 2026-11-25
 - `@eemp/api-client`: typed DTOs and endpoints for every M2 route (`api.academic.*`); the mock backend implements the academic
   contract (catalog, schedule conflicts, capacity, idempotent attendance, grade workflow + history, gradebook totals

@@ -1,9 +1,10 @@
 'use client';
 
 import type { PortalStudent, TeacherClass } from '@eemp/api-client';
-import { LoadError, useApiQuery, useSession } from '@eemp/app';
+import { ErrorAlert, LoadError, useApiQuery, useSession } from '@eemp/app';
 import {
-  AssessmentsPanel, AttendanceSheetPanel, GradebookPanel, PassBadge, personName, PrintButton, ReportCardContentView, ScheduleText, ScoreEntryPanel,
+  AssessmentsPanel, AttendanceSheetPanel, GradebookPanel, PassBadge, personName, PrintButton, ReportCardContentView, ReportCardDownloadButton, ScheduleText,
+  ScoreEntryPanel, useFileDownload, usePdfLanguage,
   TimetableView, useAcademicLabels,
 } from '@eemp/app/academic';
 import { useLocaleFormat } from '@eemp/i18n/react';
@@ -342,13 +343,26 @@ export function PortalReportCardScreen({ id }: { id: string }) {
   const common = useTranslations('common');
   const { user } = useSession();
   const query = useApiQuery(`portal-report-card|${id}`, (api) => api.academic.portal.reportCard(id));
+  const pdf = useFileDownload();
+  const pdfLang = usePdfLanguage();
   return (
     <>
       <PageHeader
         before={<Link href="/report-cards" style={{ fontSize: '0.875rem' }}><span aria-hidden="true" className="eemp-flip">{'←'}</span> {t('backToReportCards')}</Link>}
         title={t('reportCardTitle')}
-        actions={<PrintButton />}
+        actions={
+          <>
+            {query.data && (
+              <ReportCardDownloadButton
+                testId="rc-pdf" busy={pdf.busy}
+                onClick={() => void pdf.download((api) => api.academic.portal.reportCardPdf(id, pdfLang), 'report-card.pdf')}
+              />
+            )}
+            <PrintButton />
+          </>
+        }
       />
+      <ErrorAlert error={pdf.error} />
       {query.error && !query.data ? (
         <LoadError error={query.error} onRetry={query.reload} />
       ) : !query.data ? (

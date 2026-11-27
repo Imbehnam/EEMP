@@ -10,6 +10,9 @@ public interface IOrganizationProvisioner
 public interface IBranchDirectory
 {
     Task<bool> ExistsAsync(Guid branchId, CancellationToken ct = default);
+
+    /// <summary>Display name of a branch in the current tenant, or null when it does not exist.</summary>
+    Task<string?> GetNameAsync(Guid branchId, CancellationToken ct = default);
 }
 
 /// <summary>Tenant-level settings other modules need (e.g. the time zone that defines "today" for calendar dates).</summary>
@@ -17,4 +20,7 @@ public interface IOrganizationSettings
 {
     /// <summary>IANA/Windows time zone id of the current tenant's central office; "Asia/Tehran" when not set.</summary>
     Task<string> GetTimeZoneAsync(CancellationToken ct = default);
+
+    /// <summary>Display name of the current tenant's institute (central office), or an empty string when not provisioned.</summary>
+    Task<string> GetInstituteNameAsync(CancellationToken ct = default);
 }

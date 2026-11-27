@@ -2,7 +2,9 @@
 
 import type { ReportCard, ReportCardSummary } from '@eemp/api-client';
 import { ErrorAlert, LoadError, useApiMutation, useApiQuery, useSession, useTodayIso } from '@eemp/app';
-import { PassBadge, personName, PrintButton, ReportCardContentView, ScoreEntryPanel, useAcademicLabels } from '@eemp/app/academic';
+import {
+  PassBadge, personName, PrintButton, ReportCardContentView, ReportCardDownloadButton, ScoreEntryPanel, useAcademicLabels, useFileDownload, usePdfLanguage,
+} from '@eemp/app/academic';
 import { useLocaleFormat } from '@eemp/i18n/react';
 import { Link, useRouter } from '@eemp/i18n/navigation';
 import { Alert, Badge, Button, Card, ConfirmDialog, DataTable, FormGrid, PageHeader, SelectField, Spinner, StatePanel } from '@eemp/ui';
@@ -65,6 +67,8 @@ export function ReportCardsScreen() {
   );
   const generate = useApiMutation((api) => api.academic.reportCards.generate({ termId, classId: classId || null }));
   const publish = useApiMutation((api) => api.academic.reportCards.publishBatch({ termId, classId: classId || null }));
+  const archive = useFileDownload();
+  const pdfLang = usePdfLanguage();
   const termOptions = lookups.terms.map((x) => ({ value: x.id, label: `${lookups.years.find((y) => y.id === x.academicYearId)?.name ?? ''} · ${x.name}` }));
   return (
     <>
@@ -75,10 +79,18 @@ export function ReportCardsScreen() {
           <>
             {can('reportcards.manage') && <Button disabled={!termId} onClick={() => { generate.reset(); setConfirm('generate'); }}>{t('generate')}</Button>}
             {can('reportcards.publish') && <Button variant="secondary" disabled={!termId} onClick={() => { publish.reset(); setConfirm('publish'); }}>{t('publishAll')}</Button>}
+            {classId && (
+              <ReportCardDownloadButton
+                labelKey="downloadArchive" testId="rc-archive" busy={archive.busy}
+                onClick={() => void archive.download((api) => api.academic.reportCards.archive(classId, pdfLang), 'report-cards.zip')}
+              />
+            )}
           </>
         }
       />
       {notice && <Alert tone="success" role="status" style={{ marginBlockEnd: 12 }}>{notice}</Alert>}
+      <ErrorAlert error={archive.error} />
+      {classId && <p style={{ marginBlock: '0 12px', fontSize: '0.875rem', color: 'var(--eemp-color-fg-muted)' }}>{t('archiveHint')}</p>}
       <FormGrid style={{ marginBlockEnd: 12 }}>
         <SelectField label={t('term')} name="term" required value={termId} placeholder={t('chooseTerm')} onChange={(e) => { setTermId(e.target.value); setClassId(''); }} options={termOptions} />
         <SelectField
@@ -152,6 +164,8 @@ export function ReportCardDetailScreen({ id }: { id: string }) {
   const [confirm, setConfirm] = useState(false);
   const [notice, setNotice] = useState(false);
   const publish = useApiMutation((api, card: ReportCard) => api.academic.reportCards.publish(card.id, { rowVersion: card.rowVersion }));
+  const pdf = useFileDownload();
+  const pdfLang = usePdfLanguage();
   if (query.error && !query.data) return <LoadError error={query.error} onRetry={query.reload} />;
   const card = query.data;
   if (!card) return <Spinner label={common('loading')} />;
@@ -164,12 +178,20 @@ export function ReportCardDetailScreen({ id }: { id: string }) {
         actions={
           <>
             {can('reportcards.publish') && card.status === 'draft' && <Button onClick={() => { publish.reset(); setConfirm(true); }}>{t('publish')}</Button>}
+            <ReportCardDownloadButton
+              testId="rc-pdf" busy={pdf.busy}
+              onClick={() => {
+                const n = versionNo ?? card.currentVersion;
+                void pdf.download((api) => api.academic.reportCards.pdf(card.id, n, pdfLang), `report-card-v${n}.pdf`);
+              }}
+            />
             <PrintButton />
           </>
         }
       />
       {notice && <Alert tone="success" role="status" style={{ marginBlockEnd: 12 }}>{t('publishedOne')}</Alert>}
       <ErrorAlert error={publish.error} onReload={() => { publish.reset(); query.reload(); }} />
+      <ErrorAlert error={pdf.error} />
       <div style={{ display: 'grid', gap: 16, gridTemplateColumns: 'minmax(0, 3fr) minmax(14rem, 1fr)' }} className="eemp-rc-layout">
         <Card>
           {versionNo && version.loading ? <Spinner label={common('loading')} /> : <ReportCardContentView content={shown} />}
