@@ -22,6 +22,8 @@ public static class FinanceErrors
     public const string FeeItemInactive = "finance.fee_item_inactive";
     public const string ResultsBlocked = "finance.results_blocked";
     public const string NoCredit = "finance.no_credit";
+    /// <summary>Student or branch delete refused: invoices or payments reference it (DL-085). Same value as FinanceStandingErrors.RecordsExist.</summary>
+    public const string RecordsExist = "finance.records_exist";
 }
 
 /// <summary>Money rules (DL-059): amounts are rounded to the currency's minor unit, half away from zero.</summary>

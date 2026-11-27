@@ -1,4 +1,5 @@
 using EEMP.Modules.Academic.Contracts;
+using EEMP.Modules.Finance.Contracts;
 using EEMP.Modules.Identity.Contracts;
 using EEMP.Modules.Organization.Contracts;
 using EEMP.Modules.Organization.Domain;
@@ -68,7 +69,7 @@ public sealed class OrganizationService(IOrganizationDbContext db, IAccessContro
 }
 
 public sealed class BranchService(IOrganizationDbContext db, IAccessControl access, IPeopleBranchUsage peopleUsage, IAssignmentUsage assignmentUsage,
-    IAcademicUsage academicUsage)
+    IAcademicUsage academicUsage, IFinanceUsage financeUsage)
 {
     public async Task<PagedResult<BranchDto>> ListAsync(PageRequest page, CancellationToken ct)
     {
@@ -123,6 +124,8 @@ public sealed class BranchService(IOrganizationDbContext db, IAccessControl acce
         if (await peopleUsage.IsBranchReferencedAsync(id, ct) || await assignmentUsage.IsBranchReferencedAsync(id, ct) ||
             await academicUsage.IsBranchReferencedAsync(id, ct))
             throw new ConflictException(ErrorCodes.BranchInUse);
+        // DL-085: fee items, invoices, payments or refunds in this branch keep it (financial records must stay attributable).
+        if (await financeUsage.IsBranchReferencedAsync(id, ct)) throw new ConflictException(FinanceStandingErrors.RecordsExist);
         db.Branches.Remove(branch);
         await db.SaveChangesAsync(ct);
     }

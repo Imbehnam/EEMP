@@ -4,6 +4,23 @@ All notable changes to this project are documented here. Dates are UTC.
 
 ## [Unreleased]
 
+### Added — Milestone 3 finance and workflow completion (EEMP-014, EEMP-011), 2026-11-28
+- Discount and refund approvals run on the workflow engine (DL-081): requests start `discount-approval` / `refund-approval` instances,
+  `FinanceWorkflowEventHandler` applies approved/rejected/returned/resubmitted/cancelled outcomes idempotently; new nullable
+  `WorkflowInstanceId` columns (migration `WorkflowApprovals`); legacy requests keep the local maker-checker.
+- `/finance/discounts|refunds/{id}/approve|reject` call `IWorkflowService.ActAsync` (DL-082); reject requires a note; new
+  `PUT /finance/discounts/{id}` and `PUT /finance/refunds/{id}` edit and resubmit returned requests.
+- Workflow contracts: `EnsureDefinitionAsync` (lazy per-tenant default definitions), `IWorkflowSubjectPolicy` (finance steps may only
+  require `finance.approve`, `422 workflow.step_permission_not_allowed`), `Resubmitted` event and `WorkflowEvent.Comment` (DL-083, DL-084).
+- Student and branch deletion return `409 finance.records_exist` when finance records reference them (DL-085).
+- Frontend: `returned` status, edit + resubmit for discounts/refunds, links from finance requests to their workflow instance, workflow
+  inbox approval of finance requests; direction-aware chevrons and arrows via `DirectionProvider` / `DirectionalGlyph` (DL-086).
+- Tests: `FinanceWorkflowTests` (6), `packages/ui/test/direction.test.tsx`, axe checks for finance invoice detail, approvals, workflow
+  inbox and portal invoices, real-API finance spec through the workflow inbox; Playwright uses a system Chromium when the bundled one is missing.
+
+### Fixed — main after merge e882d63, 2026-11-28
+- `DevelopmentSeed.cs` missing brace and duplicate `SeedWorkflowAsync`; invalid `messages.ar.json`; duplicated DL-073/DL-074 entries.
+
 ### Changed — Accessible neumorphic UI redesign (both web apps), 2026-11-27
 - New "accessible soft UI" design system (DL-080, `docs/05-experience/DESIGN_SYSTEM.md`): soft single-base light and dark palettes,
   dual-shadow raised surfaces, inset inputs/selected states, RTL-mirrored light source, Vazirmatn for every locale, 44px targets,

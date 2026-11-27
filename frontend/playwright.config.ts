@@ -1,5 +1,7 @@
 import { defineConfig, devices } from '@playwright/test';
 
+import { chromiumLaunchOptions } from './e2e/browser';
+
 /**
  * Smoke tests against production builds in mock mode (no .NET API needed).
  * Run `pnpm build` first; CI does. Servers use the in-process mock backend.
@@ -15,7 +17,7 @@ export default defineConfig({
   timeout: 30_000,
   retries: process.env.CI ? 1 : 0,
   reporter: process.env.CI ? [['list'], ['html', { open: 'never' }]] : 'list',
-  use: { trace: 'retain-on-failure', ...devices['Desktop Chrome'] },
+  use: { trace: 'retain-on-failure', ...devices['Desktop Chrome'], launchOptions: chromiumLaunchOptions() },
   projects: [{ name: 'chromium' }],
   webServer: [
     {

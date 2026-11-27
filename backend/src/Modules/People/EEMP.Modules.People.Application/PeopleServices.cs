@@ -1,4 +1,5 @@
 using EEMP.Modules.Academic.Contracts;
+using EEMP.Modules.Finance.Contracts;
 using EEMP.Modules.People.Contracts;
 using EEMP.Modules.People.Domain;
 using EEMP.SharedKernel.Authorization;
@@ -11,7 +12,8 @@ using static EEMP.Modules.People.Application.PersonService<EEMP.Modules.People.D
 
 namespace EEMP.Modules.People.Application;
 
-public sealed class StudentService(PersonService<Student> core, PersonService<Guardian> guardianCore, IAccessControl access, IAcademicUsage academic)
+public sealed class StudentService(PersonService<Student> core, PersonService<Guardian> guardianCore, IAccessControl access, IAcademicUsage academic,
+    IFinanceUsage finance)
 {
     private static readonly PersonKind<Student> Kind = PeopleKinds.Students;
     private static IQueryable<Student> WithGuardians(IQueryable<Student> q) => q.Include(s => s.Guardians);
@@ -55,6 +57,8 @@ public sealed class StudentService(PersonService<Student> core, PersonService<Gu
     {
         await core.FindAsync(Kind, id, Kind.ManagePermission, ct);
         if (await academic.IsStudentReferencedAsync(id, ct)) throw new ConflictException("people.in_use");
+        // DL-085: invoices, payments or refunds keep the student (financial records must stay attributable).
+        if (await finance.IsStudentReferencedAsync(id, ct)) throw new ConflictException(FinanceStandingErrors.RecordsExist);
         await core.DeleteAsync(Kind, id, ct);
     }
 

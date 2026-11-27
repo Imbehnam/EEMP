@@ -18,7 +18,7 @@ public sealed record FeeItemRequest(Guid? FeeTypeId, string? Name, decimal? Amou
 // Invoices
 public sealed record InvoiceLineDto(Guid Id, Guid? FeeItemId, Guid? EnrollmentId, string Description, int Quantity, decimal UnitPrice, decimal Amount, bool Taxable);
 public sealed record DiscountDto(Guid Id, Guid InvoiceId, string Kind, string Type, decimal Value, decimal Amount, string Reason, string Status,
-    Guid? RequestedBy, DateTime RequestedAt, Guid? DecidedBy, DateTime? DecidedAt, string? DecisionNote, string RowVersion);
+    Guid? RequestedBy, DateTime RequestedAt, Guid? DecidedBy, DateTime? DecidedAt, string? DecisionNote, string RowVersion, Guid? WorkflowInstanceId = null);
 public sealed record InstallmentDto(Guid Id, int SeqNo, string DueDate, decimal Amount, decimal PaidAmount, bool LateFeeCharged, string Status);
 public sealed record AdjustmentDto(Guid Id, string Kind, string? Number, decimal Amount, string Reason, Guid? InstallmentId, DateTime CreatedAt);
 
@@ -41,6 +41,10 @@ public sealed record GenerateRequest(Guid? EnrollmentId, IReadOnlyList<Guid>? Fe
 public sealed record GenerateBulkRequest(Guid? ClassId, Guid? TermId, IReadOnlyList<Guid>? FeeItemIds, string? DueDate);
 public sealed record GenerateResult(int Created, int Skipped, IReadOnlyList<Guid> InvoiceIds);
 public sealed record DiscountRequest(string? Kind, string? Type, decimal? Value, string? Reason);
+/// <summary>Edit a returned discount and resubmit it to its workflow (DL-081).</summary>
+public sealed record DiscountResubmitRequest(string? Kind, string? Type, decimal? Value, string? Reason, string? RowVersion);
+/// <summary>Edit a returned refund and resubmit it to its workflow (DL-081).</summary>
+public sealed record RefundResubmitRequest(decimal? Amount, string? Reason, string? RowVersion);
 public sealed record DecisionRequest(string? RowVersion, string? Note);
 public sealed record InstallmentItemRequest(string? DueDate, decimal? Amount);
 public sealed record InstallmentsRequest(string? RowVersion, IReadOnlyList<InstallmentItemRequest>? Items, int? Count, string? FirstDueDate, int? IntervalDays);
@@ -65,9 +69,9 @@ public sealed record StudentAccountDto(Guid StudentId, string StudentName, strin
 // Refunds and approvals
 public sealed record RefundRequest(decimal? Amount, string? Reason);
 public sealed record RefundDto(Guid Id, Guid PaymentId, Guid StudentId, Guid BranchId, decimal Amount, string Currency, string Reason, string Status,
-    Guid? RequestedBy, DateTime RequestedAt, Guid? DecidedBy, DateTime? DecidedAt, string? DecisionNote, string RowVersion);
+    Guid? RequestedBy, DateTime RequestedAt, Guid? DecidedBy, DateTime? DecidedAt, string? DecisionNote, string RowVersion, Guid? WorkflowInstanceId = null);
 public sealed record ApprovalItemDto(string Type, Guid Id, Guid? InvoiceId, Guid? PaymentId, Guid StudentId, string StudentName, Guid BranchId,
-    decimal Amount, string Currency, string Detail, string Reason, Guid? RequestedBy, DateTime RequestedAt, string RowVersion);
+    decimal Amount, string Currency, string Detail, string Reason, Guid? RequestedBy, DateTime RequestedAt, string RowVersion, Guid? WorkflowInstanceId = null);
 
 // Online payments
 public sealed record PayOnlineRequest(Guid? InstallmentId, decimal? Amount, string? IdempotencyKey);

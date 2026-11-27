@@ -95,15 +95,17 @@ internal static class Transitions
 
         if (WorkflowMachine.IsTerminal(outcome.Status) || outcome.Status == InstanceStatus.Returned)
             AddEvent(db, instance, outcome.Status == InstanceStatus.Returned ? WorkflowEventTypes.Returned : WorkflowEventTypes.Completed,
-                WorkflowFormat.Camel(outcome.Status), actorUserId, now);
+                WorkflowFormat.Camel(outcome.Status), actorUserId, comment, now);
+        else if (outcome.Action == HistoryAction.Resubmitted)
+            AddEvent(db, instance, WorkflowEventTypes.Resubmitted, WorkflowFormat.Camel(outcome.Status), actorUserId, comment, now);
         return entry;
     }
 
-    private static void AddEvent(IWorkflowDbContext db, WorkflowInstance i, string eventType, string outcome, Guid? actor, DateTime now)
+    private static void AddEvent(IWorkflowDbContext db, WorkflowInstance i, string eventType, string outcome, Guid? actor, string? comment, DateTime now)
     {
         var message = new WorkflowOutboxMessage { InstanceId = i.Id, SubjectModule = i.SubjectModule, EventType = eventType, NextAttemptAt = now };
         var evt = new WorkflowEvent(message.Id, i.TenantId, i.Id, i.DefinitionKey, i.VersionNo, i.SubjectModule, i.SubjectType, i.SubjectId,
-            i.BranchId, eventType, outcome, actor, i.RequestedByUserId, now);
+            i.BranchId, eventType, outcome, actor, i.RequestedByUserId, now, comment);
         message.Payload = JsonSerializer.Serialize(evt, WorkflowFormat.Json);
         db.Outbox.Add(message);
     }

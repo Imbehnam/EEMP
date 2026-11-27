@@ -142,17 +142,23 @@ export function PaymentDetailScreen({ id, notice }: { id: string; notice?: strin
   const common = useTranslations('common');
   const labels = useFinanceLabels();
   const format = useLocaleFormat();
-  const { can } = useSession();
+  const { can, user } = useSession();
   const userName = useUserNames();
   const pdfLang = usePdfLanguage();
   const query = useApiQuery<Payment>(`payment|${id}`, (api) => api.finance.payments.get(id));
   const refunds = useApiQuery<Refund[]>(`payment-refunds|${id}`, async (api) => (await api.finance.refunds.list()).filter((r) => r.paymentId === id));
-  const [dialog, setDialog] = useState<'cleared' | 'bounced' | 'refund' | null>(null);
+  const [dialog, setDialog] = useState<'cleared' | 'bounced' | 'refund' | 'resubmit' | null>(null);
+  const [returned, setReturned] = useState<Refund | null>(null);
   const [message, setMessage] = useState<string | null>(null);
   const [amount, setAmount] = useState<number | null>(null);
   const [reason, setReason] = useState('');
-  const action = useApiMutation(async (api, kind: 'cleared' | 'bounced' | 'refund', p: Payment) => {
-    if (kind === 'refund') {
+  const action = useApiMutation(async (api, kind: 'cleared' | 'bounced' | 'refund' | 'resubmit', p: Payment) => {
+    if (kind === 'resubmit' && returned) {
+      // DL-081: the maker edits a refund the approver returned and resubmits it to its workflow.
+      await api.finance.refunds.resubmit(returned.id, { amount: amount ?? 0, reason: reason.trim(), rowVersion: returned.rowVersion });
+      return api.finance.payments.get(p.id);
+    }
+    if (kind === 'refund' || kind === 'resubmit') {
       await api.finance.payments.requestRefund(p.id, { amount: amount ?? 0, reason: reason.trim() });
       return api.finance.payments.get(p.id);
     }
@@ -242,6 +248,18 @@ export function PaymentDetailScreen({ id, notice }: { id: string; notice?: strin
                 { key: 'r', header: fc('reason'), cell: (r) => r.reason },
                 { key: 'b', header: fc('requestedBy'), cell: (r) => userName(r.requestedBy) },
                 { key: 's', header: '', cell: (r) => <ApprovalStatusBadge status={r.status} /> },
+                {
+                  key: 'x', header: common('actions'),
+                  cell: (r) => (
+                    <span style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center' }}>
+                      {r.status === 'returned' && r.requestedBy === user.id && can('finance.payments.manage') && (
+                        <Button size="sm" data-testid="refund-resubmit"
+                          onClick={() => { action.reset(); setReturned(r); setAmount(r.amount); setReason(r.reason); setDialog('resubmit'); }}>{fc('resubmit')}</Button>
+                      )}
+                      {r.workflowInstanceId && <Link href={`/workflow/instances/${r.workflowInstanceId}`}>{fc('viewApproval')}</Link>}
+                    </span>
+                  ),
+                },
               ]}
             />
           </Card>
@@ -250,28 +268,29 @@ export function PaymentDetailScreen({ id, notice }: { id: string; notice?: strin
       <ConfirmDialog
         open={dialog !== null}
         tone={dialog === 'bounced' ? 'danger' : 'primary'}
-        title={dialog === 'refund' ? t('refundTitle') : dialog === 'cleared' ? t('markCleared') : t('markBounced')}
-        description={dialog === 'refund' ? t('refundBody') : undefined}
-        confirmLabel={dialog === 'refund' ? t('requestRefund') : dialog === 'cleared' ? t('markCleared') : t('markBounced')}
+        title={dialog === 'refund' ? t('refundTitle') : dialog === 'resubmit' ? t('resubmitTitle') : dialog === 'cleared' ? t('markCleared') : t('markBounced')}
+        description={dialog === 'refund' ? t('refundBody') : dialog === 'resubmit' ? t('resubmitBody') : undefined}
+        confirmLabel={dialog === 'refund' ? t('requestRefund') : dialog === 'resubmit' ? fc('resubmit') : dialog === 'cleared' ? t('markCleared') : t('markBounced')}
         cancelLabel={common('cancel')}
         busy={action.busy}
         onCancel={() => setDialog(null)}
         onConfirm={async () => {
           if (!dialog) return;
-          if (dialog === 'refund' && (!amount || !reason.trim())) return;
+          if ((dialog === 'refund' || dialog === 'resubmit') && (!amount || !reason.trim())) return;
           const r = await action.run(dialog, p);
           if (r.ok) {
             query.setData(r.value);
             refunds.reload();
-            setMessage(dialog === 'refund' ? t('refundRequested') : t('chequeUpdated'));
+            setMessage(dialog === 'refund' ? t('refundRequested') : dialog === 'resubmit' ? fc('resubmitted') : t('chequeUpdated'));
             setDialog(null);
           }
         }}
       >
         <ErrorAlert error={action.error} onReload={() => { action.reset(); setDialog(null); query.reload(); }} />
-        {dialog === 'refund' && (
+        {(dialog === 'refund' || dialog === 'resubmit') && (
           <div style={{ display: 'grid', gap: 12 }}>
-            <AmountField label={fc('amount')} name="refundAmount" required currency={c} error={errors.amount} onAmount={setAmount} />
+            <AmountField label={fc('amount')} name="refundAmount" required currency={c} error={errors.amount} onAmount={setAmount}
+              initial={dialog === 'resubmit' ? returned?.amount : undefined} />
             <TextAreaField label={fc('reason')} name="refundReason" required value={reason} error={errors.reason} onChange={(e) => setReason(e.target.value)} />
           </div>
         )}

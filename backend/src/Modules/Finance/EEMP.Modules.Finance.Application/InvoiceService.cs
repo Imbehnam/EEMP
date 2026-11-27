@@ -49,7 +49,7 @@ public sealed class InvoiceMapper(StudentNames names)
     }
 
     public static DiscountDto ToDto(InvoiceDiscount d) => new(d.Id, d.InvoiceId, Camel(d.Kind), Camel(d.Type), d.Value, d.Amount, d.Reason, Camel(d.Status),
-        d.RequestedBy, d.RequestedAt, d.DecidedBy, d.DecidedAt, d.DecisionNote, Rv(d.RowVersion));
+        d.RequestedBy, d.RequestedAt, d.DecidedBy, d.DecidedAt, d.DecisionNote, Rv(d.RowVersion), d.WorkflowInstanceId);
 }
 
 public sealed class InvoiceService(IFinanceDbContext db, FinanceActor actor, FinanceAccess access, FinanceAuditor audit, FinanceUnitOfWork uow,
@@ -209,7 +209,7 @@ public sealed class InvoiceService(IFinanceDbContext db, FinanceActor actor, Fin
         v.ThrowIfInvalid();
         var inv = await LoadForWriteAsync(id, req.RowVersion, ct);
         if (!InvoiceStateMachine.CanIssue(inv.Status)) throw new ConflictException(FinanceErrors.InvalidState, P(("status", Camel(inv.Status))));
-        if (inv.Discounts.Any(d => d.Status == ApprovalStatus.Pending)) throw new BusinessRuleException(FinanceErrors.DiscountPending);
+        if (inv.Discounts.Any(d => d.IsOpen)) throw new BusinessRuleException(FinanceErrors.DiscountPending);
         var settings = await setup.LoadAsync(ct);
         inv.TaxRatePercent = settings.VatEnabled ? settings.VatRatePercent : 0;
         InvoiceCalculator.Recalculate(inv);
@@ -358,16 +358,52 @@ public sealed class InvoiceService(IFinanceDbContext db, FinanceActor actor, Fin
                         Value = settings.SiblingDiscountPercent, Reason = "sibling", RequestedBy = actor.UserId, RequestedAt = actor.UtcNow });
                 InvoiceCalculator.Recalculate(inv);
                 db.Invoices.Add(inv);
-                foreach (var d in inv.Discounts)
-                    await approvals.SubmitAsync(new ApprovalSubject("discount", d.Id, inv.BranchId, inv.StudentId, d.Value, inv.Currency, d.RequestedBy), ct);
                 audit.Write("invoice.generated", "invoice", inv.Id, inv.Id, studentId: inv.StudentId, amount: inv.Total, currency: inv.Currency,
                     details: $"enrollment={e.Id};fees={missing.Count}");
                 await db.SaveChangesAsync(ct);
                 return (Guid?)inv.Id;
             }, ct);
-            if (invoiceId is { } id) { created++; invoiceIds.Add(id); } else skipped++;
+            if (invoiceId is { } id)
+            {
+                created++;
+                invoiceIds.Add(id);
+                await SubmitGeneratedDiscountsAsync(id, students[e.StudentId], ct);
+            }
+            else skipped++;
         }
         return new GenerateResult(created, skipped, invoiceIds);
+    }
+
+    /// <summary>
+    /// Automatic sibling discounts of a generated invoice enter the approval workflow after the invoice committed. If the engine refuses
+    /// (definition deactivated or unpublished), the discount stays pending without an instance and is decided by the local
+    /// maker-checker (same finance.approve + distinct-user rule) — DL-081.
+    /// </summary>
+    private async Task SubmitGeneratedDiscountsAsync(Guid invoiceId, StudentSummary student, CancellationToken ct)
+    {
+        var inv = await db.Invoices.AsNoTracking().FirstAsync(i => i.Id == invoiceId, ct);
+        var pending = await db.Discounts.Where(d => d.InvoiceId == invoiceId && d.Status == ApprovalStatus.Pending && d.WorkflowInstanceId == null).ToListAsync(ct);
+        foreach (var d in pending)
+        {
+            try
+            {
+                d.WorkflowInstanceId = await approvals.SubmitAsync(new ApprovalSubject("discount", d.Id, inv.BranchId, inv.StudentId, d.Value, inv.Currency,
+                    d.RequestedBy, ApprovalTitle(student)), ct);
+            }
+            catch (AppException)
+            {
+                continue;
+            }
+            await db.SaveChangesAsync(ct);
+        }
+    }
+
+    /// <summary>Workflow inbox title: data only (student name and number), the definition name carries the translated kind.</summary>
+    internal static string ApprovalTitle(StudentSummary? s, string? document = null)
+    {
+        var who = s is null ? "" : $"{s.FirstName} {s.LastName}".Trim() + $" ({s.StudentNumber})";
+        var title = document is null ? who : $"{who} · {document}";
+        return title.Length > 200 ? title[..200] : title;
     }
 
     private async Task<bool> HasSiblingInvoiceAsync(Guid studentId, Guid termId, CancellationToken ct)
@@ -385,11 +421,7 @@ public sealed class InvoiceService(IFinanceDbContext db, FinanceActor actor, Fin
         var inv = await LoadAsync(invoiceId, true, ct);
         await access.EnsureAsync(inv.BranchId, Permissions.FinanceInvoicesManage, ct);
         var v = new Validator().RequiredText("reason", req.Reason, 500);
-        var kind = ParseEnum<DiscountKind>(req.Kind, "kind", v, required: true);
-        var type = ParseEnum<DiscountType>(req.Type, "type", v, required: true);
-        if (type == DiscountType.Percent)
-            v.When(req.Value is null || req.Value <= 0 || req.Value > 100 || decimal.Round(req.Value.Value, 2) != req.Value, "value", Validator.InvalidValue);
-        else if (type == DiscountType.Fixed) Amount(req.Value, "value", inv.Currency, v);
+        var (kind, type) = ValidateDiscount(req.Kind, req.Type, req.Value, inv.Currency, v);
         v.ThrowIfInvalid();
         if (!InvoiceStateMachine.CanEdit(inv.Status)) throw new ConflictException(FinanceErrors.InvalidState, P(("status", Camel(inv.Status))));
         var d = new InvoiceDiscount { InvoiceId = inv.Id, Kind = kind!.Value, Type = type!.Value, Value = req.Value!.Value, Reason = req.Reason!.Trim(),
@@ -398,9 +430,71 @@ public sealed class InvoiceService(IFinanceDbContext db, FinanceActor actor, Fin
         inv.UpdatedAt = actor.UtcNow; // bump the invoice rowversion: its pending state changed
         audit.Write("discount.requested", "discount", d.Id, inv.Id, studentId: inv.StudentId, amount: d.Value, currency: inv.Currency,
             details: $"{Camel(d.Kind)}:{Camel(d.Type)}");
-        await approvals.SubmitAsync(new ApprovalSubject("discount", d.Id, inv.BranchId, inv.StudentId, d.Value, inv.Currency, d.RequestedBy), ct);
         await db.SaveChangesAsync(ct);
+        await SubmitOrWithdrawAsync(d, inv, ct);
         return InvoiceMapper.ToDto(d);
+    }
+
+    /// <summary>
+    /// Starts the discount's workflow after the request committed and records the instance; when the engine refuses (e.g. the tenant
+    /// deactivated the definition) the request is withdrawn again so nothing is left pending without an approver, and the error surfaces.
+    /// </summary>
+    private async Task SubmitOrWithdrawAsync(InvoiceDiscount d, Invoice inv, CancellationToken ct)
+    {
+        var student = (await names.GetAsync([inv.StudentId], ct)).GetValueOrDefault(inv.StudentId);
+        try
+        {
+            d.WorkflowInstanceId = await approvals.SubmitAsync(new ApprovalSubject("discount", d.Id, inv.BranchId, inv.StudentId, d.Value, inv.Currency,
+                d.RequestedBy, ApprovalTitle(student, inv.Number)), ct);
+            if (d.WorkflowInstanceId is not null) await db.SaveChangesAsync(ct);
+        }
+        catch (AppException)
+        {
+            db.Discounts.Remove(d);
+            inv.UpdatedAt = actor.UtcNow;
+            audit.Write("discount.cancelled", "discount", d.Id, inv.Id, studentId: inv.StudentId, amount: d.Value, currency: inv.Currency,
+                details: "workflow_start_failed");
+            await db.SaveChangesAsync(CancellationToken.None);
+            throw;
+        }
+    }
+
+    /// <summary>The maker edits a discount the approver returned and resubmits it to the same workflow instance (DL-081).</summary>
+    public async Task<DiscountDto> ResubmitDiscountAsync(Guid id, DiscountResubmitRequest req, CancellationToken ct)
+    {
+        var d = await db.Discounts.FirstOrDefaultAsync(x => x.Id == id, ct) ?? throw new NotFoundException();
+        var inv = await LoadAsync(d.InvoiceId, true, ct);
+        await access.EnsureAsync(inv.BranchId, Permissions.FinanceInvoicesManage, ct);
+        var v = new Validator().RequiredText("reason", req.Reason, 500).RowVersion("rowVersion", req.RowVersion);
+        var (kind, type) = ValidateDiscount(req.Kind, req.Type, req.Value, inv.Currency, v);
+        v.ThrowIfInvalid();
+        if (d.RequestedBy != actor.UserId) throw new ForbiddenException();
+        if (d.Status != ApprovalStatus.Returned || d.WorkflowInstanceId is not { } wid)
+            throw new ConflictException(FinanceErrors.InvalidState, P(("status", Camel(d.Status))));
+        if (!InvoiceStateMachine.CanEdit(inv.Status)) throw new ConflictException(FinanceErrors.InvalidState, P(("status", Camel(inv.Status))));
+        CheckRowVersion(d, req.RowVersion);
+        d.Kind = kind!.Value;
+        d.Type = type!.Value;
+        d.Value = req.Value!.Value;
+        d.Reason = req.Reason!.Trim();
+        d.Status = ApprovalStatus.Pending;
+        d.RequestedAt = actor.UtcNow;
+        inv.UpdatedAt = actor.UtcNow;
+        audit.Write("discount.resubmitted", "discount", d.Id, inv.Id, studentId: inv.StudentId, amount: d.Value, currency: inv.Currency,
+            details: $"{Camel(d.Kind)}:{Camel(d.Type)};workflow={wid}");
+        await db.SaveChangesAsync(ct);
+        await approvals.ResubmitAsync(wid, ct);
+        return InvoiceMapper.ToDto(await db.Discounts.AsNoTracking().FirstAsync(x => x.Id == id, ct));
+    }
+
+    private static (DiscountKind?, DiscountType?) ValidateDiscount(string? kindText, string? typeText, decimal? value, string currency, Validator v)
+    {
+        var kind = ParseEnum<DiscountKind>(kindText, "kind", v, required: true);
+        var type = ParseEnum<DiscountType>(typeText, "type", v, required: true);
+        if (type == DiscountType.Percent)
+            v.When(value is null || value <= 0 || value > 100 || decimal.Round(value.Value, 2) != value, "value", Validator.InvalidValue);
+        else if (type == DiscountType.Fixed) Amount(value, "value", currency, v);
+        return (kind, type);
     }
 
     // Installments and late fees ---------------------------------------------------------------------------------------------

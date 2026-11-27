@@ -243,7 +243,8 @@
       "fee_item_in_use": "Bu ücret kalemi faturalarda kullanılıyor.",
       "fee_item_inactive": "Bu ücret kalemi etkin değil.",
       "results_blocked": "Vadesi geçmiş borç nedeniyle sonuçlar gösterilmiyor. Lütfen muhasebe ile iletişime geçin.",
-      "no_credit": "Uygulanacak kredi yok."
+      "no_credit": "Uygulanacak kredi yok.",
+      "records_exist": "Bu kayda bağlı fatura veya ödeme var; silinemez."
     },
     "workflow": {
       "definition_key_taken": "Bu anahtara sahip bir iş akışı zaten var.",
@@ -259,7 +260,8 @@
       "active_instance_exists": "Bu öğe için devam eden bir onay talebi zaten var.",
       "subject_mismatch": "İş akışı bu öğe türüyle eşleşmiyor.",
       "unknown_assignee": "Seçilen onaylayıcı mevcut değil.",
-      "branch_not_found": "Şube mevcut değil."
+      "branch_not_found": "Şube mevcut değil.",
+      "step_permission_not_allowed": "Bu tür taleplerin onay adımları şunu gerektirmelidir: {allowed}."
     }
   },
   "nav": {
@@ -966,7 +968,13 @@
       "apply": "Uygula",
       "filter": "Durum",
       "from": "Başlangıç",
-      "to": "Bitiş"
+      "to": "Bitiş",
+      "approvalStatus": "{value, select, pending {Bekliyor} approved {Onaylandı} rejected {Reddedildi} returned {İade edildi} other {{value}}}",
+      "rejectNote": "Ret gerekçesi (zorunlu)",
+      "viewApproval": "Onay talebi",
+      "returnedNote": "Düzeltme için talep sahibine iade edildi.",
+      "resubmit": "Düzenle ve yeniden gönder",
+      "resubmitted": "Onaya yeniden gönderildi."
     },
     "settings": {
       "title": "Finans ayarları",
@@ -1103,7 +1111,9 @@
       "payments": "Bu faturanın ödemeleri",
       "dueDateHint": "İsteğe bağlı. Varsayılan son taksittir.",
       "noteLabel": "Not",
-      "created": "Taslak oluşturuldu."
+      "created": "Taslak oluşturuldu.",
+      "resubmitTitle": "İndirimi düzenle ve yeniden gönder",
+      "resubmitBody": "Onaylayan bu talebi iade etti. Düzenleyip yeniden onaya gönderin."
     },
     "generate": {
       "title": "Fatura oluştur",
@@ -1162,7 +1172,9 @@
       "refundTitle": "İade talebi",
       "refundBody": "Yalnızca uygulanmamış alacak iade edilebilir. Başka bir yetkili onaylamalıdır; para EEMP dışında ödenir.",
       "refundRequested": "İade talep edildi; onay bekliyor.",
-      "refunds": "İadeler"
+      "refunds": "İadeler",
+      "resubmitTitle": "İadeyi düzenle ve yeniden gönder",
+      "resubmitBody": "Onaylayan bu iade talebini geri gönderdi. Düzenleyip yeniden onaya gönderin."
     },
     "approvals": {
       "title": "Finans onayları",

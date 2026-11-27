@@ -101,6 +101,7 @@ public static class DevelopmentSeed
                 await SeedAcademicAsync(sp, logger, ct);
                 await SeedFinanceAsync(sp, existing.Id, options.DemoUserPassword, logger, ct);
                 await SeedWorkflowAsync(sp, logger, ct);
+                await SeedWorkflowSampleAsync(sp, logger, ct);
             }
             return;
         }
@@ -146,6 +147,7 @@ public static class DevelopmentSeed
             await SeedAcademicAsync(sp, logger, ct);
             await SeedFinanceAsync(sp, created.Id, options.DemoUserPassword, logger, ct);
             await SeedWorkflowAsync(sp, logger, ct);
+            await SeedWorkflowSampleAsync(sp, logger, ct);
         }
         logger.LogInformation("Seeded demo tenant {Slug}", DemoSlug);
     }
@@ -309,55 +311,87 @@ public static class DevelopmentSeed
         fin.Audit.Add(new FinanceAuditEntry { At = now, Action = "seed.payment", EntityType = "payment", EntityId = payment.Id, InvoiceId = inv.Id, PaymentId = payment.Id, StudentId = sara.Id, Amount = payment.Amount, Currency = "IRR" });
         await fin.SaveChangesAsync(ct);
         logger.LogInformation("Seeded demo finance data");
-    public const string DiscountApprovalKey = "discount-approval";
-
-    /// <summary>
-    /// EEMP-011 sample definition (demo tenant; skipped when it exists): "discount-approval" for finance discounts, version 1
-    /// published, one step approved by a holder of workflow.tasks.approve in the instance branch within 48 hours.
-    /// </summary>
-    private static async Task SeedWorkflowAsync(IServiceProvider sp, ILogger logger, CancellationToken ct)
-    {
-        var db = sp.GetRequiredService<IWorkflowDbContext>();
-        if (await db.Definitions.AnyAsync(d => d.Key == DiscountApprovalKey, ct)) return;
-        var def = new WorkflowDefinition { Key = DiscountApprovalKey, Name = "Discount approval", SubjectModule = "finance", SubjectType = "discount", PublishedVersion = 1 };
-        var version = new WorkflowDefinitionVersion
-        {
-            DefinitionId = def.Id, VersionNo = 1, Status = DefinitionVersionStatus.Published, RequireDistinctApprovers = true,
-            PublishedAt = DateTime.UtcNow,
-        };
-        version.Steps.Add(new WorkflowStepDefinition
-        {
-            VersionId = version.Id, Order = 1, Name = "Branch manager approval", Permission = Permissions.WorkflowTasksApprove, SlaHours = 48, AllowReturn = true,
-        });
-        def.Versions.Add(version);
-        db.Definitions.Add(def);
-        await db.SaveChangesAsync(ct);
-        logger.LogInformation("Seeded workflow definition {Key}", DiscountApprovalKey);
     }
 
-    public const string DiscountApprovalKey = "discount-approval";
+    public const string DiscountApprovalKey = FinanceApprovalDefinitions.DiscountKey;
 
     /// <summary>
-    /// EEMP-011 sample definition (demo tenant; skipped when it exists): "discount-approval" for finance discounts, version 1
-    /// published, one step approved by a holder of workflow.tasks.approve in the instance branch within 48 hours.
+    /// Finance approval definitions (DL-083, demo tenant): "discount-approval" and "refund-approval", one step requiring finance.approve in
+    /// the request's branch within 48 hours (the same templates Finance provisions on first use in any tenant). Databases seeded before the
+    /// integration have discount-approval v1 approved by workflow.tasks.approve: a version requiring finance.approve is published over it.
     /// </summary>
     private static async Task SeedWorkflowAsync(IServiceProvider sp, ILogger logger, CancellationToken ct)
     {
+        var workflow = sp.GetRequiredService<EEMP.Modules.Workflow.Contracts.IWorkflowService>();
+        foreach (var kind in new[] { "discount", "refund" })
+        {
+            var template = FinanceApprovalDefinitions.For(kind);
+            if (await workflow.EnsureDefinitionAsync(template, ct))
+            {
+                logger.LogInformation("Seeded workflow definition {Key}", template.Key);
+                continue;
+            }
+            var db = sp.GetRequiredService<IWorkflowDbContext>();
+            var def = await db.Definitions.Include(d => d.Versions).ThenInclude(v => v.Steps).FirstAsync(d => d.Key == template.Key, ct);
+            var published = def.Versions.FirstOrDefault(v => v.VersionNo == def.PublishedVersion);
+            if (published is null || published.Steps.All(x => x.Permission == Permissions.FinanceApprove)) continue;
+            var now = DateTime.UtcNow;
+            published.Status = DefinitionVersionStatus.Retired;
+            var next = new WorkflowDefinitionVersion
+            {
+                DefinitionId = def.Id, VersionNo = def.Versions.Max(v => v.VersionNo) + 1, Status = DefinitionVersionStatus.Published,
+                RequireDistinctApprovers = true, PublishedAt = now,
+            };
+            var order = 1;
+            foreach (var step in template.Steps)
+                next.Steps.Add(new WorkflowStepDefinition
+                {
+                    VersionId = next.Id, Order = order++, Name = step.Name, Permission = step.Permission, SlaHours = step.SlaHours, AllowReturn = step.AllowReturn,
+                });
+            db.Versions.Add(next);
+            def.PublishedVersion = next.VersionNo;
+            await db.SaveChangesAsync(ct);
+            logger.LogInformation("Published workflow definition {Key} version {Version} (finance.approve)", template.Key, next.VersionNo);
+        }
+    }
+
+    public const string SampleReviewKey = "sample-review";
+
+    /// <summary>
+    /// Development-only sample for the workflow inbox UI (M3 frontend): definition "sample-review" (subject demo/document, one step
+    /// approved by a holder of workflow.tasks.approve in the instance branch, 24 h SLA) and one pending instance "Sample request" in the
+    /// North branch requested by finance.officer, so branch.manager has an inbox item. No module handles subject module "demo", so the
+    /// completion event stays in the outbox (retried, then failed) — acceptable for sample data. Skipped when the definition exists.
+    /// </summary>
+    private static async Task SeedWorkflowSampleAsync(IServiceProvider sp, ILogger logger, CancellationToken ct)
+    {
         var db = sp.GetRequiredService<IWorkflowDbContext>();
-        if (await db.Definitions.AnyAsync(d => d.Key == DiscountApprovalKey, ct)) return;
-        var def = new WorkflowDefinition { Key = DiscountApprovalKey, Name = "Discount approval", SubjectModule = "finance", SubjectType = "discount", PublishedVersion = 1 };
+        if (await db.Definitions.AnyAsync(d => d.Key == SampleReviewKey, ct)) return;
+        var def = new WorkflowDefinition { Key = SampleReviewKey, Name = "Sample review", SubjectModule = "demo", SubjectType = "document", PublishedVersion = 1 };
         var version = new WorkflowDefinitionVersion
         {
-            DefinitionId = def.Id, VersionNo = 1, Status = DefinitionVersionStatus.Published, RequireDistinctApprovers = true,
-            PublishedAt = DateTime.UtcNow,
+            DefinitionId = def.Id, VersionNo = 1, Status = DefinitionVersionStatus.Published, RequireDistinctApprovers = true, PublishedAt = DateTime.UtcNow,
         };
         version.Steps.Add(new WorkflowStepDefinition
         {
-            VersionId = version.Id, Order = 1, Name = "Branch manager approval", Permission = Permissions.WorkflowTasksApprove, SlaHours = 48, AllowReturn = true,
+            VersionId = version.Id, Order = 1, Name = "Review", Permission = Permissions.WorkflowTasksApprove, SlaHours = 24, AllowReturn = true,
         });
         def.Versions.Add(version);
         db.Definitions.Add(def);
         await db.SaveChangesAsync(ct);
-        logger.LogInformation("Seeded workflow definition {Key}", DiscountApprovalKey);
+
+        var identity = sp.GetRequiredService<IIdentityDbContext>();
+        var users = sp.GetRequiredService<UserManager<AppUser>>();
+        var normalized = users.NormalizeName(FinanceOfficerUser);
+        var requester = await identity.Users.Where(u => u.NormalizedUserName == normalized).Select(u => (Guid?)u.Id).FirstOrDefaultAsync(ct);
+        var north = await sp.GetRequiredService<IOrganizationDbContext>().Branches.Where(b => b.Code == "NORTH").Select(b => (Guid?)b.Id).FirstOrDefaultAsync(ct);
+        if (requester is null || north is null)
+        {
+            logger.LogWarning("Demo tenant lacks finance.officer or the North branch; seeded the sample-review definition only.");
+            return;
+        }
+        await sp.GetRequiredService<EEMP.Modules.Workflow.Contracts.IWorkflowService>().StartAsync(new EEMP.Modules.Workflow.Contracts.StartWorkflowCommand(
+            SampleReviewKey, "demo", "document", Guid.NewGuid(), north, "Sample request", "seed:sample-review:1", requester), ct);
+        logger.LogInformation("Seeded sample workflow request");
     }
 }

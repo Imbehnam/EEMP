@@ -1,4 +1,5 @@
 using EEMP.Modules.Identity.Contracts;
+using EEMP.Modules.Workflow.Contracts;
 using EEMP.Modules.Workflow.Domain;
 using EEMP.SharedKernel.Authorization;
 using EEMP.SharedKernel.Errors;
@@ -13,7 +14,8 @@ namespace EEMP.Modules.Workflow.Application;
 /// Workflow definitions (tenant configuration). Versions are drafts until published; published versions are immutable and
 /// publishing retires the previous one. Running instances keep the version they started on.
 /// </summary>
-public sealed class DefinitionService(IWorkflowDbContext db, IUserDirectory users, ITenantContext tenant, TimeProvider clock)
+public sealed class DefinitionService(IWorkflowDbContext db, IUserDirectory users, ITenantContext tenant, TimeProvider clock,
+    IEnumerable<IWorkflowSubjectPolicy> policies)
 {
     public const int MaxSteps = 10;
     public const int MaxSlaHours = 8760;
@@ -113,6 +115,7 @@ public sealed class DefinitionService(IWorkflowDbContext db, IUserDirectory user
         var version = def.Versions.FirstOrDefault(x => x.VersionNo == versionNo) ?? throw new NotFoundException();
         if (version.Status != DefinitionVersionStatus.Draft)
             throw new ConflictException(WorkflowErrors.VersionNotDraft, P(("status", Camel(version.Status))));
+        EnsureStepsAllowed(policies, def.SubjectModule, def.SubjectType, version.Steps.Select(x => x.Permission));
         db.SetOriginalRowVersion(def, Convert.FromBase64String(req.RowVersion!));
         var now = clock.GetUtcNow().UtcDateTime;
         foreach (var old in def.Versions.Where(x => x.Status == DefinitionVersionStatus.Published)) old.Status = DefinitionVersionStatus.Retired;
@@ -122,6 +125,20 @@ public sealed class DefinitionService(IWorkflowDbContext db, IUserDirectory user
         def.PublishedVersion = versionNo;
         await db.SaveChangesAsync(ct);
         return Detail(def);
+    }
+
+    /// <summary>DL-083: a subject module may restrict which permissions its approval steps require (e.g. finance.approve only).</summary>
+    internal static void EnsureStepsAllowed(IEnumerable<IWorkflowSubjectPolicy> policies, string subjectModule, string subjectType,
+        IEnumerable<string> stepPermissions)
+    {
+        foreach (var policy in policies.Where(p => p.SubjectModule == subjectModule))
+        {
+            var allowed = policy.AllowedStepPermissions(subjectType);
+            if (allowed.Count == 0) continue;
+            var bad = stepPermissions.FirstOrDefault(p => !allowed.Contains(p));
+            if (bad is not null)
+                throw new BusinessRuleException(WorkflowErrors.StepPermissionNotAllowed, P(("permission", bad), ("allowed", string.Join(", ", allowed))));
+        }
     }
 
     private async Task<List<WorkflowStepDefinition>> ValidateStepsAsync(List<StepRequest>? steps, Validator v, CancellationToken ct)

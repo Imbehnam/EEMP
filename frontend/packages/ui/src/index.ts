@@ -1,6 +1,7 @@
 export * from './tokens';
 export * from './components/primitives';
 export * from './components/icons';
+export * from './components/direction';
 export * from './components/Button';
 export * from './components/Field';
 export * from './components/DataTable';

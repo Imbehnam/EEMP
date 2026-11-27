@@ -33,7 +33,7 @@ export function useFinanceLabels() {
 
 const INVOICE_TONE: Record<string, Tone> = { draft: 'neutral', issued: 'info', partiallyPaid: 'warning', paid: 'success', void: 'danger' };
 const PAYMENT_TONE: Record<string, Tone> = { pending: 'warning', succeeded: 'success', failed: 'danger', cancelled: 'neutral' };
-const APPROVAL_TONE: Record<string, Tone> = { pending: 'warning', approved: 'success', rejected: 'danger' };
+const APPROVAL_TONE: Record<string, Tone> = { pending: 'warning', approved: 'success', rejected: 'danger', returned: 'info' };
 
 export function InvoiceStatusBadge({ status, overdue }: { status: InvoiceStatus | string; overdue?: boolean }) {
   const labels = useFinanceLabels();

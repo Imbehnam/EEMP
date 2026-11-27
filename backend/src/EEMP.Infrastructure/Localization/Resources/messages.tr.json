@@ -215,5 +215,7 @@
   "workflow.active_instance_exists": "Bu öğe için devam eden bir onay talebi zaten var.",
   "workflow.subject_mismatch": "İş akışı bu öğe türüyle eşleşmiyor.",
   "workflow.unknown_assignee": "Seçilen onaylayıcı mevcut değil.",
-  "workflow.branch_not_found": "Şube mevcut değil."
+  "workflow.branch_not_found": "Şube mevcut değil.",
+  "finance.records_exist": "Bu kayda bağlı mali kayıtlar (fatura veya ödeme) var; silinemez.",
+  "workflow.step_permission_not_allowed": "Bu tür öğelerin onay adımları şu izinlerden birini gerektirmelidir: {allowed}."
 }

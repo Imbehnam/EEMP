@@ -9,7 +9,7 @@ import {
 } from '@eemp/app/academic';
 import { useLocaleFormat } from '@eemp/i18n/react';
 import { Link, usePathname, useRouter } from '@eemp/i18n/navigation';
-import { Badge, Card, DataTable, PageHeader, SelectField, Spinner, StatePanel } from '@eemp/ui';
+import { Badge, Card, DataTable, DirectionalGlyph, PageHeader, SelectField, Spinner, StatePanel } from '@eemp/ui';
 import { useTranslations } from 'next-intl';
 import type { ReactNode } from 'react';
 
@@ -72,7 +72,7 @@ export function TeacherClassScreen({ id, tab }: { id: string; tab: TeacherTab })
   return (
     <>
       <PageHeader
-        before={<Link href="/classes" style={{ fontSize: '0.875rem' }}><span aria-hidden="true" className="eemp-flip">{'←'}</span> {t('backToClasses')}</Link>}
+        before={<Link href="/classes" style={{ fontSize: '0.875rem' }}><DirectionalGlyph towards="start" /> {t('backToClasses')}</Link>}
         title={cls.name}
         description={<><span className="eemp-ltr">{cls.code}</span>{term.data ? ` · ${term.data.subjectName} · ${term.data.termName}` : ''}</>}
       />
@@ -127,7 +127,7 @@ export function TeacherAssessmentScreen({ classId, assessmentId }: { classId: st
   return (
     <>
       <PageHeader
-        before={<Link href={back} style={{ fontSize: '0.875rem' }}><span aria-hidden="true" className="eemp-flip">{'←'}</span> {t('backToClass')}</Link>}
+        before={<Link href={back} style={{ fontSize: '0.875rem' }}><DirectionalGlyph towards="start" /> {t('backToClass')}</Link>}
         title={a.data?.name ?? ''}
       />
       {a.error && !a.data ? (
@@ -348,7 +348,7 @@ export function PortalReportCardScreen({ id }: { id: string }) {
   return (
     <>
       <PageHeader
-        before={<Link href="/report-cards" style={{ fontSize: '0.875rem' }}><span aria-hidden="true" className="eemp-flip">{'←'}</span> {t('backToReportCards')}</Link>}
+        before={<Link href="/report-cards" style={{ fontSize: '0.875rem' }}><DirectionalGlyph towards="start" /> {t('backToReportCards')}</Link>}
         title={t('reportCardTitle')}
         actions={
           <>

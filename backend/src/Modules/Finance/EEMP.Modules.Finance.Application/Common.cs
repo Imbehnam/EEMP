@@ -138,10 +138,10 @@ public sealed class FinanceAccess(IAccessControl access)
 public sealed class FinanceAuditor(IFinanceDbContext db, FinanceActor actor)
 {
     public void Write(string action, string entityType, Guid entityId, Guid? invoiceId = null, Guid? paymentId = null, Guid? studentId = null,
-        decimal? amount = null, string? currency = null, string? details = null) =>
+        decimal? amount = null, string? currency = null, string? details = null, Guid? actorUserId = null) =>
         db.Audit.Add(new FinanceAuditEntry
         {
-            At = actor.UtcNow, ActorUserId = actor.UserId, Action = action, EntityType = entityType, EntityId = entityId,
+            At = actor.UtcNow, ActorUserId = actorUserId ?? actor.UserId, Action = action, EntityType = entityType, EntityId = entityId,
             InvoiceId = invoiceId, PaymentId = paymentId, StudentId = studentId, Amount = amount, Currency = currency,
             Details = details is { Length: > 400 } ? details[..400] : details,
         });

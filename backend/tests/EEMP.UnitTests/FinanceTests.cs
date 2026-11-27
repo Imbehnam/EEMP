@@ -253,3 +253,30 @@ public sealed class ReceiptNumberingTests : IAsyncLifetime
         }
     }
 }
+
+/// <summary>DL-081: how workflow events move finance approval requests (guards make redelivery a no-op).</summary>
+public class FinanceWorkflowTransitionTests
+{
+    private static EEMP.Modules.Workflow.Contracts.WorkflowEvent E(string type, string outcome) =>
+        new(Guid.NewGuid(), Guid.NewGuid(), Guid.NewGuid(), "discount-approval", 1, "finance", "discount", Guid.NewGuid(), null, type, outcome, null, Guid.NewGuid(), DateTime.UtcNow);
+
+    [Theory]
+    [InlineData(ApprovalStatus.Pending, "completed", "approved", ApprovalStatus.Approved)]
+    [InlineData(ApprovalStatus.Pending, "completed", "rejected", ApprovalStatus.Rejected)]
+    [InlineData(ApprovalStatus.Pending, "completed", "cancelled", ApprovalStatus.Rejected)]
+    [InlineData(ApprovalStatus.Returned, "completed", "cancelled", ApprovalStatus.Rejected)]
+    [InlineData(ApprovalStatus.Pending, "returned", "returned", ApprovalStatus.Returned)]
+    [InlineData(ApprovalStatus.Returned, "resubmitted", "pending", ApprovalStatus.Pending)]
+    public void Open_requests_follow_the_workflow(ApprovalStatus current, string type, string outcome, ApprovalStatus expected) =>
+        Assert.Equal(expected, FinanceWorkflowEventHandler.Next(current, E(type, outcome)));
+
+    [Theory]
+    [InlineData(ApprovalStatus.Approved, "completed", "approved")]
+    [InlineData(ApprovalStatus.Approved, "completed", "rejected")]
+    [InlineData(ApprovalStatus.Rejected, "completed", "approved")]
+    [InlineData(ApprovalStatus.Returned, "returned", "returned")]
+    [InlineData(ApprovalStatus.Pending, "resubmitted", "pending")]
+    [InlineData(ApprovalStatus.Pending, "something-new", "x")]
+    public void Decided_requests_replays_and_unknown_events_are_ignored(ApprovalStatus current, string type, string outcome) =>
+        Assert.Null(FinanceWorkflowEventHandler.Next(current, E(type, outcome)));
+}

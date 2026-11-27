@@ -4,7 +4,7 @@ import {
   addDaysIso, formatDateInput, getMetadata, inputCalendarOf, isoToCalendar, monthGrid, parseDateInput, todayIso, type DateCalendar,
 } from '@eemp/i18n';
 import { useLocaleFormat } from '@eemp/i18n/react';
-import { Button, TextField } from '@eemp/ui';
+import { Button, DirectionalGlyph, TextField } from '@eemp/ui';
 import { useLocale, useTranslations } from 'next-intl';
 import { useEffect, useId, useMemo, useState } from 'react';
 
@@ -135,11 +135,11 @@ function MonthPicker({ calendar, value, onPick }: { calendar: DateCalendar; valu
     >
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8 }}>
         <Button type="button" variant="ghost" size="sm" onClick={() => step(-1)} aria-label={t('previousMonth')}>
-          <span aria-hidden="true" className="eemp-flip">{'‹'}</span>
+          <DirectionalGlyph towards="start" kind="chevron" />
         </Button>
         <strong id={headingId} aria-live="polite">{title}</strong>
         <Button type="button" variant="ghost" size="sm" onClick={() => step(1)} aria-label={t('nextMonth')}>
-          <span aria-hidden="true" className="eemp-flip">{'›'}</span>
+          <DirectionalGlyph towards="end" kind="chevron" />
         </Button>
       </div>
       <table style={{ inlineSize: '100%', borderCollapse: 'collapse', textAlign: 'center' }}>

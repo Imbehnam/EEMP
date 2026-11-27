@@ -18,4 +18,6 @@ public static class FinanceStandingErrors
 {
     /// <summary>Same value as FinanceErrors.ResultsBlocked (Finance.Domain); exposed here for other modules.</summary>
     public const string ResultsBlocked = "finance.results_blocked";
+    /// <summary>409 when deleting a student or branch that finance records reference (DL-085).</summary>
+    public const string RecordsExist = "finance.records_exist";
 }

@@ -1,6 +1,7 @@
 using EEMP.Modules.Organization.Contracts;
 using EEMP.Modules.Workflow.Contracts;
 using EEMP.Modules.Workflow.Domain;
+using EEMP.SharedKernel.Authorization;
 using EEMP.SharedKernel.Errors;
 using EEMP.SharedKernel.Tenancy;
 using EEMP.SharedKernel.Validation;
@@ -11,7 +12,7 @@ namespace EEMP.Modules.Workflow.Application;
 
 /// <summary>In-process entry point for modules that own workflow subjects (there is deliberately no HTTP start endpoint).</summary>
 public sealed class WorkflowService(IWorkflowDbContext db, ITenantContext tenant, IBranchDirectory branches, TimeProvider clock,
-    IWorkflowOutboxDispatcher dispatcher) : IWorkflowService
+    IWorkflowOutboxDispatcher dispatcher, InstanceService instances, IEnumerable<IWorkflowSubjectPolicy> policies) : IWorkflowService
 {
     public const int MaxTitle = 200;
     public const int MaxIdempotencyKey = 100;
@@ -107,5 +108,70 @@ public sealed class WorkflowService(IWorkflowDbContext db, ITenantContext tenant
         await Transitions.ApplyAsync(db, instance, outcome, [], actorUserId: null, comment, requestId: null, clock.GetUtcNow().UtcDateTime, ct);
         await db.SaveChangesAsync(ct);
         await dispatcher.DispatchAsync(instance.Id, ct);
+    }
+
+    public async Task<WorkflowInstanceInfo> ActAsync(Guid instanceId, string subjectModule, string action, string? comment, CancellationToken ct = default)
+    {
+        var command = action switch
+        {
+            "approve" => WorkflowCommand.Approve,
+            "reject" => WorkflowCommand.Reject,
+            "return" => WorkflowCommand.Return,
+            "resubmit" => WorkflowCommand.Resubmit,
+            "cancel" => WorkflowCommand.Cancel,
+            _ => throw new ArgumentOutOfRangeException(nameof(action)),
+        };
+        var current = await db.Instances.AsNoTracking().FirstOrDefaultAsync(i => i.Id == instanceId && i.SubjectModule == subjectModule, ct)
+                      ?? throw new NotFoundException();
+        // Same path as POST /workflow/instances/{id}/{action}: visibility, eligibility, maker-checker and the rowversion check all apply.
+        await instances.ActAsync(instanceId, command, new WorkflowActionRequest(Rv(current.RowVersion), comment, null), ct);
+        var after = await db.Instances.AsNoTracking().FirstAsync(i => i.Id == instanceId, ct);
+        return Transitions.Info(after);
+    }
+
+    public async Task<bool> EnsureDefinitionAsync(WorkflowDefinitionTemplate template, CancellationToken ct = default)
+    {
+        tenant.RequireTenantId();
+        if (await db.Definitions.AnyAsync(d => d.Key == template.Key, ct)) return false;
+        var v = new Validator().RequiredText("name", template.Name, 200)
+            .When(!IsIdentifier(template.Key), "key", Validator.InvalidFormat)
+            .When(!IsIdentifier(template.SubjectModule), "subjectModule", Validator.InvalidFormat)
+            .When(!IsIdentifier(template.SubjectType), "subjectType", Validator.InvalidFormat)
+            .When(template.Steps.Count == 0 || template.Steps.Count > DefinitionService.MaxSteps, "steps", Validator.InvalidValue);
+        for (var i = 0; i < template.Steps.Count; i++)
+            v.When(!Permissions.Exists(template.Steps[i].Permission), $"steps[{i}].permission", Validator.UnknownPermission);
+        v.ThrowIfInvalid();
+        DefinitionService.EnsureStepsAllowed(policies, template.SubjectModule, template.SubjectType, template.Steps.Select(s => s.Permission));
+
+        var now = clock.GetUtcNow().UtcDateTime;
+        var def = new WorkflowDefinition
+        {
+            Key = template.Key, Name = template.Name.Trim(), SubjectModule = template.SubjectModule, SubjectType = template.SubjectType, PublishedVersion = 1,
+        };
+        var version = new WorkflowDefinitionVersion
+        {
+            DefinitionId = def.Id, VersionNo = 1, Status = DefinitionVersionStatus.Published, RequireDistinctApprovers = template.RequireDistinctApprovers,
+            PublishedAt = now, PublishedByUserId = tenant.UserId,
+        };
+        var order = 1;
+        foreach (var s in template.Steps)
+            version.Steps.Add(new WorkflowStepDefinition
+            {
+                VersionId = version.Id, Order = order++, Name = s.Name, Permission = s.Permission, SlaHours = s.SlaHours, AllowReturn = s.AllowReturn,
+            });
+        def.Versions.Add(version);
+        db.Definitions.Add(def);
+        try
+        {
+            await db.SaveChangesAsync(ct);
+            return true;
+        }
+        catch (DbUpdateException)
+        {
+            // A concurrent first use provisioned the same key (unique index): theirs wins.
+            db.ResetTracking();
+            if (await db.Definitions.AnyAsync(d => d.Key == template.Key, ct)) return false;
+            throw;
+        }
     }
 }

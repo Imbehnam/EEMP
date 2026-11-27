@@ -4,7 +4,8 @@ import styled from '@emotion/styled';
 import { useEffect, useId, useRef, useState, type ComponentType, type ReactNode } from 'react';
 
 import { mq } from '../tokens';
-import { IconChevron, IconClose, IconMenu } from './icons';
+import { IconChevron } from './direction';
+import { IconClose, IconMenu } from './icons';
 import { SkipLink } from './primitives';
 
 export interface NavItem {

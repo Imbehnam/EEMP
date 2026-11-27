@@ -1,20 +1,20 @@
 'use client';
 
-import { authorityFromRedirect, newIdempotencyKey, type Invoice, type PaymentStatusResult, type StudentAccount } from '@eemp/api-client';
+import { authorityFromRedirect, isApiError, newIdempotencyKey, type Invoice, type PaymentStatusResult, type StudentAccount } from '@eemp/api-client';
 import { ErrorAlert, LoadError, useApiMutation, useApiQuery } from '@eemp/app';
 import {
   FileDownloadButton, InvoiceNumber, InvoiceStatusBadge, InvoiceView, Money, MoneyUnitToggle, PaymentStatusBadge, useFinanceLabels, useMoney, usePdfLanguage,
 } from '@eemp/app/finance';
 import { useLocaleFormat } from '@eemp/i18n/react';
 import { Link, useRouter } from '@eemp/i18n/navigation';
-import { Alert, Button, Card, ConfirmDialog, DataTable, PageHeader, Spinner, StatePanel } from '@eemp/ui';
+import { Alert, Button, Card, ConfirmDialog, DataTable, DirectionalGlyph, PageHeader, Spinner, StatePanel } from '@eemp/ui';
 import { useTranslations } from 'next-intl';
 import { useEffect, useRef, useState } from 'react';
 
 import { StudentPage } from './academic';
 
 const backLink = (href: string, label: string) => (
-  <Link href={href} style={{ fontSize: '0.875rem' }}><span aria-hidden="true" className="eemp-flip">{'←'}</span> {label}</Link>
+  <Link href={href} style={{ fontSize: '0.875rem' }}><DirectionalGlyph towards="start" /> {label}</Link>
 );
 
 /* ======================= account: invoices, installments, balance, receipts ======================= */
@@ -184,7 +184,9 @@ export function FakeGatewayScreen({ paymentId, authority, invoiceId }: { payment
   if (!paymentId || !authority) return <StatePanel role="alert" title={t('gatewayTitle')} description={t('gatewayMissing')} />;
   const go = async (status: 'OK' | 'NOK') => {
     const r = await callback.run(status);
-    if (r.ok) router.replace(`/pay/result?paymentId=${encodeURIComponent(paymentId)}&status=${r.value.status}${invoiceId ? `&invoiceId=${encodeURIComponent(invoiceId)}` : ''}`);
+    // With Finance:Payments:ReturnUrl configured the callback answers with a redirect to the return page instead of JSON;
+    // either way the result page asks the API for the payment's real status.
+    if (r.ok || !isApiError(r.error)) router.replace(`/pay/result?paymentId=${encodeURIComponent(paymentId)}${invoiceId ? `&invoiceId=${encodeURIComponent(invoiceId)}` : ''}`);
   };
   return (
     <>

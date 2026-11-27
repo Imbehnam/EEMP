@@ -33,7 +33,10 @@ public static class FinanceModule
         services.AddScoped<InvoiceMapper>();
         services.AddScoped<PaymentMapper>();
         services.AddScoped<PaymentPosting>();
-        services.AddScoped<IFinanceApprovals, LocalMakerChecker>();
+        // DL-081: discount/refund approvals run on the EEMP-011 workflow engine; FinanceWorkflowEventHandler applies the outcomes.
+        services.AddScoped<IFinanceApprovals, WorkflowFinanceApprovals>();
+        services.AddScoped<EEMP.Modules.Workflow.Contracts.IWorkflowEventHandler, FinanceWorkflowEventHandler>();
+        services.AddSingleton<EEMP.Modules.Workflow.Contracts.IWorkflowSubjectPolicy, FinanceWorkflowPolicy>();
         services.AddScoped<FinanceSetupService>();
         services.AddScoped<InvoiceService>();
         services.AddScoped<PaymentService>();
@@ -159,6 +162,10 @@ public static class FinanceModule
             await s.CancelDiscountAsync(id, ct);
             return Results.NoContent();
         }).RequirePermission(Permissions.FinanceRead);
+        f.MapPut("/discounts/{id:guid}", async (Guid id, DiscountResubmitRequest req, InvoiceService s, CancellationToken ct) =>
+            Results.Ok(await s.ResubmitDiscountAsync(id, req, ct))).RequirePermission(Permissions.FinanceInvoicesManage);
+        f.MapPut("/refunds/{id:guid}", async (Guid id, RefundResubmitRequest req, PaymentService s, CancellationToken ct) =>
+            Results.Ok(await s.ResubmitRefundAsync(id, req, ct))).RequirePermission(Permissions.FinancePaymentsManage);
         f.MapPost("/refunds/{id:guid}/approve", async (Guid id, DecisionRequest req, ApprovalService s, CancellationToken ct) =>
             Results.Ok(await s.DecideRefundAsync(id, true, req, ct))).RequirePermission(Permissions.FinanceApprove);
         f.MapPost("/refunds/{id:guid}/reject", async (Guid id, DecisionRequest req, ApprovalService s, CancellationToken ct) =>

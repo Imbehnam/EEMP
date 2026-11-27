@@ -215,5 +215,7 @@
   "workflow.active_instance_exists": "An approval request for this item is already in progress.",
   "workflow.subject_mismatch": "The workflow does not match this kind of item.",
   "workflow.unknown_assignee": "The selected approver does not exist.",
-  "workflow.branch_not_found": "The branch does not exist."
+  "workflow.branch_not_found": "The branch does not exist.",
+  "finance.records_exist": "Financial records (invoices or payments) reference this record, so it cannot be deleted.",
+  "workflow.step_permission_not_allowed": "Approval steps for this kind of item must require one of these permissions: {allowed}."
 }

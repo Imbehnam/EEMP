@@ -201,7 +201,7 @@
   "finance.pdf.method.pos": "بطاقة (نقطة بيع)",
   "finance.pdf.method.transfer": "تحويل بنكي",
   "finance.pdf.method.cheque": "شيك",
-  "finance.pdf.method.online": "إلكتروني"
+  "finance.pdf.method.online": "إلكتروني",
   "workflow.definition_key_taken": "يوجد بالفعل سير عمل بهذا المعرّف.",
   "workflow.definition_inactive": "سير العمل هذا غير نشط.",
   "workflow.definition_not_published": "لا يوجد إصدار منشور لسير العمل هذا.",
@@ -215,5 +215,7 @@
   "workflow.active_instance_exists": "يوجد طلب موافقة قيد التنفيذ لهذا العنصر بالفعل.",
   "workflow.subject_mismatch": "سير العمل لا يطابق هذا النوع من العناصر.",
   "workflow.unknown_assignee": "الموافق المحدد غير موجود.",
-  "workflow.branch_not_found": "الفرع غير موجود."
+  "workflow.branch_not_found": "الفرع غير موجود.",
+  "finance.records_exist": "توجد سجلات مالية (فواتير أو مدفوعات) مرتبطة بهذا السجل، لذا لا يمكن حذفه.",
+  "workflow.step_permission_not_allowed": "يجب أن تتطلب خطوات الموافقة لهذا النوع من العناصر إحدى هذه الصلاحيات: {allowed}."
 }

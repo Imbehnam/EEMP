@@ -82,6 +82,9 @@ export function createFinanceEndpoints(client: ApiClient) {
       approve: (discountId: Guid, body: DecisionRequest) => client.post<InvoiceDiscount>(`/finance/discounts/${id(discountId)}/approve`, body),
       reject: (discountId: Guid, body: DecisionRequest) => client.post<InvoiceDiscount>(`/finance/discounts/${id(discountId)}/reject`, body),
       remove: (discountId: Guid) => client.delete(`/finance/discounts/${id(discountId)}`),
+      /** Maker edits a returned discount and resubmits it to its workflow (DL-081). */
+      resubmit: (discountId: Guid, body: DiscountRequest & { rowVersion: RowVersion }) =>
+        client.put<InvoiceDiscount>(`/finance/discounts/${id(discountId)}`, body),
     },
     approvals: {
       list: (status = 'pending') => client.get<ApprovalItem[]>('/finance/approvals', { query: { status } }),
@@ -105,6 +108,9 @@ export function createFinanceEndpoints(client: ApiClient) {
       list: (status?: string) => client.get<Refund[]>('/finance/refunds', { query: { status } }),
       approve: (refundId: Guid, body: DecisionRequest) => client.post<Refund>(`/finance/refunds/${id(refundId)}/approve`, body),
       reject: (refundId: Guid, body: DecisionRequest) => client.post<Refund>(`/finance/refunds/${id(refundId)}/reject`, body),
+      /** Maker edits a returned refund and resubmits it to its workflow (DL-081). */
+      resubmit: (refundId: Guid, body: { amount: number; reason: string; rowVersion: RowVersion }) =>
+        client.put<Refund>(`/finance/refunds/${id(refundId)}`, body),
     },
     students: {
       account: (studentId: Guid) => client.get<StudentAccount>(`/finance/students/${id(studentId)}/account`),

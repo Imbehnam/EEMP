@@ -15,10 +15,10 @@ Statuses: `NOT_STARTED`, `IN_PROGRESS`, `IN_REVIEW` (implemented, build and auto
 | EEMP-008 | Academic catalog and class operations | IN_REVIEW | EEMP-007 |
 | EEMP-009 | Enrollment and attendance | IN_REVIEW | EEMP-008 |
 | EEMP-010 | Assessment, grades, report cards | IN_REVIEW | EEMP-009 |
-| EEMP-011 | Workflow engine | IN_REVIEW | EEMP-005 |
+| EEMP-011 | Workflow engine | IN_REVIEW (backend + frontend; finance integrated) | EEMP-005 |
 | EEMP-012 | Consultation and support booking | NOT_STARTED | EEMP-011 |
 | EEMP-013 | Academic planning and paid service | NOT_STARTED | EEMP-011, EEMP-012 |
-| EEMP-014 | Institute finance and tuition payments | IN_PROGRESS (backend IN_REVIEW; frontend not started) | EEMP-007, EEMP-011 |
+| EEMP-014 | Institute finance and tuition payments | IN_REVIEW | EEMP-007, EEMP-011 |
 | EEMP-015 | Recorded courses and media | NOT_STARTED | EEMP-005 |
 | EEMP-016 | Calendar and online meetings | NOT_STARTED | EEMP-012 |
 | EEMP-017 | SMS reminders and notification center | NOT_STARTED | EEMP-016 |
@@ -116,6 +116,31 @@ approvals run as a local maker-checker behind `IFinanceApprovals` (swappable to 
   clean for all 7 contexts. SQL Server migration not applied in the sandbox (no SQL Server/Docker).
 - Not done: frontend (admin finance pages, portal pay flow), gateway refunds/reconciliation/settlement files, chargebacks, period closing,
   e-invoicing (Moadian), notifications/reminders for due installments (EEMP-017), student/branch deletion guards for finance references.
+
+## Milestone 3 finance + workflow completion (EEMP-014, EEMP-011 frontend, 2026-11-28, branch `feature/m3-finance-completion`)
+
+Based on `main` after PR #9. Decisions DL-081..DL-086. Also repairs `main` after merge `e882d63` (DevelopmentSeed.cs missing brace and
+duplicate `SeedWorkflowAsync`, invalid `messages.ar.json`, duplicated DL-073/074 entries).
+
+- EEMP-014 is `IN_REVIEW`: admin finance console (settings, fees, invoices incl. bulk generation, payments/receipts, student accounts,
+  approvals, reports) and portal invoices/pay flow (fake gateway, result page, receipt/invoice PDFs) were already on `main`; this branch
+  adds the workflow-backed discount/refund approvals (DL-081..DL-084), the `returned` status with edit + resubmit, approval links to the
+  workflow instance, reject-requires-note, and the student/branch delete guards (`409 finance.records_exist`, DL-085).
+- EEMP-011 frontend done: `/workflow/inbox`, `/workflow/requests`, `/workflow/instances/{id}` (approve/reject/return/resubmit/cancel with
+  comments, history) and `/workflow/definitions` (versions, publish). Status stays `IN_REVIEW` pending user verification.
+- RTL: direction-aware chevrons/arrows from a React direction provider (DL-086).
+
+Commands and results (sandbox, SQLite fallback):
+- `backend/`: `dotnet build EEMP.slnx -c Release -m:1` → 0 warnings / 0 errors; `CONFIGURATION=Release ./check-migrations.sh` → no pending
+  changes (8 contexts); UnitTests 118/118, ArchitectureTests 93/93, IntegrationTests 78/78 (run per test class because of sandbox memory;
+  6 new `FinanceWorkflowTests`).
+- `frontend/`: `pnpm typecheck`, `pnpm lint` clean; `vitest run` 163/163 (16 files, new `packages/ui/test/direction.test.tsx`); both apps
+  `next build` OK; mock Playwright 37/37 (a11y 16 incl. new finance pages fa/en × light/dark with zero serious/critical axe violations,
+  smoke 7, academic 9, finance 5); real-API `e2e-real/finance.real.spec.ts` 5/5 (results blocking, officer payment → receipt number,
+  guardian fake-gateway payment → balance 0, discount maker-checker via `/workflow/inbox`, seeded workflow request).
+- Not run here: SQL Server migration (no SQL Server), the rest of the real-API suite (the sandbox OOM-killed the API during that run).
+- Open: gateway refunds/reconciliation, period closing, e-invoicing, due-installment reminders (EEMP-017); workflow conditions,
+  parallel steps, delegation, escalation (OD-027).
 
 ## EEMP-011 workflow engine backend evidence (2026-11-26, branch `feature/workflow-engine-backend`)
 
