@@ -30,8 +30,16 @@ public sealed class TenantAccessProvisioner(IIdentityDbContext db, UserManager<A
                 Permissions.GradesRead, Permissions.GradesManage, Permissions.GradesApprove, Permissions.GradesPublish,
                 Permissions.ReportCardsRead, Permissions.ReportCardsManage, Permissions.ReportCardsPublish,
                 Permissions.WorkflowDefinitionsRead, Permissions.WorkflowInstancesRead, Permissions.WorkflowInstancesManage,
-                Permissions.WorkflowTasksApprove]),
+                Permissions.WorkflowTasksApprove,
+                // DL-091: booking oversight and support, but not consultation.notes.read (confidential notes, DL-093).
+                Permissions.ConsultationConsultantsManage, Permissions.ConsultationBookingsRead, Permissions.ConsultationBookingsManage,
+                Permissions.SupportTicketsRead, Permissions.SupportTicketsManage]),
             [SystemRoles.Teacher] = ("Teacher", [Permissions.BranchesRead]),
+            // DL-091: consultants act on their own slots/bookings/notes; the profile plus this role is required.
+            [SystemRoles.Consultant] = ("Consultant", [Permissions.OrganizationRead, Permissions.BranchesRead, Permissions.ConsultationSessionsManage]),
+            // DL-094: branch support desk for portal tickets.
+            [SystemRoles.SupportDesk] = ("Support desk", [
+                Permissions.OrganizationRead, Permissions.BranchesRead, Permissions.SupportTicketsRead, Permissions.SupportTicketsManage]),
             [SystemRoles.Guardian] = ("Guardian", []),
             [SystemRoles.Student] = ("Student", []),
             // DL-064: finance is a separate duty; TenantAdmin and BranchManager hold no finance.* code.
@@ -110,6 +118,13 @@ public sealed class SystemRoleSync(IIdentityDbContext db)
 public sealed class UserDirectory(IIdentityDbContext db) : IUserDirectory
 {
     public Task<bool> ExistsAsync(Guid userId, CancellationToken ct = default) => db.Users.AnyAsync(u => u.Id == userId, ct);
+
+    public async Task<IReadOnlyDictionary<Guid, string>> GetDisplayNamesAsync(IReadOnlyCollection<Guid> userIds, CancellationToken ct = default)
+    {
+        if (userIds.Count == 0) return new Dictionary<Guid, string>();
+        var ids = userIds.Distinct().ToList();
+        return await db.Users.AsNoTracking().Where(u => ids.Contains(u.Id)).ToDictionaryAsync(u => u.Id, u => u.DisplayName, ct);
+    }
 }
 
 public sealed class AssignmentUsage(IIdentityDbContext db) : IAssignmentUsage

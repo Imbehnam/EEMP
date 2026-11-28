@@ -9,7 +9,8 @@
     ".": "./src/index.ts",
     "./server": "./src/server.tsx",
     "./academic": "./src/academic/index.ts",
-    "./finance": "./src/finance/index.ts"
+    "./finance": "./src/finance/index.ts",
+    "./consultation": "./src/consultation/index.tsx"
   },
   "scripts": {
     "typecheck": "tsc --noEmit -p tsconfig.json"

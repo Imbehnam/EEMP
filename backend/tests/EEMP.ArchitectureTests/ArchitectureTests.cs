@@ -14,7 +14,7 @@ namespace EEMP.ArchitectureTests;
 
 public class ModuleBoundaryTests
 {
-    private static readonly string[] Modules = ["Tenancy", "Identity", "Organization", "People", "Academic", "Finance", "Workflow"];
+    private static readonly string[] Modules = ["Tenancy", "Identity", "Organization", "People", "Academic", "Finance", "Workflow", "Consultation"];
     private static readonly string[] Layers = ["Domain", "Application", "Infrastructure", "Contracts"];
 
     private static Assembly Load(string module, string layer) => Assembly.Load($"EEMP.Modules.{module}.{layer}");
@@ -65,7 +65,7 @@ public class AcademicArchitectureTests
     [Fact]
     public void Contracts_projects_do_not_reference_other_modules()
     {
-        foreach (var m in new[] { "Tenancy", "Identity", "Organization", "People", "Academic", "Finance", "Workflow" })
+        foreach (var m in new[] { "Tenancy", "Identity", "Organization", "People", "Academic", "Finance", "Workflow", "Consultation" })
         {
             var refs = Assembly.Load($"EEMP.Modules.{m}.Contracts").GetReferencedAssemblies().Select(r => r.Name!).ToList();
             Assert.DoesNotContain(refs, r => r.StartsWith("EEMP.Modules.", StringComparison.Ordinal));
@@ -147,6 +147,7 @@ public class DataClassificationTests
         yield return [new AcademicDbContext(DesignTime.Options<AcademicDbContext>(AcademicDbContext.SchemaName), t)];
         yield return [new EEMP.Modules.Finance.Infrastructure.FinanceDbContext(DesignTime.Options<EEMP.Modules.Finance.Infrastructure.FinanceDbContext>(EEMP.Modules.Finance.Infrastructure.FinanceDbContext.SchemaName), t)];
         yield return [new WorkflowDbContext(DesignTime.Options<WorkflowDbContext>(WorkflowDbContext.SchemaName), t)];
+        yield return [new EEMP.Modules.Consultation.Infrastructure.ConsultationDbContext(DesignTime.Options<EEMP.Modules.Consultation.Infrastructure.ConsultationDbContext>(EEMP.Modules.Consultation.Infrastructure.ConsultationDbContext.SchemaName), t)];
     }
 
     [Theory]
@@ -243,5 +244,63 @@ public class FinanceArchitectureTests
         ctx.Attach(entry);
         ctx.Entry(entry).State = Microsoft.EntityFrameworkCore.EntityState.Deleted;
         Assert.Throws<InvalidOperationException>(() => ctx.SaveChanges());
+    }
+}
+
+public class ConsultationArchitectureTests
+{
+    private static EEMP.Modules.Consultation.Infrastructure.ConsultationDbContext Context() =>
+        new(DesignTime.Options<EEMP.Modules.Consultation.Infrastructure.ConsultationDbContext>(EEMP.Modules.Consultation.Infrastructure.ConsultationDbContext.SchemaName), DesignTime.NoTenant());
+
+    [Fact]
+    public void Consultation_and_support_permissions_on_records_are_sensitive_and_branch_scoped()
+    {
+        var all = EEMP.SharedKernel.Authorization.Permissions.All.Where(p => p.Module is "consultation" or "support").ToList();
+        Assert.Equal(7, all.Count);
+        Assert.All(all, p => Assert.True(p.BranchScoped, p.Code));
+        Assert.All(all.Where(p => p.Code != EEMP.SharedKernel.Authorization.Permissions.ConsultationConsultantsManage), p => Assert.True(p.IsSensitive, p.Code));
+    }
+
+    [Fact]
+    public void No_built_in_role_reads_confidential_notes_and_tenant_admin_gets_no_consultation_access()
+    {
+        var defs = EEMP.Modules.Identity.Application.TenantAccessProvisioner.SystemRoleDefinitions;
+        Assert.All(defs, d => Assert.DoesNotContain(EEMP.SharedKernel.Authorization.Permissions.ConsultationNotesRead, d.Value.Permissions));
+        Assert.DoesNotContain(defs[EEMP.Modules.Identity.Domain.SystemRoles.TenantAdmin].Permissions,
+            c => c.StartsWith("consultation.", StringComparison.Ordinal) || c.StartsWith("support.", StringComparison.Ordinal));
+        Assert.Contains(EEMP.SharedKernel.Authorization.Permissions.ConsultationSessionsManage, defs[EEMP.Modules.Identity.Domain.SystemRoles.Consultant].Permissions);
+        Assert.Contains(EEMP.SharedKernel.Authorization.Permissions.SupportTicketsManage, defs[EEMP.Modules.Identity.Domain.SystemRoles.SupportDesk].Permissions);
+    }
+
+    [Fact]
+    public void Consultation_tables_use_tenant_composite_keys_and_tenant_leading_indexes()
+    {
+        using var ctx = Context();
+        foreach (var fk in ctx.Model.GetEntityTypes().SelectMany(e => e.GetForeignKeys()))
+            Assert.True(fk.Properties[0].Name == "TenantId", $"{fk.DeclaringEntityType.GetTableName()} FK is not tenant-composite");
+        foreach (var ix in ctx.Model.GetEntityTypes().SelectMany(e => e.GetIndexes()))
+            Assert.True(ix.Properties[0].Name == "TenantId", $"{ix.DeclaringEntityType.GetTableName()} index is not tenant-leading");
+    }
+
+    [Fact]
+    public void A_slot_can_hold_only_one_active_booking_in_the_database()
+    {
+        using var ctx = Context();
+        var booking = ctx.Model.FindEntityType(typeof(EEMP.Modules.Consultation.Domain.Booking))!;
+        var ix = Assert.Single(booking.GetIndexes(), i => i.Properties.Select(p => p.Name).SequenceEqual(new[] { "TenantId", "SlotId" }));
+        Assert.True(ix.IsUnique);
+        Assert.Equal("[Status] <> 'Cancelled'", ix.GetFilter());
+    }
+
+    [Fact]
+    public void Confidential_notes_are_separate_from_scheduling_metadata()
+    {
+        using var ctx = Context();
+        var booking = ctx.Model.FindEntityType(typeof(EEMP.Modules.Consultation.Domain.Booking))!;
+        Assert.DoesNotContain(booking.GetProperties(), p => p.Name.Contains("Note", StringComparison.Ordinal) && p.Name != "RequesterNote");
+        Assert.Equal("BookingNotes", ctx.Model.FindEntityType(typeof(EEMP.Modules.Consultation.Domain.BookingNote))!.GetTableName());
+        // DTOs exposed to the portal and to booking lists carry no note bodies.
+        foreach (var dto in new[] { typeof(EEMP.Modules.Consultation.Application.BookingDto), typeof(EEMP.Modules.Consultation.Application.PortalBookingDto) })
+            Assert.DoesNotContain(dto.GetProperties(), p => p.Name is "Notes" or "Body");
     }
 }

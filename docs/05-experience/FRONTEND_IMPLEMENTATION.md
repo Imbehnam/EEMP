@@ -185,3 +185,20 @@ Status: implemented on branch `feature/m2-academic-frontend` (2026-11-25), verif
   selected (published cards only, hint shown); portal report-card page "Download PDF" (published version). Print stays.
 - Mock backend: stand-in one-page PDFs (Helvetica, ASCII) and stored ZIPs with the real routes, permissions and errors; the real
   document (shaping, RTL, Jalali) is only produced by the API.
+
+## Consultation and support (EEMP-012, 2026-11-28, branch `feature/m4-consultation`)
+
+- API client: `api.consultation` (settings, me, consultants, slots, bookings + notes, portal) and `api.support` (staff tickets, portal);
+  types in `consultation-types.ts`; mock backend `mock/consultation.ts` mirrors the server rules (branch scope, notes confidentiality,
+  cancellation window, one active booking per slot, internal ticket notes hidden from the portal).
+- Shared UI `@eemp/app/consultation`: `useWeek` + `WeekToolbar` + `WeekView` (Saturday-first, one headed list per day, collapses on
+  narrow screens), `TicketThread`, status badges, labels; `@eemp/i18n` `zonedToUtc` / `instantDayIso` / `weekStartIso` (Intl-based, DST-safe).
+- Admin (nav hidden by permission): `/consultation/schedule` (consultant's own week or, for managers, any consultant; add slot / repeat
+  weekly), `/consultation/bookings` (week or list; status filter; mine/all), `/consultation/bookings/[id]` (actions from
+  `allowedActions`, confidential notes card only when `canReadNotes`), `/consultation/consultants` (profiles + booking policy for tenant-wide
+  managers), `/support` and `/support/[id]` (thread, reply or internal note, status/priority/assign to me).
+- Portal (students and guardians): `/consultation` (consultant → time → topic), `/consultation/bookings` (cancel while the window is open),
+  `/support` and `/support/[id]`. Dates follow the locale calendar (Jalali in fa) and the user's time zone.
+- Assumptions: the consultant picker for new profiles needs `users.read` (otherwise a user id is typed); staff names are not shown to families
+  in ticket threads; no meeting links (EEMP-016).
+

@@ -70,6 +70,17 @@ export function adminNavigation(user: CurrentUser): FrameNavSection[] {
       ],
     },
     {
+      // EEMP-012: consultant duties come from consultation.sessions.manage (plus a consultant profile, checked by the API).
+      labelKey: 'consultationSection',
+      items: [
+        ...(can('consultation.sessions.manage') || can('consultation.consultants.manage') ? [{ href: '/consultation/schedule', labelKey: 'consultationSchedule' }] : []),
+        ...(can('consultation.sessions.manage') || can('consultation.bookings.read') || can('consultation.notes.read')
+          ? [{ href: '/consultation/bookings', labelKey: 'consultationBookings' }] : []),
+        ...(can('consultation.consultants.manage') || can('consultation.bookings.read') ? [{ href: '/consultation/consultants', labelKey: 'consultants' }] : []),
+        ...(can('support.tickets.read') ? [{ href: '/support', labelKey: 'supportInbox' }] : []),
+      ],
+    },
+    {
       labelKey: 'peopleSection',
       items: PERSON_KINDS.filter((kind) => can(`${kind}.read`)).map((kind) => ({ href: `/people/${kind}`, labelKey: kind })),
     },

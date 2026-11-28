@@ -15,6 +15,9 @@ public interface ITenantAccessProvisioner
 public interface IUserDirectory
 {
     Task<bool> ExistsAsync(Guid userId, CancellationToken ct = default);
+
+    /// <summary>Display names of users in the current tenant (missing ids are omitted). No permission check: callers authorize.</summary>
+    Task<IReadOnlyDictionary<Guid, string>> GetDisplayNamesAsync(IReadOnlyCollection<Guid> userIds, CancellationToken ct = default);
 }
 
 /// <summary>Lets other modules know whether a branch is referenced by role assignments.</summary>

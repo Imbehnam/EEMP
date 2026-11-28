@@ -7,6 +7,7 @@
 import type { Branch, Guardian, Organization, Permission, Role, Staff, Student, Teacher, Tenant } from '../types';
 import { ACADEMIC_IDS, createAcademicSeed, emptyAcademic, type MockAcademic } from './academic';
 import { createFinanceSeed, emptyFinance, type MockFinance } from './finance';
+import { createConsultationSeed, emptyConsultation, type MockConsultation } from './consultation';
 import { createWorkflowSeed, emptyWorkflow, type MockWorkflow } from './workflow';
 
 export interface MockUser {
@@ -38,6 +39,8 @@ export interface MockTenantData {
   finance: MockFinance;
   /** EEMP-011 workflow definitions and instances. */
   workflow: MockWorkflow;
+  /** EEMP-012 consultation booking and support tickets. */
+  consultation: MockConsultation;
 }
 
 export interface MockState {
@@ -101,14 +104,27 @@ export const WORKFLOW_PERMISSIONS: Permission[] = [
   wfp('workflow.tasks.approve', true, true),
 ];
 
-export const PERMISSIONS: Permission[] = [...M1_PERMISSIONS, ...ACADEMIC_PERMISSIONS, ...FINANCE_PERMISSIONS, ...WORKFLOW_PERMISSIONS];
+/** EEMP-012 consultation and support permissions (DL-091). */
+const cp = (code: string, isSensitive: boolean): Permission => ({ code, module: code.split('.')[0]!, isSensitive, branchScoped: true });
+export const CONSULTATION_PERMISSIONS: Permission[] = [
+  cp('consultation.consultants.manage', false),
+  cp('consultation.sessions.manage', true),
+  cp('consultation.bookings.read', true),
+  cp('consultation.bookings.manage', true),
+  cp('consultation.notes.read', true),
+  cp('support.tickets.read', true),
+  cp('support.tickets.manage', true),
+];
+
+export const PERMISSIONS: Permission[] = [...M1_PERMISSIONS, ...ACADEMIC_PERMISSIONS, ...FINANCE_PERMISSIONS, ...WORKFLOW_PERMISSIONS, ...CONSULTATION_PERMISSIONS];
 
 const ALL = PERMISSIONS.map((p) => p.code);
 const PEOPLE = ALL.filter((c) => /^(students|guardians|teachers|staff)\./.test(c));
 const ACADEMIC = ACADEMIC_PERMISSIONS.map((p) => p.code);
 /** No sensitive academic data for tenant admins (security baseline #1): catalog.* and classes.* only. */
 export const TENANT_ADMIN_PERMISSIONS = ALL.filter(
-  (c) => !PEOPLE.includes(c) && (!ACADEMIC.includes(c) || /^(catalog|classes)\./.test(c)) && !c.startsWith('finance.') && (!c.startsWith('workflow.') || c.startsWith('workflow.definitions.')),
+  (c) => !PEOPLE.includes(c) && (!ACADEMIC.includes(c) || /^(catalog|classes)\./.test(c)) && !c.startsWith('finance.') && (!c.startsWith('workflow.') || c.startsWith('workflow.definitions.'))
+    && !c.startsWith('consultation.') && !c.startsWith('support.'),
 );
 /** Built-in FinanceOfficer (DL-064): every finance code plus the reads finance screens need. */
 const FINANCE_OFFICER = [
@@ -116,6 +132,8 @@ const FINANCE_OFFICER = [
   'organization.read', 'branches.read', 'catalog.read', 'classes.read', 'students.read', 'guardians.read', 'enrollments.read',
 ];
 const BRANCH_WORKFLOW = ['workflow.definitions.read', 'workflow.instances.read', 'workflow.instances.manage', 'workflow.tasks.approve'];
+/** DL-091: booking oversight and support for branch managers, never consultation.notes.read. */
+const BRANCH_CONSULTATION = ['consultation.consultants.manage', 'consultation.bookings.read', 'consultation.bookings.manage', 'support.tickets.read', 'support.tickets.manage'];
 const TENANT_CONFIG = TENANT_ADMIN_PERMISSIONS;
 
 export const IDS = {
@@ -131,6 +149,8 @@ export const IDS = {
   roleStudent: 'a0000000-0000-4000-8000-000000000005',
   roleAlborzAdmin: 'a0000000-0000-4000-8000-000000000006',
   roleFinanceOfficer: 'a0000000-0000-4000-8000-000000000007',
+  roleConsultant: 'a0000000-0000-4000-8000-000000000008',
+  roleSupportDesk: 'a0000000-0000-4000-8000-000000000009',
   userPlatform: 'c0000000-0000-4000-8000-000000000001',
   userDemoAdmin: 'c0000000-0000-4000-8000-000000000002',
   userTeacher: 'c0000000-0000-4000-8000-000000000003',
@@ -140,6 +160,7 @@ export const IDS = {
   userAlborzAdmin: 'c0000000-0000-4000-8000-000000000007',
   userFinance: 'c0000000-0000-4000-8000-000000000008',
   userFinanceChecker: 'c0000000-0000-4000-8000-000000000009',
+  userConsultant: 'c0000000-0000-4000-8000-000000000010',
   student1: 'd0000000-0000-4000-8000-000000000001',
   student2: 'd0000000-0000-4000-8000-000000000002',
   student3: 'd0000000-0000-4000-8000-000000000003',
@@ -210,11 +231,13 @@ export function createSeed(): MockState {
     roles: [
       // Tenant admins manage configuration only — no implicit access to people records (security baseline #1).
       role(IDS.roleTenantAdmin, 'TenantAdmin', 'Tenant administrator', TENANT_CONFIG),
-      role(IDS.roleBranchManager, 'BranchManager', 'Branch manager', ['branches.read', ...PEOPLE, ...ACADEMIC, ...BRANCH_WORKFLOW]),
+      role(IDS.roleBranchManager, 'BranchManager', 'Branch manager', ['branches.read', ...PEOPLE, ...ACADEMIC, ...BRANCH_WORKFLOW, ...BRANCH_CONSULTATION]),
       role(IDS.roleTeacher, 'Teacher', 'Teacher', ['students.read']),
       role(IDS.roleGuardian, 'Guardian', 'Guardian', []),
       role(IDS.roleStudent, 'Student', 'Student', []),
       role(IDS.roleFinanceOfficer, 'FinanceOfficer', 'Finance officer', FINANCE_OFFICER),
+      role(IDS.roleConsultant, 'Consultant', 'Consultant', ['organization.read', 'branches.read', 'consultation.sessions.manage']),
+      role(IDS.roleSupportDesk, 'SupportDesk', 'Support desk', ['organization.read', 'branches.read', 'support.tickets.read', 'support.tickets.manage']),
     ],
     students: [
       person({
@@ -258,6 +281,7 @@ export function createSeed(): MockState {
     academic: createAcademicSeed(rv, IDS),
     finance: emptyFinance(rv),
     workflow: createWorkflowSeed(rv, IDS),
+    consultation: createConsultationSeed(rv, IDS),
   };
   demo.finance = createFinanceSeed(rv, IDS, {
     term1: ACADEMIC_IDS.term1,
@@ -272,6 +296,7 @@ export function createSeed(): MockState {
     branches: [{ id: IDS.branchAlborz, code: 'A01', name: 'Karaj', address: null, phone: null, isActive: true, rowVersion: rv() }],
     roles: [role(IDS.roleAlborzAdmin, 'TenantAdmin', 'Tenant administrator', TENANT_CONFIG)],
     students: [], guardians: [], teachers: [], staff: [], academic: emptyAcademic(), finance: emptyFinance(rv), workflow: emptyWorkflow(),
+    consultation: emptyConsultation(),
   };
 
   const user = (u: Omit<MockUser, 'rowVersion' | 'email' | 'phone' | 'isActive'> & Partial<MockUser>): MockUser => ({
@@ -290,6 +315,7 @@ export function createSeed(): MockState {
     user({ id: IDS.userStudent, tenantId: IDS.tenantDemo, userName: 'student.reza', displayName: 'رضا احمدی', locale: 'fa-IR', timeZone: 'Asia/Tehran', isPlatformAdmin: false, assignments: [{ roleId: IDS.roleStudent, branchId: IDS.branchNorth }] }),
     user({ id: IDS.userFinance, tenantId: IDS.tenantDemo, userName: 'finance.officer', displayName: 'Finance Officer', locale: 'en', timeZone: 'Asia/Tehran', isPlatformAdmin: false, assignments: [{ roleId: IDS.roleFinanceOfficer, branchId: null }] }),
     user({ id: IDS.userFinanceChecker, tenantId: IDS.tenantDemo, userName: 'finance.checker', displayName: 'Finance Checker', locale: 'en', timeZone: 'Asia/Tehran', isPlatformAdmin: false, assignments: [{ roleId: IDS.roleFinanceOfficer, branchId: null }] }),
+    user({ id: IDS.userConsultant, tenantId: IDS.tenantDemo, userName: 'consultant.one', displayName: 'نرگس توکلی', locale: 'fa-IR', timeZone: 'Asia/Tehran', isPlatformAdmin: false, assignments: [{ roleId: IDS.roleConsultant, branchId: IDS.branchNorth }] }),
     user({ id: IDS.userAlborzAdmin, tenantId: IDS.tenantAlborz, userName: 'alborz.admin', displayName: 'Alborz Admin', locale: 'fa-IR', timeZone: 'Asia/Tehran', isPlatformAdmin: false, assignments: [{ roleId: IDS.roleAlborzAdmin, branchId: null }] }),
   ];
 

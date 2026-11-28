@@ -464,6 +464,75 @@ owner approved (2026-11-26) that discount and refund approvals live inside Finan
   after that work lands.
 - Owner: Implementing agent; approval: user.
 
+### DL-090 — EEMP-012 scope and module shape (consultation + support)
+- Date: 2026-11-28
+- Status: Proposed (implementing agent; awaiting user review in the draft PR)
+- Context: EEMP-012 "Consultation and support booking" (CNS-001..006) had no approved booking rules; OD-017 (counseling data
+  classification) is open. MODULE_BOUNDARIES lists a Consultation module (availability, bookings, case metadata).
+- Decision: one module `Consultation` (schema `consultation`) owns consultant profiles, availability slots, bookings, confidential notes
+  and support tickets. One-to-one sessions only (capacity 1). Out of scope: paid sessions (DL-095), meeting links/calendar sync (EEMP-016),
+  reminders/SMS (EEMP-017), single-step reschedule (cancel + book again), group sessions, waiting lists, buffers, ticket attachments/SLA.
+- Alternatives: a separate Support module (deferred: no shared aggregates, splitting later is mechanical); capacity > 1 (no requirement).
+- Consequences: contract `docs/08-planning/CONSULTATION_CONTRACT.md`; tables are globally unique by name (SQLite fallback has no schemas),
+  hence `ConsultationSettings`.
+- Owner: Implementing agent; approval: user.
+
+### DL-091 — Consultant identity, permissions and built-in roles
+- Date: 2026-11-28
+- Status: Proposed
+- Decision: a consultant is a tenant **user** with a `Consultants` profile (display name, bio, specialties, branches served). Acting as a
+  consultant also requires `consultation.sessions.manage` in the branch (new built-in role **Consultant**), so deactivating the profile or
+  removing the role both stop access. New codes: `consultation.consultants.manage` (non-sensitive, branch), `consultation.sessions.manage`,
+  `consultation.bookings.read`, `consultation.bookings.manage`, `consultation.notes.read`, `support.tickets.read`, `support.tickets.manage`
+  (all sensitive, branch-scoped). **BranchManager** gains consultants.manage, bookings.read/manage and support.tickets.read/manage; new
+  **SupportDesk** role holds support.*; **TenantAdmin gets no consultation/support code** (security baseline #1). Existing tenants receive
+  the codes through the startup system-role sync (DL-064). Booking settings need a tenant-wide consultants.manage grant.
+- Alternatives: link to People `StaffMember` (rejected for now: staff records have no user link requirement; the user account is what
+  authenticates); a role-only consultant without profile (rejected: portal needs a display profile and branch list).
+- Consequences: creating a consultant profile needs the user's id; the admin UI offers a user picker only to holders of `users.read`.
+- Owner: Implementing agent; approval: user.
+
+### DL-092 — Booking rules and atomic reservation
+- Date: 2026-11-28
+- Status: Proposed
+- Decision: states `requested → confirmed → completed | noShow`, `requested/confirmed → cancelled`. Families book only for a linked
+  student (guardian) or themselves (student), only in the student's own branch; anything else is 404 (no existence leak). A slot is
+  reserved atomically by inserting the booking under the unique filtered index `(TenantId, SlotId) WHERE Status <> 'Cancelled'`; a lost
+  race returns `409 consultation.slot_unavailable`. Tenant policy defaults: cancellation window 24 h (families cannot cancel online later;
+  staff can), booking horizon 30 days, minimum notice 2 h, max 3 upcoming sessions per student. Completion is allowed from 15 minutes before
+  the start, no-show only after it. Every transition takes the booking rowVersion.
+- Consequences: dev seed uses minimum notice 0 h so walk-in sessions can be demoed and tested end to end.
+- Owner: Implementing agent; approval: user (business values of the policy defaults).
+
+### DL-093 — Confidential consultation notes (resolves OD-017 for EEMP-012, retention still open)
+- Date: 2026-11-28
+- Status: Proposed
+- Decision: notes are a separate append-only table and endpoint, never part of booking DTOs or portal responses. Read: the booking's own
+  consultant, or `consultation.notes.read` in the booking's branch (granted to **no** built-in role; tenants create a supervisor role
+  explicitly). Write: the booking's consultant only, on confirmed/completed sessions. BranchManager sees booking metadata but gets
+  `403 consultation.notes_forbidden`; TenantAdmin, students and guardians get 404. Every notes read is written to the audit trail (ids only).
+- Open: retention period, purge job and export restrictions (OD-017, AUDIT_RETENTION_AND_CONSENT).
+- Owner: Implementing agent; approval: user.
+
+### DL-094 — Support tickets
+- Date: 2026-11-28
+- Status: Proposed
+- Decision: portal users (student/guardian) open tickets about a linked student; the ticket's branch is the student's branch (server-side).
+  The requester sees only tickets they created and never internal notes; staff replies are shown as "Support team" (no staff names to
+  families). Staff with `support.tickets.read` see their branches' tickets; `support.tickets.manage` replies, adds internal notes, changes
+  status/priority and assigns (assign-to-me/unassign in the UI; any existing tenant user via the API). Staff reply → waiting on requester;
+  requester reply → open; closed is terminal. Per-tenant ticket numbers (max + 1, unique index, retried on conflict).
+- Owner: Implementing agent; approval: user.
+
+### DL-095 — No workflow engine and no payment for EEMP-012
+- Date: 2026-11-28
+- Status: Proposed
+- Decision: bookings and tickets keep module-local state machines; the EEMP-011 engine (multi-step approvals) is not used because no
+  approval chain exists here (EEMP-013 planning requests are the expected first consumer). Paid sessions are deferred to EEMP-013: Finance
+  has no in-process "invoice an arbitrary service" contract (invoices are generated per enrollment × fee item) and Finance is being completed
+  on a parallel branch, so adding one would edit finance files.
+- Owner: Implementing agent; approval: user.
+
 ## Proposed, not yet approved
 - SQL Server RLS defense-in-depth (engine approved in DL-045; shared database with TenantId adopted as an M1 assumption in DL-049; RLS not implemented, see DL-052).
 - Provider adapters for payments, SMS, video, storage.
